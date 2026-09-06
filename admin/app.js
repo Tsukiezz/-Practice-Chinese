@@ -20,6 +20,17 @@ const date = value => new Date(value * 1000).toLocaleString('vi-VN');
 const brand = '<div class="brand"><span class="seal">汉</span><div>HanziGo<small>ADMIN WORKSPACE</small></div></div>';
 const statusLabel = value => ({published:'Đã phát hành',draft:'Bản nháp',hidden:'Đã ẩn',admin:'Quản trị viên',student:'Học viên'}[value] || value);
 
+// Desktop testers can use the same compact layout as a phone without DevTools.
+const previewControls = document.createElement('div');
+previewControls.className = 'preview-controls';
+previewControls.innerHTML = '<span>HanziGo Admin</span><button type="button" aria-pressed="false">Xem giao diện điện thoại</button>';
+document.body.insertBefore(previewControls, root);
+previewControls.querySelector('button').onclick = event => {
+  const active = document.body.classList.toggle('preview-mobile');
+  event.currentTarget.setAttribute('aria-pressed', String(active));
+  event.currentTarget.textContent = active ? 'Trở về giao diện máy tính' : 'Xem giao diện điện thoại';
+};
+
 function notify(message) {
   document.querySelector('#notice').textContent = message;
   clearTimeout(noticeTimer);
@@ -93,7 +104,19 @@ function heading() {
 }
 
 function table(headers, rows) {
-  return rows.length ? `<div class="table-wrap"><table><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>` : '<div class="empty">Chưa có dữ liệu phù hợp.<br>Hãy thêm nội dung hoặc thay đổi bộ lọc.</div>';
+  if (!rows.length) return '<div class="empty">Chưa có dữ liệu phù hợp.<br>Hãy thêm nội dung hoặc thay đổi bộ lọc.</div>';
+  const element = document.createElement('table');
+  element.className = 'responsive-table';
+  element.setAttribute('role', 'table');
+  element.innerHTML = `<thead><tr>${headers.map(h => `<th scope="col">${escape(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody>`;
+  for (const row of element.tBodies[0].rows) {
+    row.setAttribute('role', 'row');
+    [...row.cells].forEach((cell, index) => {
+      cell.dataset.label = headers[index];
+      cell.setAttribute('role', 'cell');
+    });
+  }
+  return `<div class="table-wrap">${element.outerHTML}</div>`;
 }
 
 async function loadPage(params = '') {

@@ -135,6 +135,21 @@ def run():
                 expect(page.get_by_role('cell',name='Đã khóa',exact=True)).to_be_visible()
                 assert httpx.get(base+'/api/me',headers=auth).status_code==401
 
+                page.get_by_role('button',name='Xem giao diện điện thoại',exact=True).click()
+                expect(page.get_by_role('button',name='Trở về giao diện máy tính',exact=True)).to_have_attribute('aria-pressed','true')
+                assert page.locator('#app').bounding_box()['width'] <= 440
+                assert page.locator('tbody tr').first.evaluate("el => getComputedStyle(el).display") == 'grid'
+                page.screenshot(path=str(artifacts / 'admin-phone-preview.png'),full_page=True)
+                page.get_by_role('button',name='Trở về giao diện máy tính',exact=True).click()
+                assert page.locator('tbody tr').first.evaluate("el => getComputedStyle(el).display") == 'table-row'
+
+                page.set_viewport_size({'width':320,'height':740})
+                for name in ['Người dùng','Kho từ & nét chuẩn','Ngân hàng đề','Duyệt kết quả','Nhật ký quản trị']:
+                    page.get_by_role('button',name=name,exact=True).click()
+                    expect(page.locator('tbody tr').first).to_be_visible()
+                    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), name
+                    assert page.locator('.table-wrap').first.evaluate('el => el.scrollWidth <= el.clientWidth'), name
+
                 page.set_viewport_size({'width':390,'height':844})
                 page.get_by_role('button',name='Tổng quan',exact=True).click()
                 expect(page.locator('.stat')).to_have_count(8)
@@ -144,6 +159,8 @@ def run():
                 page.get_by_role('button',name='+ Thêm từ',exact=True).click()
                 expect(editor).to_be_visible()
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+                assert editor.evaluate('el => el.scrollWidth <= el.clientWidth')
+                page.screenshot(path=str(artifacts / 'admin-mobile-form.png'),full_page=True)
                 editor.get_by_role('button',name='Hủy',exact=True).click()
                 page.reload()
                 expect(page.get_by_role('heading',name='Tổng quan',exact=True)).to_be_visible()

@@ -24,6 +24,8 @@ python -m venv .venv
 
 Mở **http://127.0.0.1:8010/admin** và đăng nhập bằng tài khoản vừa tạo. API tương tác: **http://127.0.0.1:8010/docs**.
 
+Trên điện thoại, menu hiển thị đầy đủ, danh sách chuyển thành thẻ có nhãn và biểu mẫu dùng một cột. Trên máy tính, bấm **Xem giao diện điện thoại** ở đầu trang để kiểm thử cùng bố cục mobile trong khung 440px; bấm **Trở về giao diện máy tính** để mở lại bố cục rộng.
+
 `seed.py` thêm 8 từ và 6 đề Đọc mẫu HSK 1–6; chạy lại không tạo trùng. Đề minh họa ở trạng thái nháp để Admin kiểm tra trước khi phát hành. Không tạo tài khoản/mật khẩu mặc định, điểm hay lịch sử AI giả. Có thể tạo câu Nghe/Viết trong trang ngân hàng đề; câu Nghe cần audio HTTPS thật.
 
 Database mặc định: `backend/hanzi_go.db`. Trang Admin và API chạy chung máy chủ, không cần Node.js để sử dụng.
