@@ -46,3 +46,15 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Backend environments, credentials and local data
+**/.venv*/
+**/__pycache__/
+*.db
+*.db-*
+.env
+.env.*
+!.env.example
+**/node_modules/
+test-results/
+playwright-report/
