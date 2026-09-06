@@ -21,6 +21,14 @@ input, select, textarea { min-height: 44px; }
 .dialog-footer { position: sticky; bottom: -24px; background: white; padding-bottom: 16px; }
 .dialog-body > *, .grid > *, td { min-width: 0; overflow-wrap: anywhere; }
 dialog { container-type: inline-size; }
+.sidebar-menu { display: flex; flex-direction: column; flex: 1; gap: 28px; min-height: 0; overflow-y: auto; }
+.menu-toggle { display: none; }
+.nav-group { display: grid; gap: 5px; }
+.nav-label { padding: 14px 13px 3px; color: #9fbdad; font-size: 10px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; }
+.intro h1:focus { outline: none; }
+.advanced-stats { margin: -8px 0 24px; }
+.advanced-stats summary { cursor: pointer; min-height: 44px; padding: 12px 4px; color: var(--green); font-size: 14px; font-weight: 600; }
+.advanced-stats .stats { margin-top: 10px; }
 
 @container (max-width: 700px) {
   .layout { display: block; min-height: 100dvh; }
@@ -28,15 +36,18 @@ dialog { container-type: inline-size; }
   .brand { font-size: 22px; }
   .brand .seal { width: 40px; height: 40px; }
   .brand small { font-size: 9px; }
-  .sidebar nav { display: grid; grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .menu-toggle { display: grid; place-items: center; width: 44px; height: 44px; padding: 9px; background: transparent; border-color: #527265; color: white; }
+  .menu-toggle:hover, .menu-toggle[aria-expanded="true"] { background: #2c5747; }
+  .sidebar-menu { display: none; grid-column: 1 / -1; }
+  .sidebar.menu-open .sidebar-menu { display: flex; gap: 16px; padding-top: 12px; border-top: 1px solid #527265; }
+  .sidebar nav { display: grid; grid-template-columns: 1fr; gap: 6px; }
   .sidebar nav button {
-    white-space: normal; min-height: 52px; padding: 8px 6px; text-align: center;
-    font-size: 11px; background: #ffffff09; border: 1px solid #ffffff0d;
+    white-space: normal; min-height: 44px; padding: 11px 13px; text-align: left;
+    font-size: 14px; background: #ffffff09; border: 1px solid #ffffff0d;
   }
   .sidebar nav button.active { border-color: #d7ed98; background: #d7ed98; color: #153e35; }
-  .sidebar nav button:last-child { grid-column: span 2; }
   .account { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0; }
-  .account > div { display: none; }
+  .account > div { display: block; min-width: 0; }
   .account small { display: none; }
   .account b { margin: 0; font-size: 12px; }
   .account button { margin: 0; padding: 8px 12px; font-size: 12px; flex-shrink: 0; }

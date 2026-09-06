@@ -24,7 +24,15 @@ python -m venv .venv
 
 Mở **http://127.0.0.1:8010/admin** và đăng nhập bằng tài khoản vừa tạo. API tương tác: **http://127.0.0.1:8010/docs**.
 
-Trên điện thoại, menu hiển thị đầy đủ, danh sách chuyển thành thẻ có nhãn và biểu mẫu dùng một cột. Trên máy tính, bấm **Xem giao diện điện thoại** ở đầu trang để kiểm thử cùng bố cục mobile trong khung 440px; bấm **Trở về giao diện máy tính** để mở lại bố cục rộng.
+Trên điện thoại, nhấn nút **☰** để mở menu gồm nhóm Học tập/Hệ thống. Menu tự đóng khi chọn trang; có thể đóng bằng nút ☰, chạm bên ngoài hoặc Escape trên bàn phím. Tổng quan chỉ hiển thị 4 chỉ số chính; mở **Thống kê chi tiết** để xem thêm. Danh sách dùng thẻ có nhãn và biểu mẫu một cột. Trên máy tính, bấm **Xem giao diện điện thoại** để kiểm thử cùng bố cục và menu ☰ trong khung 440px; bấm **Trở về giao diện máy tính** để mở lại bố cục rộng.
+
+Để kiểm tra trên điện thoại thật cùng Wi-Fi với máy tính, chạy backend từ `backend/` bằng:
+
+```powershell
+.venv\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8010
+```
+
+Mở `http://<IPv4-cua-may-tinh>:8010/admin` trên điện thoại (xem IPv4 bằng `ipconfig`). Trên máy tính vẫn mở `http://127.0.0.1:8010/admin`. Dừng tiến trình cũ trên cổng 8010 trước khi đổi lệnh chạy. Nếu không kết nối được từ điện thoại, kiểm tra cùng mạng và quyền kết nối mạng riêng của Python trong Windows Firewall. Đây là bản web responsive, chưa phải màn hình Admin native trong Flutter.
 
 `seed.py` thêm 8 từ và 6 đề Đọc mẫu HSK 1–6; chạy lại không tạo trùng. Đề minh họa ở trạng thái nháp để Admin kiểm tra trước khi phát hành. Không tạo tài khoản/mật khẩu mặc định, điểm hay lịch sử AI giả. Có thể tạo câu Nghe/Viết trong trang ngân hàng đề; câu Nghe cần audio HTTPS thật.
 

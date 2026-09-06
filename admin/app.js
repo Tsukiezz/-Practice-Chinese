@@ -26,10 +26,35 @@ previewControls.className = 'preview-controls';
 previewControls.innerHTML = '<span>HanziGo Admin</span><button type="button" aria-pressed="false">Xem giao diện điện thoại</button>';
 document.body.insertBefore(previewControls, root);
 previewControls.querySelector('button').onclick = event => {
+  setMenu(false);
   const active = document.body.classList.toggle('preview-mobile');
   event.currentTarget.setAttribute('aria-pressed', String(active));
   event.currentTarget.textContent = active ? 'Trở về giao diện máy tính' : 'Xem giao diện điện thoại';
 };
+
+function setMenu(open, restoreFocus = false) {
+  const sidebar = document.querySelector('.sidebar');
+  const toggle = document.querySelector('#menu-toggle');
+  if (!sidebar || !toggle) return;
+  sidebar.classList.toggle('menu-open', open);
+  toggle.setAttribute('aria-expanded', String(open));
+  toggle.setAttribute('aria-label', open ? 'Đóng menu quản trị' : 'Mở menu quản trị');
+  if (restoreFocus) toggle.focus();
+}
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !dialog.open && document.querySelector('.sidebar.menu-open')) setMenu(false, true);
+});
+document.addEventListener('click', event => {
+  const sidebar = document.querySelector('.sidebar.menu-open');
+  if (sidebar && !sidebar.contains(event.target)) setMenu(false);
+});
+let compactLayout = false;
+new ResizeObserver(([entry]) => {
+  const compact = entry.contentRect.width <= 700;
+  if (compact !== compactLayout) setMenu(false);
+  compactLayout = compact;
+}).observe(root);
 
 function notify(message) {
   document.querySelector('#notice').textContent = message;
@@ -90,8 +115,16 @@ function loginView(error = '') {
 }
 
 function shell() {
-  root.innerHTML = `<div class="layout"><aside class="sidebar">${brand}<nav aria-label="Quản trị">${Object.entries(pages).map(([key,[title]]) => `<button data-page="${key}">${title}</button>`).join('')}</nav><div class="account"><div><b>${escape(user.name)}</b><small>${escape(user.email)}</small></div><button id="logout">Đăng xuất</button></div></aside><main class="main"><div class="topline"><span>CHINESE LEARNING / QUẢN TRỊ</span><span class="pill">Không gian quản trị</span></div><div id="content"></div></main></div>`;
-  document.querySelectorAll('[data-page]').forEach(button => button.onclick = () => { page = button.dataset.page; loadPage(); });
+  const navButton = key => `<button data-page="${key}">${pages[key][0]}</button>`;
+  root.innerHTML = `<div class="layout"><aside class="sidebar">${brand}<button type="button" id="menu-toggle" class="menu-toggle" aria-label="Mở menu quản trị" aria-expanded="false" aria-controls="admin-menu"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div id="admin-menu" class="sidebar-menu"><nav aria-label="Quản trị">${navButton('dashboard')}<div class="nav-group"><span class="nav-label">Học tập</span>${['vocabulary','exams','results'].map(navButton).join('')}</div><div class="nav-group"><span class="nav-label">Hệ thống</span>${['users','ai','logs'].map(navButton).join('')}</div></nav><div class="account"><div><b>${escape(user.name)}</b><small>${escape(user.email)}</small></div><button id="logout">Đăng xuất</button></div></div></aside><main class="main"><div class="topline"><span>CHINESE LEARNING / QUẢN TRỊ</span><span class="pill">Không gian quản trị</span></div><div id="content"></div></main></div>`;
+  document.querySelector('#menu-toggle').onclick = event => {
+    setMenu(event.currentTarget.getAttribute('aria-expanded') !== 'true');
+  };
+  document.querySelectorAll('[data-page]').forEach(button => button.onclick = () => {
+    page = button.dataset.page;
+    setMenu(false);
+    loadPage().then(() => document.querySelector('#content h1')?.focus());
+  });
   document.querySelector('#logout').onclick = async () => {
     try { await api('/auth/logout', 'POST'); clearSession(); loginView(); }
     catch (err) { notify(err.message); }
@@ -100,7 +133,7 @@ function shell() {
 }
 
 function heading() {
-  return `<header class="intro"><div class="eyebrow">HANZIGO CONTROL CENTER</div><h1>${pages[page][0]}</h1><p>${pages[page][1]}</p></header>`;
+  return `<header class="intro"><div class="eyebrow">HANZIGO CONTROL CENTER</div><h1 tabindex="-1">${pages[page][0]}</h1><p>${pages[page][1]}</p></header>`;
 }
 
 function table(headers, rows) {
@@ -121,7 +154,11 @@ function table(headers, rows) {
 
 async function loadPage(params = '') {
   const id = ++loadId;
-  document.querySelectorAll('[data-page]').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+  document.querySelectorAll('[data-page]').forEach(b => {
+    b.classList.toggle('active', b.dataset.page === page);
+    if (b.dataset.page === page) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
   const content = document.querySelector('#content');
   if (!content) return;
   content.innerHTML = heading() + '<div class="loading" role="status">Đang tải dữ liệu…</div>';
@@ -140,7 +177,9 @@ async function loadPage(params = '') {
 
 function renderDashboard(content, data) {
   const t = data.totals;
-  content.innerHTML += `<div class="stats">${[['Người dùng',t.users],['Từ vựng',t.vocabulary],['Đề thi',t.exams],['Kết quả đã chấm',t.results],['Tài khoản hoạt động',t.active_users],['Điểm trung bình',t.average_score],['Lượt AI thành công',t.ai_success],['Lượt AI lỗi',t.ai_errors]].map(([label,value]) => `<article class="stat"><small>${label}</small><b>${value}</b></article>`).join('')}</div><section class="panel"><h2>Hoạt động quản trị gần đây</h2>${table(['Người thực hiện','Thao tác','Dữ liệu','Thời gian'], data.recent_activity.map(r => `<tr><td>${escape(r.name)}</td><td>${escape(r.action)}</td><td>${escape(r.entity)} #${r.entity_id}</td><td>${date(r.created_at)}</td></tr>`))}</section>`;
+  const stats = items => `<div class="stats">${items.map(([label,value]) => `<article class="stat"><small>${label}</small><b>${value}</b></article>`).join('')}</div>`;
+  content.innerHTML += stats([['Người dùng',t.users],['Từ vựng',t.vocabulary],['Đề thi',t.exams],['Kết quả đã chấm',t.results]]);
+  content.innerHTML += `<details class="advanced-stats"><summary>Thống kê chi tiết</summary>${stats([['Tài khoản hoạt động',t.active_users],['Điểm trung bình',t.average_score],['Lượt AI thành công',t.ai_success],['Lượt AI lỗi',t.ai_errors]])}</details><section class="panel"><h2>Hoạt động quản trị gần đây</h2>${table(['Người thực hiện','Thao tác','Dữ liệu','Thời gian'], data.recent_activity.map(r => `<tr><td>${escape(r.name)}</td><td>${escape(r.action)}</td><td>${escape(r.entity)} #${r.entity_id}</td><td>${date(r.created_at)}</td></tr>`))}</section>`;
 }
 
 function renderUsers(content, data, params) {
@@ -242,8 +281,13 @@ function renderExams(content, data, params) {
   bindDeletes(data,'exams',r=>r.title);
 }
 
+function newQuestionId() {
+  // A local content ID, not an authentication token. HTTP on a LAN may lack randomUUID.
+  return globalThis.crypto?.randomUUID?.() || `q-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,10)}`;
+}
+
 function questionHTML(q = {}) {
-  return `<fieldset class="question"><legend>Câu hỏi</legend><div class="grid"><label>Mã câu<input data-key="id" required maxlength="40" value="${escape(q.id || crypto.randomUUID().slice(0,8))}"></label><label>Kỹ năng<select data-key="section">${[['reading','Đọc'],['listening','Nghe'],['writing','Viết']].map(([v,l])=>`<option value="${v}" ${q.section===v?'selected':''}>${l}</option>`).join('')}</select></label><label class="span-2">Yêu cầu / nội dung<textarea data-key="prompt" required maxlength="5000">${escape(q.prompt || '')}</textarea></label><label>Lựa chọn (mỗi dòng một đáp án)<textarea data-key="options">${escape((q.options || []).join('\n'))}</textarea></label><label>Đáp án / rubric chấm<textarea data-key="answer" required maxlength="5000">${escape(q.answer || '')}</textarea></label><label>Audio HTTPS (bắt buộc cho Nghe)<input data-key="audio_url" type="url" value="${escape(q.audio_url || '')}"></label><label>ID từ liên quan (tùy chọn)<input data-key="word_id" type="number" min="1" value="${q.word_id || ''}"></label><label>Transcript<textarea data-key="transcript">${escape(q.transcript || '')}</textarea></label><label>Giải thích đáp án<textarea data-key="explanation">${escape(q.explanation || '')}</textarea></label></div><button type="button" class="danger remove">Bỏ câu hỏi</button></fieldset>`;
+  return `<fieldset class="question"><legend>Câu hỏi</legend><div class="grid"><label>Mã câu<input data-key="id" required maxlength="40" value="${escape(q.id || newQuestionId())}"></label><label>Kỹ năng<select data-key="section">${[['reading','Đọc'],['listening','Nghe'],['writing','Viết']].map(([v,l])=>`<option value="${v}" ${q.section===v?'selected':''}>${l}</option>`).join('')}</select></label><label class="span-2">Yêu cầu / nội dung<textarea data-key="prompt" required maxlength="5000">${escape(q.prompt || '')}</textarea></label><label>Lựa chọn (mỗi dòng một đáp án)<textarea data-key="options">${escape((q.options || []).join('\n'))}</textarea></label><label>Đáp án / rubric chấm<textarea data-key="answer" required maxlength="5000">${escape(q.answer || '')}</textarea></label><label>Audio HTTPS (bắt buộc cho Nghe)<input data-key="audio_url" type="url" value="${escape(q.audio_url || '')}"></label><label>ID từ liên quan (tùy chọn)<input data-key="word_id" type="number" min="1" value="${q.word_id || ''}"></label><label>Transcript<textarea data-key="transcript">${escape(q.transcript || '')}</textarea></label><label>Giải thích đáp án<textarea data-key="explanation">${escape(q.explanation || '')}</textarea></label></div><button type="button" class="danger remove">Bỏ câu hỏi</button></fieldset>`;
 }
 
 function examEditor(row) {

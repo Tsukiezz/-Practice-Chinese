@@ -4,6 +4,7 @@ Run after installing requirements-dev.txt and Playwright Chromium, or set
 PLAYWRIGHT_CHANNEL=msedge to use an installed Microsoft Edge.
 """
 import os
+import re
 import secrets
 import socket
 import subprocess
@@ -54,6 +55,17 @@ def run():
                 browser = playwright.chromium.launch(headless=True, **({"channel": channel} if channel else {}))
                 page = browser.new_page(viewport={"width": 1440, "height": 1000}, device_scale_factor=1)
                 page.set_default_timeout(10000)
+                def navigate(name):
+                    toggle = page.locator('#menu-toggle')
+                    if toggle.is_visible():
+                        expect(toggle).to_have_attribute('aria-expanded','false')
+                        expect(page.locator('#admin-menu')).not_to_be_visible()
+                        toggle.click()
+                        expect(page.locator('#admin-menu')).to_be_visible()
+                    page.get_by_role('button',name=name,exact=True).click()
+                    if toggle.is_visible():
+                        expect(toggle).to_have_attribute('aria-expanded','false')
+                        expect(page.locator('#admin-menu')).not_to_be_visible()
                 errors = []
                 page.on("pageerror", lambda error: errors.append(str(error)))
                 page.goto(base + "/admin")
@@ -62,6 +74,10 @@ def run():
                 page.get_by_role("button", name="Đăng nhập →").click()
                 expect(page.get_by_role("heading", name="Tổng quan", exact=True)).to_be_visible()
                 expect(page.locator('.stat')).to_have_count(8)
+                expect(page.locator('.stat:visible')).to_have_count(4)
+                page.locator('.advanced-stats summary').click()
+                expect(page.locator('.stat:visible')).to_have_count(8)
+                page.locator('.advanced-stats summary').click()
                 page.screenshot(path=str(artifacts / "admin-desktop.png"), full_page=True)
 
                 page.get_by_role("button", name="Kho từ & nét chuẩn", exact=True).click()
@@ -138,6 +154,16 @@ def run():
                 page.get_by_role('button',name='Xem giao diện điện thoại',exact=True).click()
                 expect(page.get_by_role('button',name='Trở về giao diện máy tính',exact=True)).to_have_attribute('aria-pressed','true')
                 assert page.locator('#app').bounding_box()['width'] <= 440
+                expect(page.locator('#menu-toggle')).to_be_visible()
+                expect(page.locator('#admin-menu')).not_to_be_visible()
+                page.locator('#menu-toggle').click()
+                expect(page.locator('#admin-menu')).to_be_visible()
+                page.keyboard.press('Escape')
+                expect(page.locator('#admin-menu')).not_to_be_visible()
+                expect(page.locator('#menu-toggle')).to_be_focused()
+                page.locator('#menu-toggle').click()
+                page.locator('#content h1').click()
+                expect(page.locator('#admin-menu')).not_to_be_visible()
                 assert page.locator('tbody tr').first.evaluate("el => getComputedStyle(el).display") == 'grid'
                 page.screenshot(path=str(artifacts / 'admin-phone-preview.png'),full_page=True)
                 page.get_by_role('button',name='Trở về giao diện máy tính',exact=True).click()
@@ -145,17 +171,20 @@ def run():
 
                 page.set_viewport_size({'width':320,'height':740})
                 for name in ['Người dùng','Kho từ & nét chuẩn','Ngân hàng đề','Duyệt kết quả','Nhật ký quản trị']:
-                    page.get_by_role('button',name=name,exact=True).click()
+                    navigate(name)
                     expect(page.locator('tbody tr').first).to_be_visible()
                     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), name
                     assert page.locator('.table-wrap').first.evaluate('el => el.scrollWidth <= el.clientWidth'), name
 
                 page.set_viewport_size({'width':390,'height':844})
-                page.get_by_role('button',name='Tổng quan',exact=True).click()
+                navigate('Tổng quan')
                 expect(page.locator('.stat')).to_have_count(8)
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
                 page.screenshot(path=str(artifacts / 'admin-mobile.png'),full_page=True)
-                page.get_by_role('button',name='Kho từ & nét chuẩn',exact=True).click()
+                page.locator('#menu-toggle').click()
+                page.screenshot(path=str(artifacts / 'admin-mobile-menu.png'),full_page=True)
+                page.locator('#menu-toggle').click()
+                navigate('Kho từ & nét chuẩn')
                 page.get_by_role('button',name='+ Thêm từ',exact=True).click()
                 expect(editor).to_be_visible()
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
@@ -164,9 +193,33 @@ def run():
                 editor.get_by_role('button',name='Hủy',exact=True).click()
                 page.reload()
                 expect(page.get_by_role('heading',name='Tổng quan',exact=True)).to_be_visible()
+                expect(page.locator('#admin-menu')).not_to_be_visible()
+                page.locator('#menu-toggle').click()
                 page.get_by_role('button',name='Đăng xuất',exact=True).click()
                 expect(page.get_by_role('heading',name='Đăng nhập quản trị',exact=True)).to_be_visible()
                 assert not errors, errors
+                phone = browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True)
+                phone.on('pageerror', lambda error: errors.append(str(error)))
+                phone.add_init_script("Object.defineProperty(Crypto.prototype, 'randomUUID', {value: undefined, configurable: true})")
+                phone.goto(base+'/admin')
+                phone.get_by_label('Email',exact=True).fill('admin@example.test')
+                phone.get_by_label('Mật khẩu',exact=True).fill(password)
+                phone.get_by_role('button',name='Đăng nhập →').tap()
+                expect(phone.locator('.stat:visible')).to_have_count(4)
+                expect(phone.locator('#admin-menu')).not_to_be_visible()
+                phone.locator('#menu-toggle').tap()
+                phone.get_by_role('button',name='Ngân hàng đề',exact=True).tap()
+                expect(phone.locator('#admin-menu')).not_to_be_visible()
+                phone.get_by_role('button',name='+ Tạo đề thi',exact=True).tap()
+                expect(phone.locator('dialog')).to_be_visible()
+                expect(phone.locator('[data-key=id]')).to_have_value(re.compile(r'^q-.+'))
+                assert phone.locator('dialog').evaluate('el => el.scrollWidth <= el.clientWidth')
+                phone.get_by_role('button',name='Hủy',exact=True).tap()
+                phone.locator('#menu-toggle').tap()
+                phone.get_by_role('button',name='Đăng xuất',exact=True).tap()
+                expect(phone.get_by_role('heading',name='Đăng nhập quản trị',exact=True)).to_be_visible()
+                assert not errors, errors
+                phone.close()
                 browser.close()
             print('PASS: desktop/mobile admin, vocabulary and strokes, exams, score synchronization, users, AI config, audit, session/logout; no JavaScript errors.')
         finally:
