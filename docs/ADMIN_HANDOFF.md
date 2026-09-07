@@ -1,3 +1,5 @@
+Cập nhật 07/09/2026: xem [đối chiếu 23 đầu việc](NGUYEN_ACCEPTANCE.md). Kết quả kiểm tra 06/09 bên dưới là lịch sử.
+
 # Bàn giao Nguyên — Admin & tích hợp
 
 ## Phạm vi và hiện trạng
@@ -23,7 +25,7 @@ Khi kiểm tra GitHub: `main`, `nguyen`, `tuyen` ở `3403b81`; `kiet`, `trung`,
 |---|---|---|
 | Báo cáo | `GET /api/admin/dashboard` | `totals`, `recent_activity` |
 | Người dùng | `GET /api/admin/users?search=&role=&active=` | Role student/admin, trạng thái boolean |
-| Khóa/đổi quyền | `PATCH /api/admin/users/{id}` | `{role,is_active}` |
+| Khóa/đổi quyền | `PATCH /api/admin/users/{id}` | `{role,is_active,version}` |
 | Kho từ | `GET/POST /api/admin/vocabulary` | GET có `search`, `hsk` |
 | Sửa/xóa từ | `PUT /api/admin/vocabulary/{id}`, `DELETE ...?version=N` | PUT thêm version |
 | Đề | `GET/POST /api/admin/exams` | GET có hsk |
@@ -82,22 +84,18 @@ Không xóa từ có word_id trong đề. Module kho cá nhân/lịch sử của
 
 Key chỉ đọc từ AI_API_KEY. ready là kiểm tra nội bộ, chưa xác minh nhà cung cấp.
 
-`services.grade_with_ai(user_id, kind, content, provider)` là hàm nội bộ máy chủ, không phải endpoint tự nộp điểm:
+`services.grade_with_ai(user_id, kind, content, provider=gemini_grade)` dùng adapter Gemini REST trong `ai_provider.py`: HTTPS cố định, timeout đọc 20s/kết nối 5s, tối đa hai lần gửi khi lỗi mạng/429/5xx. Output score hữu hạn 0–100/feedback, lỗi 502 đã ẩn chi tiết, AI chưa cấu hình 503. Không tạo điểm giả. Nhận dạng ảnh/nét viết vẫn thuộc module Trung.
 
-```python
-from services import grade_with_ai
+`POST /api/admin/ai-config/test` chỉ Admin, gọi bài mẫu ngắn, ghi usage nhưng không tạo điểm học viên; có thể phát sinh phí. Kiểm thử dùng HTTP giả lập; cần khóa/model thật để xác minh kết nối.
 
-# Trong endpoint Writing đã xác thực:
-# result = grade_with_ai(user['id'], 'writing', body.content, provider_adapter)
+## Phúc khảo
 
-def provider_adapter(settings, content):
-    # Triển khai lời gọi nhà cung cấp với timeout và chuẩn hóa response.
-    # settings: model, system_prompt, temperature, max_tokens, api_key.
-    # Trả {'score': <điểm thật 0..100>, 'feedback': <nhận xét thật>}.
-    raise NotImplementedError('Kết nối adapter AI của Trung/Kiệt')
-```
-
-Hàm kiểm tra điểm hữu hạn 0–100, lưu kết quả thật graded_by=ai và lượt dùng; lỗi provider thành 502 không lộ exception/key. AI tắt/chưa cấu hình trả 503, không tạo điểm giả. Adapter phải đặt timeout mạng và do code máy chủ cung cấp. Chưa có provider trực tiếp trong nhánh Admin; provider giả lập chỉ dùng trong test.
+- `POST /api/me/results/{id}/appeals`: `{reason}` dài 5–2000, chỉ bài của người đăng nhập; trùng yêu cầu pending trả 409.
+- `GET /api/me/appeals`: lịch sử và phản hồi của học viên hiện tại.
+- `GET /api/admin/appeals?status=pending`: lọc pending/resolved, trả bài làm, lý do, điểm, version/result_version.
+- `PATCH /api/admin/appeals/{id}`: `{version,result_version,score,response}`; phản hồi 5–2000 ký tự. Lưu điểm/lịch sử/trạng thái/audit trong transaction; bản cũ hoặc đã xử lý trả 409.
+- Web học viên `/review`; Admin: Duyệt kết quả → Yêu cầu phúc khảo.
+- Restart backend để migration tự thêm users.version và bảng appeals, giữ dữ liệu cũ.
 
 ## Demo và review
 
@@ -124,6 +122,6 @@ Test API và trình duyệt theo README dùng DB tạm, không thay dữ liệu 
 
 - Tuyến: đăng nhập/đăng ký/hồ sơ Flutter, khôi phục mật khẩu, avatar và session thống nhất.
 - Vy: giao diện API từ điển, audio, kho cá nhân.
-- Trung: adapter AI thật, OCR/Canvas học viên/chấm nét/bài viết.
+- Trung: tích hợp adapter Gemini với OCR/Canvas học viên/chấm nét/bài viết và kiểm chứng rubric.
 - Kiệt: giao diện thi, phiên thi, ôn tập, dashboard, kết quả Writing và bộ lọc dưới 80.
 - Nguyên: review PR về quyền, dữ liệu, lỗi API, đồng bộ điểm và kiểm thử tích hợp; chỉ merge main khi được yêu cầu.

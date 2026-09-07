@@ -189,7 +189,7 @@ function renderUsers(content, data, params) {
   document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => {
     const row = data.find(r => r.id === Number(b.dataset.edit));
     openEditor('Quản lý tài khoản', `<p><b>${escape(row.name)}</b><br>${escape(row.email)}</p><label>Vai trò<select name="role"><option value="student">Học viên</option><option value="admin">Quản trị viên</option></select></label><label class="check"><input type="checkbox" name="is_active" ${row.is_active?'checked':''}> Tài khoản hoạt động</label><p class="note">Đổi vai trò hoặc khóa tài khoản sẽ thu hồi các phiên đăng nhập hiện tại.</p>`, async form => {
-      await api(`/admin/users/${row.id}`, 'PATCH', {role:form.elements.role.value,is_active:form.elements.is_active.checked});
+      await api(`/admin/users/${row.id}`, 'PATCH', {role:form.elements.role.value,is_active:form.elements.is_active.checked,version:row.version});
     });
     dialog.querySelector('[name=role]').value = row.role;
   });
@@ -321,6 +321,7 @@ function bindDeletes(data, resource, label) {
 }
 
 function renderResults(content, data, params) {
+  content.innerHTML += '<div class="toolbar"><button id="show-appeals">Yêu cầu phúc khảo</button><a href="/review" target="_blank" rel="noopener">Trang kết quả học viên ↗</a></div>';
   content.innerHTML += `<section class="panel"><form id="filters" class="toolbar"><label>Điểm dưới<select name="below"><option value="">Tất cả kết quả</option value="80">Dưới 80 điểm</option value="50">Dưới 50 điểm</option></select></label><button>Lọc</button></form>${table(['Học viên','Loại bài','Điểm hiện tại','Thời gian','Thao tác'],data.map(r=>`<tr><td>${escape(r.name)}<small>${escape(r.email)}</small></td><td>${({exam:'Bài thi',writing:'Đoạn văn',handwriting:'Viết tay'})[r.kind]}<small>Chấm bởi: ${escape(r.graded_by)}</small></td><td><span class="score">${r.score}</span><small>Điểm gốc: ${r.original_score}</small></td><td>${date(r.created_at)}</td><td><button data-review="${r.id}">Xem & duyệt</button></td></tr>`))}</section>`;
   bindFilter(params);
   document.querySelectorAll('[data-review]').forEach(b => b.onclick = async () => {
@@ -335,10 +336,24 @@ function renderResults(content, data, params) {
       },'Lưu điểm điều chỉnh');
     } catch(err){notify(err.message);} finally {b.disabled=false;}
   });
+  document.querySelector('#show-appeals').onclick = () => showAppeals(content);
 }
 
 function renderAI(content, data) {
   content.innerHTML += `<section class="panel"><form id="ai-form" class="dialog-body"><div class="note"><b>${data.ready?'Cấu hình sẵn sàng cho module AI':'AI chưa sẵn sàng'}</b><br>Khóa máy chủ: ${data.key_configured?'Đã cấu hình':'Chưa cấu hình'}. Trạng thái này kiểm tra cấu hình nội bộ, chưa xác minh kết nối với nhà cung cấp.</div><div class="grid"><label>Model<input name="model" required maxlength="120" value="${escape(data.model)}"></label><label>Giới hạn token<input name="max_tokens" type="number" min="1" max="16000" required value="${data.max_tokens}"></label><label>Temperature (0–2)<input name="temperature" type="number" min="0" max="2" step="0.1" required value="${data.temperature}"></label><label class="check"><input name="enabled" type="checkbox" ${data.enabled?'checked':''}> Bật AI</label><label class="span-2">Hướng dẫn hệ thống / prompt mẫu<textarea name="system_prompt" required maxlength="10000" rows="7">${escape(data.system_prompt)}</textarea></label></div><small>Khóa API được cấu hình bằng biến môi trường AI_API_KEY trên máy chủ; không nhập hoặc hiển thị khóa ở trang này.</small><div id="ai-error" role="alert"></div><div><button class="primary">Lưu cấu hình</button></div></form></section>`;
+  const testButton = document.createElement('button');
+  testButton.type = 'button';
+  testButton.textContent = 'Kiểm tra kết nối Gemini (có thể tính phí)';
+  testButton.disabled = !data.ready;
+  document.querySelector('#ai-form').append(testButton);
+  testButton.onclick = async () => {
+    testButton.disabled = true;
+    const message = document.querySelector('#ai-error');
+    message.textContent = 'Đang kiểm tra cấu hình đã lưu…';
+    try { message.textContent = (await api('/admin/ai-config/test','POST')).message; }
+    catch (err) { message.textContent = err.message; }
+    finally { testButton.disabled = false; }
+  };
   document.querySelector('#ai-form').onsubmit=async event=>{
     event.preventDefault(); const form=event.currentTarget; const button=form.querySelector('button'); button.disabled=true;
     try {
@@ -346,6 +361,29 @@ function renderAI(content, data) {
       notify('Đã lưu cấu hình AI'); loadPage();
     } catch(err){if(document.querySelector('#ai-error'))document.querySelector('#ai-error').innerHTML=`<div class="error">${escape(err.message)}</div>`;} finally {button.disabled=false;}
   };
+}
+
+async function showAppeals(content, status='pending') {
+  const id = ++loadId;
+  content.innerHTML = heading() + '<p role="status">Đang tải yêu cầu…</p>';
+  try {
+    const rows = await api(`/admin/appeals?status=${status}`);
+    if (id !== loadId) return;
+    content.innerHTML = heading() + `<div class="toolbar"><button id="back-results">Tất cả kết quả</button><button id="pending-appeals" aria-pressed="${status==='pending'}">Chờ xử lý</button><button id="resolved-appeals" aria-pressed="${status==='resolved'}">Đã xử lý</button></div><section class="panel">${table(['Học viên','Yêu cầu','Thời gian','Thao tác'],rows.map(r=>`<tr><td>${escape(r.name)}<small>${escape(r.email)}</small></td><td>Bài #${r.result_id} · ${r.score} điểm<small>${escape(r.reason)}</small>${r.response?`<p>Phản hồi: ${escape(r.response)}</p>`:''}</td><td>${date(r.created_at)}</td><td>${r.status==='pending'?`<button data-appeal="${r.id}">Xử lý</button>`:'Đã phản hồi'}</td></tr>`))}</section>`;
+    document.querySelector('#back-results').onclick=()=>loadPage();
+    document.querySelector('#pending-appeals').onclick=()=>showAppeals(content,'pending');
+    document.querySelector('#resolved-appeals').onclick=()=>showAppeals(content,'resolved');
+    content.querySelectorAll('[data-appeal]').forEach(button=>button.onclick=()=>{
+      const row=rows.find(r=>r.id===Number(button.dataset.appeal));
+      openEditor(`Phúc khảo #${row.id}`, `<p><b>${escape(row.name)}</b></p><p>${escape(row.reason)}</p><details><summary>Bài làm và nhận xét</summary><pre>${escape(row.content)}</pre><p>${escape(row.feedback)}</p></details><label>Điểm sau phúc khảo<input name="score" type="number" min="0" max="100" step="0.01" required value="${row.score}"></label><p class="note">Giữ nguyên điểm nếu kết quả ban đầu đúng.</p><label>Phản hồi cho học viên<textarea name="response" required minlength="5" maxlength="2000"></textarea></label>`, async form=>{
+        await api(`/admin/appeals/${row.id}`,'PATCH',{version:row.version,result_version:row.result_version,score:Number(form.elements.score.value),response:form.elements.response.value});
+      },'Hoàn tất phúc khảo');
+    });
+  } catch (err) {
+    if (id !== loadId) return;
+    content.innerHTML=heading()+`<p role="alert">${escape(err.message)}</p><button id="appeals-retry">Thử lại</button>`;
+    document.querySelector('#appeals-retry').onclick=()=>showAppeals(content,status);
+  }
 }
 
 function renderLogs(content,data,params) {

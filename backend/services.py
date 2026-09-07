@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import HTTPException
 
 from database import database
+from ai_provider import gemini_grade
 
 
 def ai_settings():
@@ -27,7 +28,7 @@ def record_ai_usage(user_id: int, module: str, status: str):
                      (user_id, module, status, int(time.time())))
 
 
-def grade_with_ai(user_id: int, kind: str, content: str, provider: Callable[[dict, str], dict[str, Any]]):
+def grade_with_ai(user_id: int, kind: str, content: str, provider: Callable[[dict, str], dict[str, Any]] = gemini_grade):
     """Invoke a trusted provider adapter with a timeout, supplied by the AI module.
 
     provider(settings, content) must return {score: 0..100, feedback: str}.

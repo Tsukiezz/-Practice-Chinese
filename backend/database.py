@@ -92,6 +92,18 @@ def init_db():
         );
         CREATE INDEX IF NOT EXISTS results_user ON results(user_id,created_at);
         CREATE INDEX IF NOT EXISTS sessions_user ON sessions(user_id);
+        CREATE TABLE IF NOT EXISTS appeals (
+            id INTEGER PRIMARY KEY, result_id INTEGER NOT NULL REFERENCES results(id),
+            user_id INTEGER NOT NULL REFERENCES users(id), reason TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','resolved')),
+            response TEXT NOT NULL DEFAULT '', reviewer_id INTEGER REFERENCES users(id),
+            created_at INTEGER NOT NULL, resolved_at INTEGER,
+            version INTEGER NOT NULL DEFAULT 1
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS appeals_pending ON appeals(result_id) WHERE status='pending';
         """)
+        # Additive, idempotent migration: preserve existing accounts and sessions.
+        if 'version' not in {row['name'] for row in conn.execute('PRAGMA table_info(users)')}:
+            conn.execute('ALTER TABLE users ADD COLUMN version INTEGER NOT NULL DEFAULT 1')
         conn.execute("INSERT OR IGNORE INTO ai_config(id,model,system_prompt,temperature,max_tokens) VALUES(1,?,?,0.2,1000)",
                      ("configure-your-model", "Bạn là giáo viên tiếng Trung. Trả điểm 0–100 và nhận xét bằng tiếng Việt."))

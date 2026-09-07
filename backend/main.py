@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 
 from database import audit, database, init_db
 from models import AIConfig, Exam, ExamUpdate, Login, Override, Register, Submission, UserUpdate, Word, WordUpdate
+from models import Appeal, AppealReview
 
 
 @asynccontextmanager
@@ -37,7 +38,7 @@ def hash_password(password, salt):
 
 
 def public_user(row):
-    return {key: row[key] for key in ("id", "name", "email", "role", "is_active", "created_at")}
+    return {key: row[key] for key in ("id", "name", "email", "role", "is_active", "created_at", "version")}
 
 
 def session(conn, user):
@@ -160,10 +161,11 @@ def update_user(user_id: int, body: UserUpdate, admin=Depends(admin_user)):
     with database() as conn:
         conn.execute("BEGIN IMMEDIATE")
         before = require_row(conn, "users", user_id)
+        check_version(before, body.version)
         if before["role"] == "admin" and before["is_active"] and (not body.is_active or body.role != "admin"):
             if conn.execute("SELECT COUNT(*) FROM users WHERE role='admin' AND is_active=1").fetchone()[0] <= 1:
                 raise HTTPException(409, "Phải giữ ít nhất một quản trị viên hoạt động")
-        conn.execute("UPDATE users SET role=?,is_active=? WHERE id=?", (body.role, int(body.is_active), user_id))
+        conn.execute("UPDATE users SET role=?,is_active=?,version=version+1 WHERE id=?", (body.role, int(body.is_active), user_id))
         if not body.is_active or body.role != before["role"]:
             conn.execute("DELETE FROM sessions WHERE user_id=?", (user_id,))
         after = public_user(require_row(conn, "users", user_id))
@@ -349,6 +351,20 @@ def update_ai_config(body: AIConfig, admin=Depends(admin_user)):
     return get_ai_config(admin)
 
 
+@app.post("/api/admin/ai-config/test")
+def test_ai_connection(admin=Depends(admin_user)):
+    from services import ai_settings, record_ai_usage
+    from ai_provider import gemini_grade
+    settings = ai_settings()
+    try:
+        gemini_grade(settings, "Bài kiểm tra kết nối: 你好。")
+    except Exception:
+        record_ai_usage(admin["id"], "connection_test", "error")
+        raise HTTPException(502, "Không nhận được phản hồi AI hợp lệ. Kiểm tra model, khóa và hạn mức trên máy chủ.") from None
+    record_ai_usage(admin["id"], "connection_test", "success")
+    return {"status": "ok", "message": "Đã nhận phản hồi hợp lệ từ Gemini. Không tạo điểm học viên."}
+
+
 @app.get("/api/admin/results")
 def admin_results(user_id: int | None = None, below: float | None = Query(default=None, ge=0, le=100), user=Depends(admin_user)):
     query = "SELECT r.*,u.name,u.email FROM results r JOIN users u ON r.user_id=u.id WHERE 1=1"
@@ -405,6 +421,60 @@ def audit_logs(limit: int = Query(default=100, ge=1, le=500), offset: int = Quer
         return [dict(row) for row in conn.execute("SELECT a.*,u.name FROM audit_logs a JOIN users u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT ? OFFSET ?", (limit, offset))]
 
 
+@app.post("/api/me/results/{result_id}/appeals", status_code=201)
+def create_appeal(result_id: int, body: Appeal, user=Depends(current_user)):
+    with database() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        result = require_row(conn, "results", result_id)
+        if result["user_id"] != user["id"]:
+            raise HTTPException(404, "Không tìm thấy kết quả")
+        if conn.execute("SELECT id FROM appeals WHERE result_id=? AND status='pending'", (result_id,)).fetchone():
+            raise HTTPException(409, "Bài này đã có yêu cầu đang chờ xử lý")
+        aid = conn.execute("INSERT INTO appeals(result_id,user_id,reason,created_at) VALUES(?,?,?,?)",
+                           (result_id, user["id"], body.reason, int(time.time()))).lastrowid
+        result = require_row(conn, "appeals", aid)
+        audit(conn, user["id"], "create", "appeal", aid, None, result)
+        return result
+
+
+@app.get("/api/me/appeals")
+def my_appeals(user=Depends(current_user)):
+    with database() as conn:
+        return [dict(r) for r in conn.execute("SELECT * FROM appeals WHERE user_id=? ORDER BY id DESC", (user["id"],))]
+
+
+@app.get("/api/admin/appeals")
+def admin_appeals(status: Literal["pending", "resolved"] | None = None, user=Depends(admin_user)):
+    with database() as conn:
+        return [dict(r) for r in conn.execute(
+            "SELECT a.*,u.name,u.email,r.kind,r.content,r.feedback,r.score,r.original_score,r.version result_version "
+            "FROM appeals a JOIN users u ON u.id=a.user_id JOIN results r ON r.id=a.result_id "
+            + ("WHERE a.status=? " if status else "") + "ORDER BY a.id DESC", (status,) if status else ())]
+
+
+@app.patch("/api/admin/appeals/{appeal_id}")
+def review_appeal(appeal_id: int, body: AppealReview, admin=Depends(admin_user)):
+    with database() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        before = require_row(conn, "appeals", appeal_id)
+        check_version(before, body.version)
+        if before["status"] != "pending":
+            raise HTTPException(409, "Yêu cầu đã được xử lý")
+        result = require_row(conn, "results", before["result_id"])
+        check_version(result, body.result_version)
+        now = int(time.time())
+        conn.execute("UPDATE results SET score=?,graded_by='admin',version=version+1 WHERE id=?", (body.score, result["id"]))
+        conn.execute("INSERT INTO score_overrides(result_id,admin_id,old_score,new_score,reason,created_at) VALUES(?,?,?,?,?,?)",
+                     (result["id"], admin["id"], result["score"], body.score, body.response, now))
+        conn.execute("UPDATE appeals SET status='resolved',response=?,reviewer_id=?,resolved_at=?,version=version+1 WHERE id=?",
+                     (body.response, admin["id"], now, appeal_id))
+        after = require_row(conn, "appeals", appeal_id)
+        audit(conn, admin["id"], "resolve", "appeal", appeal_id, before, after)
+        audit(conn, admin["id"], "override", "result", result["id"], {"score": result["score"]},
+              {"score": body.score, "reason": body.response, "appeal_id": appeal_id})
+        return after
+
+
 ADMIN_DIR = Path(__file__).resolve().parent.parent / "admin"
 app.mount("/admin/assets", StaticFiles(directory=ADMIN_DIR), name="admin-assets")
 
@@ -414,3 +484,8 @@ app.mount("/admin/assets", StaticFiles(directory=ADMIN_DIR), name="admin-assets"
 def admin_page():
     # The shell shows login only. Every administrative data route requires admin_user.
     return FileResponse(ADMIN_DIR / "index.html")
+
+
+@app.get("/review", include_in_schema=False)
+def learner_review_page():
+    return FileResponse(ADMIN_DIR / "review.html")

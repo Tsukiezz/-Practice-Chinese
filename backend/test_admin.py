@@ -64,7 +64,7 @@ class AdminIntegrationTest(unittest.TestCase):
         return response.json()
 
     def test_admin_routes_deny_guest_and_student(self):
-        for path in ("dashboard", "users", "vocabulary", "exams", "results", "ai-config", "audit-logs"):
+        for path in ("dashboard", "users", "vocabulary", "exams", "results", "ai-config", "audit-logs", "appeals"):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get("/api/admin/" + path).status_code, 401)
                 self.assertEqual(self.client.get("/api/admin/" + path, headers=self.student_headers).status_code, 403)
@@ -81,6 +81,77 @@ class AdminIntegrationTest(unittest.TestCase):
         body["email"] = "invalid-email"
         self.assertEqual(self.client.post("/api/auth/register", json=body).status_code, 422)
 
+    def test_user_conflict_and_idempotent_migration(self):
+        storage.init_db()
+        storage.init_db()
+        path = f"/api/admin/users/{self.student['user']['id']}"
+        body = {"role": "student", "is_active": True, "version": 1}
+        self.assertEqual(self.client.patch(path, json=body, headers=self.headers).json()['version'], 2)
+        self.assertEqual(self.client.patch(path, json=body, headers=self.headers).status_code, 409)
+        self.assertEqual(self.client.get('/api/me', headers=self.student_headers).status_code, 200)
+
+    def test_appeal_ownership_conflicts_resolution_and_history(self):
+        result = self.submit(self.exam())
+        path = f"/api/me/results/{result['id']}/appeals"
+        reason = {'reason': 'Xin kiểm tra lại đáp án và điểm'}
+        self.assertEqual(self.client.post(path, json=reason, headers=self.headers).status_code, 404)
+        self.assertEqual(self.client.post(path, json={'reason':'x'}, headers=self.student_headers).status_code, 422)
+        response = self.client.post(path, json=reason, headers=self.student_headers)
+        self.assertEqual(response.status_code, 201)
+        appeal = response.json()
+        self.assertEqual(self.client.post(path, json=reason, headers=self.student_headers).status_code, 409)
+        self.assertEqual(self.client.get('/api/me/appeals', headers=self.headers).json(), [])
+        review_path = f"/api/admin/appeals/{appeal['id']}"
+        body = {'version':1, 'result_version':1, 'score':85, 'response':'Đã đối chiếu và sửa điểm'}
+        self.assertEqual(self.client.patch(review_path,json=body,headers=self.student_headers).status_code,403)
+        self.assertEqual(self.client.patch(review_path,json={**body,'score':101},headers=self.headers).status_code,422)
+        self.assertEqual(self.client.patch(review_path,json={**body,'result_version':2},headers=self.headers).status_code,409)
+        self.assertEqual(self.client.get('/api/admin/appeals?status=pending',headers=self.headers).json()[0]['status'],'pending')
+        self.assertEqual(self.client.patch(review_path,json=body,headers=self.headers).status_code,200)
+        self.assertEqual(self.client.patch(review_path,json=body,headers=self.headers).status_code,409)
+        updated = self.client.get('/api/me/results',headers=self.student_headers).json()[0]
+        self.assertEqual(updated['score'],85)
+        self.assertEqual(updated['original_score'],0)
+        self.assertEqual(len(updated['overrides']),1)
+        self.assertEqual(self.client.get('/api/admin/appeals?status=pending',headers=self.headers).json(),[])
+        self.assertEqual(self.client.get('/api/me/appeals',headers=self.student_headers).json()[0]['response'],body['response'])
+
+    def test_gemini_adapter_retry_timeout_and_invalid_output(self):
+        import httpx
+        from ai_provider import gemini_grade
+        settings={'model':'test-model','api_key':'private-test-key','system_prompt':'Chấm bài','temperature':0.2,'max_tokens':1000}
+        calls=[]
+        def handler(request):
+            calls.append(request)
+            self.assertEqual(request.headers['x-goog-api-key'],'private-test-key')
+            self.assertNotIn('private-test-key',str(request.url))
+            if len(calls)==1:return httpx.Response(503)
+            return httpx.Response(200,json={'candidates':[{'finishReason':'STOP','content':{'parts':[{'text':'{"score":82,"feedback":"Tốt"}'}]}}]})
+        output=gemini_grade(settings,'你好',transport=httpx.MockTransport(handler),sleep=lambda _:None)
+        self.assertEqual(output['score'],82)
+        self.assertEqual(len(calls),2)
+        def timeout(request):
+            raise httpx.ReadTimeout('private-test-key')
+        for transport in (httpx.MockTransport(timeout),httpx.MockTransport(lambda _:httpx.Response(401,text='private-test-key')),
+                          httpx.MockTransport(lambda _:httpx.Response(200,json={'candidates':[]}))):
+            with self.assertRaises(ValueError) as error:
+                gemini_grade(settings,'你好',transport=transport,sleep=lambda _:None)
+            self.assertNotIn('private-test-key',str(error.exception))
+
+    def test_ai_connection_test_is_private_and_does_not_create_results(self):
+        self.assertEqual(self.client.post('/api/admin/ai-config/test',headers=self.student_headers).status_code,403)
+        self.assertEqual(self.client.post('/api/admin/ai-config/test',headers=self.headers).status_code,503)
+        with patch.dict(os.environ, {'AI_API_KEY':'private-test-key'}):
+            self.client.put('/api/admin/ai-config',headers=self.headers,json={'model':'test-model','system_prompt':'Chấm bài','temperature':0.2,'max_tokens':1000,'enabled':True,'version':1})
+            with patch('ai_provider.gemini_grade',return_value={'score':80,'feedback':'Tốt'}):
+                self.assertEqual(self.client.post('/api/admin/ai-config/test',headers=self.headers).status_code,200)
+            with patch('ai_provider.gemini_grade',side_effect=ValueError('private-test-key')):
+                response=self.client.post('/api/admin/ai-config/test',headers=self.headers)
+                self.assertEqual(response.status_code,502)
+                self.assertNotIn('private-test-key',response.text)
+        totals=self.client.get('/api/admin/dashboard',headers=self.headers).json()['totals']
+        self.assertEqual((totals['results'],totals['ai_success'],totals['ai_errors']),(0,1,1))
+
     def test_duplicate_email_and_wrong_login(self):
         self.assertEqual(self.client.post("/api/auth/register", json={"name":"Duplicate", "email":"ADMIN@example.test","password":"Test-password-123"}).status_code, 409)
         self.assertEqual(self.client.post("/api/auth/login", json={"email":"admin@example.test","password":"wrong"}).status_code, 401)
@@ -92,14 +163,14 @@ class AdminIntegrationTest(unittest.TestCase):
     def test_lock_and_role_change_revoke_sessions_and_are_audited(self):
         uid = self.student["user"]["id"]
         path = f"/api/admin/users/{uid}"
-        self.assertEqual(self.client.patch(path, json={"role":"student","is_active":False}, headers=self.headers).status_code, 200)
+        self.assertEqual(self.client.patch(path, json={"role":"student","is_active":False,"version":1}, headers=self.headers).status_code, 200)
         self.assertEqual(self.client.get("/api/me", headers=self.student_headers).status_code, 401)
         self.assertEqual(self.client.post("/api/auth/login", json={"email":"student@example.test","password":"Test-password-123"}).status_code, 403)
-        self.client.patch(path, json={"role":"admin","is_active":True}, headers=self.headers)
+        self.client.patch(path, json={"role":"admin","is_active":True,"version":2}, headers=self.headers)
         new_session = self.client.post("/api/auth/login", json={"email":"student@example.test","password":"Test-password-123"}).json()
         new_headers = {"Authorization":"Bearer " + new_session["token"]}
         self.assertEqual(self.client.get("/api/admin/dashboard", headers=new_headers).status_code, 200)
-        self.client.patch(path, json={"role":"student","is_active":True}, headers=self.headers)
+        self.client.patch(path, json={"role":"student","is_active":True,"version":3}, headers=self.headers)
         self.assertEqual(self.client.get("/api/admin/dashboard", headers=new_headers).status_code, 401)
         logs = self.client.get("/api/admin/audit-logs", headers=self.headers).json()
         self.assertEqual(len(logs), 3)
@@ -108,7 +179,7 @@ class AdminIntegrationTest(unittest.TestCase):
 
     def test_self_lock_is_rejected_and_user_filters_work(self):
         uid = self.admin["user"]["id"]
-        self.assertEqual(self.client.patch(f"/api/admin/users/{uid}", json={"role":"student","is_active":False}, headers=self.headers).status_code, 400)
+        self.assertEqual(self.client.patch(f"/api/admin/users/{uid}", json={"role":"student","is_active":False,"version":1}, headers=self.headers).status_code, 400)
         rows=self.client.get("/api/admin/users?search=Nguyên&role=admin&active=true", headers=self.headers).json()
         self.assertEqual([r["id"] for r in rows], [uid])
         self.assertNotIn("salt", rows[0])

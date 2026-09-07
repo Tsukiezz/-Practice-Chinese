@@ -27,6 +27,7 @@ class Register(Login):
 class UserUpdate(Body):
     role: Literal["student", "admin"]
     is_active: bool
+    version: int = Field(ge=1)
 
 
 class Point(Body):
@@ -122,3 +123,14 @@ class Override(Body):
 class Submission(Body):
     version: int = Field(ge=1)
     answers: dict[str, str] = Field(max_length=200)
+
+
+class Appeal(Body):
+    reason: str = Field(min_length=5, max_length=2000)
+
+
+class AppealReview(Body):
+    version: int = Field(ge=1)
+    result_version: int = Field(ge=1)
+    score: float = Field(ge=0, le=100)
+    response: str = Field(min_length=5, max_length=2000)

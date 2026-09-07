@@ -98,3 +98,7 @@ git push origin HEAD:nguyen
 ```
 
 PR cần nêu chức năng, API và kết quả test. Nguyên review quyền, dữ liệu và luồng tích hợp trước merge. Không tự merge hoặc push vào `main`.
+
+## Cập nhật theo Excel của Nguyên
+
+Xem [đối chiếu 23 đầu việc](docs/NGUYEN_ACCEPTANCE.md). Bổ sung chống ghi đè tài khoản, adapter Gemini có timeout/retry, kiểm tra kết nối AI và phúc khảo. Học viên mở `/review`; Admin xử lý trong **Duyệt kết quả → Yêu cầu phúc khảo**. Khởi động lại backend để tự nâng cấp DB cũ. Có 19 bài kiểm thử API và kiểm thử phúc khảo trên trình duyệt mobile. Gemini thật cần AI_API_KEY và model hợp lệ trên máy chủ.
