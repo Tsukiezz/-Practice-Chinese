@@ -30,7 +30,26 @@ def seed():
                         "audio_url": "", "transcript": "", "explanation": f"{word['hanzi']} ({word['pinyin']}): {word['meaning']}", "word_id": word["id"]}
             eid = conn.execute("INSERT INTO exams(title,hsk,status,duration_minutes,questions_json) VALUES(?,?,'draft',10,?)",
                                (title, level, json.dumps([question], ensure_ascii=False))).lastrowid
-            conn.execute("INSERT INTO exam_words VALUES(?,?)", (eid, word["id"]))
+            conn.execute("INSERT OR IGNORE INTO exam_words VALUES(?,?)", (eid, word["id"]))
+
+        listening_title = "HSK 1 · Nghe hiểu mẫu"
+        if not conn.execute("SELECT 1 FROM exams WHERE title=?", (listening_title,)).fetchone():
+            listening_word = conn.execute("SELECT * FROM vocabulary WHERE hsk=1 ORDER BY id LIMIT 1").fetchone()
+            listening_question = {
+                "id": "l1",
+                "section": "listening",
+                "prompt": "Nghe và chọn nghĩa đúng",
+                "options": [listening_word["meaning"], "ngày mai", "màu xanh"],
+                "answer": listening_word["meaning"],
+                "audio_url": "https://traffic.libsyn.com/secure/learnchinese/H10901.mp3",
+                "transcript": f"{listening_word['hanzi']} ({listening_word['pinyin']}): {listening_word['meaning']}",
+                "explanation": listening_word["example"],
+                "word_id": listening_word["id"],
+            }
+            conn.execute(
+                "INSERT INTO exams(title,hsk,status,duration_minutes,questions_json) VALUES(?,?,'draft',10,?)",
+                (listening_title, 1, json.dumps([listening_question], ensure_ascii=False)),
+            )
 
 
 if __name__ == "__main__":

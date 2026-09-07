@@ -84,7 +84,23 @@ flutter analyze
 flutter test
 ```
 
-Flutter vẫn là bản học viên offline từ `main`, chưa nối với backend mới. Phần Nguyên chạy qua `/admin`. Tích hợp Auth/Profile, từ điển, AI/Writing và Test/Review vào Flutter cần module của Tuyến, Vy, Trung, Kiệt; xem tài liệu bàn giao. Không cần chạy lại `flutter create .` vì đã có cấu hình nền tảng. iOS cần macOS/Xcode.
+Chức năng Test Đọc của Kiệt đã gọi API đề thi thật và yêu cầu Bearer token. Trong lúc chờ module Auth của Tuyến cung cấp session runtime, có thể kiểm thử bằng token học viên lấy từ `POST /api/auth/login`:
+
+```powershell
+# Flutter Web hoặc iOS simulator
+flutter run -d chrome --web-port 8080 `
+  --dart-define=HANZIGO_API_URL=http://localhost:8010/api `
+  --dart-define=HANZIGO_API_TOKEN=<token-hoc-vien>
+
+# Android emulator truy cập máy phát triển qua 10.0.2.2
+flutter run -d emulator-5554 `
+  --dart-define=HANZIGO_API_URL=http://10.0.2.2:8010/api `
+  --dart-define=HANZIGO_API_TOKEN=<token-hoc-vien>
+```
+
+`HANZIGO_API_TOKEN` chỉ là đầu nối phát triển tạm thời, không dùng để đóng gói bản phát hành. Khi tích hợp UC-01, Tuyến truyền token phiên hiện tại qua `ReadingExamService.tokenProvider`. Trên điện thoại thật, thay URL bằng IPv4 của máy chạy backend và chạy Uvicorn với `--host 0.0.0.0`; bản production phải dùng HTTPS.
+
+Các phần Auth/Profile, từ điển và AI/Writing vẫn cần module của Tuyến, Vy và Trung; xem tài liệu bàn giao. Không cần chạy lại `flutter create .` vì đã có cấu hình nền tảng. iOS cần macOS/Xcode.
 
 ## Git
 

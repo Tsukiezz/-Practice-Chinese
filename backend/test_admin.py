@@ -147,8 +147,9 @@ class AdminIntegrationTest(unittest.TestCase):
         response=self.client.post(f"/api/exams/{exam['id']}/submit", headers=self.student_headers,
                                   json={"version":1,"answers":{"q1":"hai"},"score":100})
         self.assertEqual(response.status_code, 422)
-        result=self.submit(exam,"một")
-        self.assertEqual(result["score"], 100)
+        with patch('main.grade_reading_exam', return_value={"score": 100, "feedback": "Mock"}):
+            result=self.submit(exam,"một")
+            self.assertEqual(result["score"], 100)
         self.assertEqual(self.client.delete(f"/api/admin/exams/{exam['id']}?version=1", headers=self.headers).status_code, 409)
 
     def test_draft_hidden_and_stale_exam_are_not_submitted(self):
@@ -174,7 +175,8 @@ class AdminIntegrationTest(unittest.TestCase):
         self.assertEqual(self.post("/exams",body).status_code,404)
 
     def test_score_override_updates_student_dashboard_and_history(self):
-        result=self.submit(self.exam())
+        with patch('main.grade_reading_exam', return_value={"score": 0, "feedback": "Mock"}):
+            result=self.submit(self.exam())
         path=f"/api/admin/results/{result['id']}/score"
         body={"score":85,"reason":"Đối chiếu lại bài làm theo đáp án chuẩn","version":1}
         self.assertEqual(self.client.patch(path,headers=self.student_headers,json=body).status_code,403)
@@ -192,9 +194,9 @@ class AdminIntegrationTest(unittest.TestCase):
 
     def test_ai_config_keeps_key_private_and_checks_version(self):
         body={"model":"test-model","system_prompt":"Chấm điểm 0–100","temperature":0.2,"max_tokens":1000,"enabled":True,"version":1}
-        with patch.dict(os.environ,{"AI_API_KEY":""}):
+        with patch.dict(os.environ,{"GEMINI_API_KEY":"","AI_API_KEY":""}):
             self.assertEqual(self.client.put("/api/admin/ai-config",headers=self.headers,json=body).status_code,422)
-        with patch.dict(os.environ,{"AI_API_KEY":"private-test-secret"}):
+        with patch.dict(os.environ,{"GEMINI_API_KEY":"private-test-secret","AI_API_KEY":"private-test-secret"}):
             response=self.client.put("/api/admin/ai-config",headers=self.headers,json=body)
             self.assertEqual(response.status_code,200)
             self.assertTrue(response.json()["ready"])
@@ -204,7 +206,7 @@ class AdminIntegrationTest(unittest.TestCase):
             self.assertNotIn("private-test-secret",logs.text)
 
     def test_ai_integration_records_real_results_and_sanitizes_failures(self):
-        with patch.dict(os.environ,{"AI_API_KEY":"private-test-secret"}):
+        with patch.dict(os.environ,{"GEMINI_API_KEY":"private-test-secret","AI_API_KEY":"private-test-secret"}):
             self.client.put("/api/admin/ai-config",headers=self.headers,json={"model":"test-model","system_prompt":"Chấm bài","temperature":0.2,"max_tokens":1000,"enabled":True,"version":1})
             def provider(settings,content):
                 self.assertEqual(settings["api_key"],"private-test-secret")

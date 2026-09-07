@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 
 from database import audit, database, init_db
 from models import AIConfig, Exam, ExamUpdate, Login, Override, Register, Submission, UserUpdate, Word, WordUpdate
+from services import configured_api_key, evaluate_with_ai, gemini_provider
 
 
 @asynccontextmanager
@@ -79,6 +80,15 @@ def require_row(conn, table, row_id):
 def check_version(row, version):
     if row["version"] != version:
         raise HTTPException(409, "Dữ liệu đã được người khác cập nhật. Hãy tải lại trước khi lưu.")
+
+
+def grade_reading_exam(user_id, content):
+    return evaluate_with_ai(user_id, "reading", content, gemini_provider)
+
+
+def get_exam_ai_grader():
+    """Dependency hook keeps provider calls replaceable in isolated tests."""
+    return grade_reading_exam
 
 
 @app.get("/api/health")
@@ -244,6 +254,9 @@ def exam_json(row, learner=False):
         for q in item["questions"]:
             for key in ("answer", "explanation", "transcript"):
                 q.pop(key, None)
+        for q in item["questions"]:
+            if "audio_url" not in q:
+                q["audio_url"] = ""
     return item
 
 
@@ -307,9 +320,8 @@ def delete_exam(exam_id: int, version: int = Query(ge=1), admin=Depends(admin_us
 
 
 @app.post("/api/exams/{exam_id}/submit", status_code=201)
-def submit(exam_id: int, body: Submission, user=Depends(current_user)):
+def submit(exam_id: int, body: Submission, user=Depends(current_user), grader=Depends(get_exam_ai_grader)):
     with database() as conn:
-        conn.execute("BEGIN IMMEDIATE")
         exam = require_row(conn, "exams", exam_id)
         if exam["status"] != "published":
             raise HTTPException(404, "Đề thi chưa được phát hành")
@@ -319,10 +331,31 @@ def submit(exam_id: int, body: Submission, user=Depends(current_user)):
             raise HTTPException(422, "Bài viết tự do cần module chấm Writing; không tự động chấm bằng so khớp văn bản.")
         if set(body.answers) != {q["id"] for q in questions}:
             raise HTTPException(422, "Cần nộp đúng danh sách mã câu hỏi của đề")
+
+    if all(q["section"] == "reading" for q in questions):
+        grading_content = json.dumps({
+            "exam_title": exam["title"],
+            "questions": [{
+                "id": q["id"], "prompt": q["prompt"], "options": q["options"],
+                "answer": q["answer"], "submitted_answer": body.answers[q["id"]]
+            } for q in questions]
+        }, ensure_ascii=False)
+        grade = grader(user["id"], grading_content)
+        score, feedback, graded_by = grade["score"], grade["feedback"], "ai"
+    else:
         score = round(100 * sum(body.answers[q["id"]].strip() == q["answer"] for q in questions) / len(questions), 2)
-        snapshot = json.dumps({"exam_title": exam["title"], "exam_version": exam["version"], "questions": questions, "answers": body.answers}, ensure_ascii=False)
-        rid = conn.execute("INSERT INTO results(user_id,exam_id,kind,content,score,original_score,graded_by,created_at) VALUES(?,?,'exam',?,?,?,'automatic',?)",
-                           (user["id"], exam_id, snapshot, score, score, int(time.time()))).lastrowid
+        feedback, graded_by = "", "automatic"
+
+    snapshot = json.dumps({"exam_title": exam["title"], "exam_version": exam["version"],
+                           "questions": questions, "answers": body.answers}, ensure_ascii=False)
+    with database() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        current = require_row(conn, "exams", exam_id)
+        if current["status"] != "published":
+            raise HTTPException(404, "Đề thi chưa được phát hành")
+        check_version(current, body.version)
+        rid = conn.execute("INSERT INTO results(user_id,exam_id,kind,content,score,original_score,feedback,graded_by,created_at) VALUES(?,?,'exam',?,?,?,?,?,?)",
+                           (user["id"], exam_id, snapshot, score, score, feedback, graded_by, int(time.time()))).lastrowid
         return require_row(conn, "results", rid)
 
 
@@ -330,15 +363,15 @@ def submit(exam_id: int, body: Submission, user=Depends(current_user)):
 def get_ai_config(user=Depends(admin_user)):
     with database() as conn:
         result = require_row(conn, "ai_config", 1)
-    result["key_configured"] = bool(os.getenv("AI_API_KEY", "").strip())
+    result["key_configured"] = bool(configured_api_key())
     result["ready"] = bool(result["enabled"] and result["key_configured"] and result["model"] != "configure-your-model")
     return result
 
 
 @app.put("/api/admin/ai-config")
 def update_ai_config(body: AIConfig, admin=Depends(admin_user)):
-    if body.enabled and (not os.getenv("AI_API_KEY", "").strip() or body.model == "configure-your-model"):
-        raise HTTPException(422, "Cần đặt AI_API_KEY trên máy chủ và chọn model trước khi bật AI")
+    if body.enabled and (not configured_api_key() or body.model == "configure-your-model"):
+        raise HTTPException(422, "Cần đặt GEMINI_API_KEY trên máy chủ và chọn model trước khi bật AI")
     with database() as conn:
         conn.execute("BEGIN IMMEDIATE")
         before = require_row(conn, "ai_config", 1)

@@ -1,23 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 
-import '../models/reading_exam.dart';
-import '../services/reading_exam_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../services/listening_exam_service.dart';
+import '../models/reading_exam.dart';
 
-class PracticeScreen extends StatefulWidget {
-  const PracticeScreen({super.key, required this.repository});
+class ListeningScreen extends StatefulWidget {
+  const ListeningScreen({super.key, required this.repository});
 
-  final ReadingExamRepository repository;
+  final ListeningExamRepository repository;
 
   @override
-  State<PracticeScreen> createState() => _PracticeScreenState();
+  State<ListeningScreen> createState() => _ListeningScreenState();
 }
 
-class _PracticeScreenState extends State<PracticeScreen> {
-  final TextEditingController _textAnswerController = TextEditingController();
-  final Map<String, String> _answers = {};
-
+class _ListeningScreenState extends State<ListeningScreen> {
   int _selectedHsk = 1;
   int _currentQuestion = 0;
   int _loadSequence = 0;
@@ -28,6 +26,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
   ReadingExam? _activeExam;
   ReadingResult? _result;
   List<ReadingExam> _exams = const [];
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -37,7 +36,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
 
   @override
   void dispose() {
-    _textAnswerController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -53,10 +52,10 @@ class _PracticeScreenState extends State<PracticeScreen> {
       child: Column(
         children: [
           const ScreenHeader(
-            eyebrow: 'Bài luyện · Kỹ năng đọc',
-            title: 'Test Đọc',
+            eyebrow: 'Bài luyện · Kỹ năng nghe',
+            title: 'Test Nghe',
             trailing: Icon(
-              Icons.chrome_reader_mode_outlined,
+              Icons.headphones_rounded,
               color: AppTheme.jade,
             ),
           ),
@@ -98,7 +97,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                   ),
                 ),
                 Text(
-                  'ĐỌC',
+                  'NGHE',
                   style: TextStyle(
                     color: AppTheme.red,
                     fontSize: 10,
@@ -117,13 +116,13 @@ class _PracticeScreenState extends State<PracticeScreen> {
   Widget _buildExamListBody() {
     if (_loading) {
       return const Center(
-        key: Key('exam-loading'),
+        key: Key('listening-loading'),
         child: CircularProgressIndicator(),
       );
     }
     if (_loadError != null) {
       return _MessageState(
-        key: const Key('exam-error'),
+        key: const Key('listening-error'),
         icon: Icons.cloud_off_rounded,
         title: 'Không tải được đề',
         message: _loadError!,
@@ -133,16 +132,16 @@ class _PracticeScreenState extends State<PracticeScreen> {
     }
     if (_exams.isEmpty) {
       return _MessageState(
-        key: const Key('empty-exam-state'),
-        icon: Icons.menu_book_outlined,
-        title: 'Chưa có đề Đọc HSK $_selectedHsk',
+        key: const Key('empty-listening-state'),
+        icon: Icons.headphones_rounded,
+        title: 'Chưa có đề Nghe HSK $_selectedHsk',
         message: 'Đề cần được Admin phát hành trước khi học viên làm bài.',
       );
     }
     return RefreshIndicator(
       onRefresh: _loadExams,
       child: ListView.separated(
-        key: const Key('reading-exam-list'),
+        key: const Key('listening-exam-list'),
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
         itemCount: _exams.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -167,7 +166,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
             eyebrow: 'HSK ${exam.hsk} · ${exam.title}',
             title: 'Câu ${_currentQuestion + 1}',
             trailing: IconButton(
-              key: const Key('close-exam'),
+              key: const Key('close-listening'),
               tooltip: 'Thoát bài',
               onPressed: _submitting ? null : _confirmExit,
               icon: const Icon(Icons.close_rounded),
@@ -185,31 +184,20 @@ class _PracticeScreenState extends State<PracticeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (question.audioUrl.isNotEmpty) ...[
+                    _AudioPlayer(
+                      url: question.audioUrl,
+                      audioPlayer: _audioPlayer,
+                    ),
+                    const SizedBox(height: 22),
+                  ],
                   Text(
-                    '${_currentQuestion + 1}/${exam.questions.length}',
-                    textAlign: TextAlign.right,
+                    question.prompt,
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
-                      color: AppTheme.red,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    key: const Key('reading-prompt'),
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE9F3ED),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      question.prompt,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 19,
-                        height: 1.55,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      fontSize: 19,
+                      height: 1.55,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 22),
@@ -225,7 +213,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                   const SizedBox(height: 12),
                   if (question.options.isEmpty)
                     TextField(
-                      key: const Key('text-answer'),
+                      key: const Key('listening-text-answer'),
                       controller: _textAnswerController,
                       enabled: !_submitting,
                       maxLength: 5000,
@@ -257,7 +245,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                       if (_currentQuestion > 0) ...[
                         Expanded(
                           child: OutlinedButton(
-                            key: const Key('previous-question'),
+                            key: const Key('previous-listening-question'),
                             onPressed: _submitting ? null : _previousQuestion,
                             child: const Text('Câu trước'),
                           ),
@@ -267,7 +255,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                       Expanded(
                         flex: 2,
                         child: FilledButton(
-                          key: const Key('question-action'),
+                          key: const Key('listening-question-action'),
                           onPressed: answer.trim().isEmpty || _submitting
                               ? null
                               : () => _handleQuestionAction(isLastQuestion),
@@ -302,15 +290,15 @@ class _PracticeScreenState extends State<PracticeScreen> {
         children: [
           ScreenHeader(
             eyebrow: 'Kết quả đã được lưu',
-            title: 'Bài Test Đọc',
+            title: 'Bài Test Nghe',
             trailing: Icon(
-              passed ? Icons.emoji_events_rounded : Icons.auto_stories_rounded,
+              passed ? Icons.emoji_events_rounded : Icons.headphones_rounded,
               color: passed ? AppTheme.orange : AppTheme.jade,
             ),
           ),
           Expanded(
             child: ListView(
-              key: const Key('reading-result'),
+              key: const Key('listening-result'),
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
               children: [
                 Container(
@@ -336,15 +324,15 @@ class _PracticeScreenState extends State<PracticeScreen> {
                       const SizedBox(height: 8),
                       Text(
                         passed
-                            ? 'Bạn đã hoàn thành tốt bài đọc.'
-                            : 'Bạn nên xem lại lời giải và luyện thêm.',
+                            ? 'Bạn đã hoàn thành tốt bài nghe.'
+                            : 'Bạn nên xem lại transcript và luyện thêm.',
                         textAlign: TextAlign.center,
                       ),
                       if (result.feedback.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         Text(
                           result.feedback,
-                          key: const Key('ai-feedback'),
+                          key: const Key('listening-feedback'),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: AppTheme.ink,
@@ -371,7 +359,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                     ),
                 const SizedBox(height: 10),
                 FilledButton(
-                  key: const Key('finish-exam'),
+                  key: const Key('finish-listening-exam'),
                   onPressed: _returnToExamList,
                   child: const Text('Về danh sách đề'),
                 ),
@@ -390,13 +378,13 @@ class _PracticeScreenState extends State<PracticeScreen> {
       _loadError = null;
     });
     try {
-      final exams = await widget.repository.fetchReadingExams(_selectedHsk);
+      final exams = await widget.repository.fetchListeningExams(_selectedHsk);
       if (!mounted || sequence != _loadSequence) return;
       setState(() {
         _exams = exams;
         _loading = false;
       });
-    } on ReadingApiException catch (error) {
+    } on ListeningApiException catch (error) {
       if (!mounted || sequence != _loadSequence) return;
       setState(() {
         _exams = const [];
@@ -430,39 +418,13 @@ class _PracticeScreenState extends State<PracticeScreen> {
     });
   }
 
-  void _saveAnswer(String questionId, String value) {
-    setState(() {
-      _answers[questionId] = value;
-      _submitError = null;
-    });
-  }
-
-  void _handleQuestionAction(bool isLastQuestion) {
-    if (isLastQuestion) {
-      _submitExam();
-    } else {
-      _moveToQuestion(_currentQuestion + 1);
-    }
-  }
-
-  void _previousQuestion() => _moveToQuestion(_currentQuestion - 1);
-
-  void _moveToQuestion(int index) {
-    setState(() {
-      _currentQuestion = index;
-      _submitError = null;
-      final question = _activeExam!.questions[index];
-      _textAnswerController.text = _answers[question.id] ?? '';
-    });
-  }
-
   Future<void> _submitExam() async {
     setState(() {
       _submitting = true;
       _submitError = null;
     });
     try {
-      final result = await widget.repository.submitReadingExam(
+      final result = await widget.repository.submitListeningExam(
         _activeExam!,
         Map.unmodifiable(_answers),
       );
@@ -471,7 +433,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
         _result = result;
         _submitting = false;
       });
-    } on ReadingApiException catch (error) {
+    } on ListeningApiException catch (error) {
       if (!mounted) return;
       setState(() {
         _submitting = false;
@@ -486,7 +448,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
     }
   }
 
-  String _submissionMessage(ReadingApiException error) {
+  String _submissionMessage(ListeningApiException error) {
     return switch (error.statusCode) {
       404 => 'Đề không còn được phát hành. Hãy quay lại và tải danh sách mới.',
       409 => 'Đề vừa được cập nhật. Hãy quay lại và tải phiên bản mới.',
@@ -496,10 +458,12 @@ class _PracticeScreenState extends State<PracticeScreen> {
   }
 
   Future<void> _confirmExit() async {
+    await _audioPlayer.stop();
+    if (!mounted) return;
     final shouldExit = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Thoát bài đọc?'),
+        title: const Text('Thoát bài nghe?'),
         content: const Text('Các đáp án chưa nộp sẽ bị xóa.'),
         actions: [
           TextButton(
@@ -517,6 +481,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
   }
 
   void _returnToExamList() {
+    _audioPlayer.stop();
     setState(() {
       _activeExam = null;
       _result = null;
@@ -533,6 +498,35 @@ class _PracticeScreenState extends State<PracticeScreen> {
         ? score.toInt().toString()
         : score.toStringAsFixed(1);
   }
+
+  final Map<String, String> _answers = {};
+  final TextEditingController _textAnswerController = TextEditingController();
+
+  void _saveAnswer(String questionId, String value) {
+    setState(() {
+      _answers[questionId] = value;
+      _submitError = null;
+    });
+  }
+
+  void _previousQuestion() => _moveToQuestion(_currentQuestion - 1);
+
+  void _moveToQuestion(int index) {
+    setState(() {
+      _currentQuestion = index;
+      _submitError = null;
+      final question = _activeExam!.questions[index];
+      _textAnswerController.text = _answers[question.id] ?? '';
+    });
+  }
+
+  void _handleQuestionAction(bool isLastQuestion) {
+    if (isLastQuestion) {
+      _submitExam();
+    } else {
+      _moveToQuestion(_currentQuestion + 1);
+    }
+  }
 }
 
 class _ExamCard extends StatelessWidget {
@@ -545,14 +539,14 @@ class _ExamCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: InkWell(
-        key: Key('exam-${exam.id}'),
+        key: Key('listening-exam-${exam.id}'),
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Row(
             children: [
-              const HanziAvatar('读', size: 58, color: Color(0xFFE9F3ED)),
+              const HanziAvatar('听', size: 58, color: Color(0xFFE9F3ED)),
               const SizedBox(width: 15),
               Expanded(
                 child: Column(
@@ -616,6 +610,109 @@ class _ExamCard extends StatelessWidget {
   }
 }
 
+class _AudioPlayer extends StatefulWidget {
+  const _AudioPlayer({
+    required this.url,
+    required this.audioPlayer,
+  });
+
+  final String url;
+  final AudioPlayer audioPlayer;
+
+  @override
+  State<_AudioPlayer> createState() => _AudioPlayerState();
+}
+
+class _AudioPlayerState extends State<_AudioPlayer> {
+  bool _playing = false;
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.audioPlayer.onPlayerComplete.listen((_) {
+      if (mounted) {
+        setState(() => _playing = false);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('listening-audio-player'),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE9F3ED),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: _loading
+                ? null
+                : () async {
+                    if (_error != null) {
+                      setState(() => _error = null);
+                    }
+                    setState(() {
+                      _loading = true;
+                    });
+                    try {
+                      if (_playing) {
+                        await widget.audioPlayer.pause();
+                        setState(() => _playing = false);
+                      } else {
+                        await widget.audioPlayer.play(UrlSource(widget.url));
+                        setState(() => _playing = true);
+                      }
+                    } on Exception {
+                      setState(() {
+                        _error = 'Không thể phát audio.';
+                        _playing = false;
+                      });
+                    } finally {
+                      if (mounted) {
+                        setState(() => _loading = false);
+                      }
+                    }
+                  },
+            icon: _loading
+                ? const SizedBox.square(
+                    dimension: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.jade),
+                  )
+                : Icon(
+                    _playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                    color: AppTheme.jade,
+                    size: 32,
+                  ),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _playing ? 'Đang phát...' : 'Nghe hội thoại mẫu',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    _error!,
+                    style: const TextStyle(color: AppTheme.red, fontSize: 12),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _AnswerOption extends StatelessWidget {
   const _AnswerOption({
     required this.option,
@@ -634,7 +731,7 @@ class _AnswerOption extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: InkWell(
-        key: Key('answer-$option'),
+        key: Key('listening-answer-$option'),
         onTap: enabled ? onTap : null,
         borderRadius: BorderRadius.circular(16),
         child: AnimatedContainer(
@@ -726,7 +823,7 @@ class _InlineError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      key: const Key('submit-error'),
+      key: const Key('listening-submit-error'),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFFFFE5E1),

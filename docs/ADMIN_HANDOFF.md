@@ -80,24 +80,25 @@ Không xóa từ có word_id trong đề. Module kho cá nhân/lịch sử của
 
 ## Adapter AI — Trung / Kiệt
 
-Key chỉ đọc từ AI_API_KEY. ready là kiểm tra nội bộ, chưa xác minh nhà cung cấp.
+Key ưu tiên `GEMINI_API_KEY`, fallback `AI_API_KEY`. ready kiểm tra cấu hình nội bộ, chưa xác minh nhà cung cấp.
 
 `services.grade_with_ai(user_id, kind, content, provider)` là hàm nội bộ máy chủ, không phải endpoint tự nộp điểm:
 
 ```python
-from services import grade_with_ai
+from services import grade_with_ai, gemini_provider
 
 # Trong endpoint Writing đã xác thực:
-# result = grade_with_ai(user['id'], 'writing', body.content, provider_adapter)
+# result = grade_with_ai(user['id'], 'writing', body.content, gemini_provider)
 
-def provider_adapter(settings, content):
-    # Triển khai lời gọi nhà cung cấp với timeout và chuẩn hóa response.
+def gemini_provider(settings, content):
+    # Gọi Gemini generateContent với structured response schema.
     # settings: model, system_prompt, temperature, max_tokens, api_key.
     # Trả {'score': <điểm thật 0..100>, 'feedback': <nhận xét thật>}.
-    raise NotImplementedError('Kết nối adapter AI của Trung/Kiệt')
 ```
 
-Hàm kiểm tra điểm hữu hạn 0–100, lưu kết quả thật graded_by=ai và lượt dùng; lỗi provider thành 502 không lộ exception/key. AI tắt/chưa cấu hình trả 503, không tạo điểm giả. Adapter phải đặt timeout mạng và do code máy chủ cung cấp. Chưa có provider trực tiếp trong nhánh Admin; provider giả lập chỉ dùng trong test.
+`services.gemini_provider` đã triển khai gọi Gemini API thực với timeout 15s, structured JSON schema (`score` 0–100, `feedback`). Nếu cần đổi nhà cung cấp, chỉ cần thay hàm provider tương ứng.
+
+Hàm `evaluate_with_ai` kiểm tra điểm hữu hạn 0–100, lưu kết quả thật `graded_by=ai` và lượt dùng; lỗi provider thành 502 không lộ exception/key. AI tắt/chưa cấu hình trả 503, không tạo điểm giả. Provider phải đặt timeout mạng và do code máy chủ cung cấp.
 
 ## Demo và review
 
