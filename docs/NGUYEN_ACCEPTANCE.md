@@ -1,4 +1,16 @@
-# Đối chiếu phần Nguyên — 07/09/2026
+# Đối chiếu phần Nguyên — cập nhật 09/09/2026
+
+## Kiểm tra theo bảng phân công người dùng gửi ngày 09/09/2026
+
+Bảng TSV đính kèm có 23 đầu việc giao cho Nguyên: F28.1–F28.3 và F31.1–F35.4 như bảng bằng chứng bên dưới. Bảng mới ghi Hoàn thành cho các dòng này. Đã đối chiếu mã nguồn Admin, API, validation, dịch vụ AI và kiểm thử thay vì chỉ dựa vào trạng thái đó.
+
+- Đã có triển khai cho cả 23 đầu việc. F33.4 và F34.4 có hợp đồng tích hợp và kiểm thử phía backend; việc Kiệt/Trung xác nhận và nối module thực tế vẫn cần nghiệm thu chung, không coi tài liệu là bằng chứng đã phối hợp xong.
+- Sửa thiếu sót thuộc F34.4: `grade_with_ai` trước đây nhận điểm boolean/chuỗi số và nhận xét rỗng từ adapter tùy biến. Nay chỉ nhận số hữu hạn 0–100 (không nhận boolean), nhận xét không rỗng; phản hồi sai trả 502, ghi usage lỗi và không tạo kết quả.
+- Kiểm thử sau sửa: **20/20 API tests PASS** (31,114 giây); **smoke_browser.py PASS** với Edge headless, gồm desktop/mobile, kho từ/nét, đề, đồng bộ điểm, tài khoản, cấu hình AI, nhật ký, phúc khảo và đăng xuất; không có lỗi JavaScript.
+- Do môi trường Python/thư viện tại workspace bị treo hoặc lỗi quyền đọc, kiểm thử chạy trên bản sao source trong thư mục tạm cùng FastAPI 0.115.6, Uvicorn 0.34.0, HTTPX 0.28.1 và Playwright 1.62.0. Database kiểm thử là database tạm; không thay đổi database thật.
+- Chưa gọi Gemini thật bằng khóa của nhóm, chưa xác minh chất lượng chấm thực tế hoặc tích hợp Flutter của thành viên khác. Các giới hạn này vẫn áp dụng; không tuyên bố toàn bộ ứng dụng đã hoàn thành.
+
+## Nguồn đối chiếu trước đó
 
 Nguồn: `HanziGo_Bang_Theo_Doi_Chuc_Nang_Chi_Tiet.xlsx`, sheet **Phân rã chức năng**, lọc cột người phụ trách bằng **Nguyên**: 23 đầu việc thuộc chức năng 28 và 31–35. Sheet tổng hợp ghi Hoàn thành nhưng sheet chi tiết ghi Chưa xong; bảng này ghi bằng chứng triển khai, không suy diễn trạng thái từ một sheet. Không sửa file Excel gốc.
 

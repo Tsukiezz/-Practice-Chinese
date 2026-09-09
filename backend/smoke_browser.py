@@ -38,7 +38,14 @@ def run():
             port = sock.getsockname()[1]
         base = f"http://127.0.0.1:{port}"
         env = {**os.environ, "DATABASE_PATH": str(storage.DB_PATH)}
-        server = subprocess.Popen([sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", str(port)],
+        # Only this test process replaces the external grader; production keeps Gemini.
+        test_server = (
+            "import uvicorn; from main import app, get_exam_ai_grader; "
+            "app.dependency_overrides[get_exam_ai_grader] = lambda: "
+            "(lambda user_id, content: {'score': 0, 'feedback': 'Browser test grade'}); "
+            f"uvicorn.run(app, host='127.0.0.1', port={port})"
+        )
+        server = subprocess.Popen([sys.executable, "-c", test_server],
                                   cwd=Path(__file__).parent, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         try:
             for _ in range(100):

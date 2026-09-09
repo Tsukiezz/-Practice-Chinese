@@ -18,15 +18,35 @@ class AppTheme {
       colorScheme: scheme.copyWith(primary: red, secondary: jade),
       scaffoldBackgroundColor: cream,
       fontFamily: 'sans-serif',
-      appBarTheme: const AppBarTheme(backgroundColor: Colors.transparent, elevation: 0, foregroundColor: ink),
+      appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: ink),
       navigationBarTheme: NavigationBarThemeData(
         height: 72,
         backgroundColor: Colors.white,
         indicatorColor: red.withValues(alpha: .14),
-        labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(fontSize: 11, fontWeight: states.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500, color: states.contains(WidgetState.selected) ? red : Colors.grey.shade600)),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
+            fontSize: 11,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
+            color: states.contains(WidgetState.selected)
+                ? red
+                : Colors.grey.shade600)),
       ),
-      cardTheme: CardThemeData(color: Colors.white, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Color(0xFFF0E8DE)))),
-      filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(minimumSize: const Size(0, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), textStyle: const TextStyle(fontWeight: FontWeight.w700))),
+      cardTheme: CardThemeData(
+          color: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: const BorderSide(color: Color(0xFFF0E8DE)))),
+      filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 50),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15)),
+              textStyle: const TextStyle(fontWeight: FontWeight.w700))),
     );
   }
 }

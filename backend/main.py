@@ -16,8 +16,14 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from database import audit, database, init_db
-from models import AIConfig, Exam, ExamUpdate, Login, Override, Register, Submission, UserUpdate, Word, WordUpdate
 from models import Appeal, AppealReview
+from models import (AIConfig, DictionaryLookup, Exam, ExamUpdate,
+                    HandwritingSubmission, Login, Override, Register,
+                    Submission, UserUpdate, Word, WordUpdate, WritingSubmission)
+from services import (configured_api_key, configured_model, evaluate_with_ai,
+                      gemini_capability_provider, gemini_exam_provider,
+                      gemini_handwriting_provider, gemini_provider, grade_with_ai, ai_settings,
+                      record_ai_usage)
 
 
 @asynccontextmanager
@@ -80,6 +86,23 @@ def require_row(conn, table, row_id):
 def check_version(row, version):
     if row["version"] != version:
         raise HTTPException(409, "Dữ liệu đã được người khác cập nhật. Hãy tải lại trước khi lưu.")
+
+
+def grade_reading_exam(user_id, content):
+    return evaluate_with_ai(user_id, "reading", content, gemini_exam_provider)
+
+
+def grade_listening_exam(user_id, content):
+    return evaluate_with_ai(user_id, "listening", content, gemini_exam_provider)
+
+
+def grade_comprehensive_exam(user_id, content):
+    return evaluate_with_ai(user_id, "exam", content, gemini_exam_provider)
+
+
+def get_exam_ai_grader():
+    """Dependency hook keeps provider calls replaceable in isolated tests."""
+    return grade_reading_exam
 
 
 @app.get("/api/health")
@@ -190,6 +213,47 @@ def vocabulary(search: str = Query(default="", max_length=120), hsk: int | None 
         return [word_json(row) for row in conn.execute(query + " ORDER BY hsk,id", values)]
 
 
+@app.post("/api/me/dictionary-history/{word_id}", status_code=201)
+def record_dictionary_lookup(word_id: int, body: DictionaryLookup, user=Depends(current_user)):
+    now = int(time.time())
+    with database() as conn:
+        require_row(conn, "vocabulary", word_id)
+        conn.execute(
+            """INSERT INTO dictionary_history(user_id,word_id,query,last_looked_at)
+               VALUES(?,?,?,?)
+               ON CONFLICT(user_id,word_id) DO UPDATE SET
+                 query=excluded.query, lookup_count=lookup_count+1,
+                 last_looked_at=excluded.last_looked_at""",
+            (user["id"], word_id, body.query, now),
+        )
+        row = conn.execute(
+            """SELECT h.*,v.hanzi,v.pinyin,v.meaning,v.hsk,v.example,v.audio_url,v.strokes_json
+               FROM dictionary_history h JOIN vocabulary v ON v.id=h.word_id
+               WHERE h.user_id=? AND h.word_id=?""",
+            (user["id"], word_id),
+        ).fetchone()
+    item = dict(row)
+    item["strokes"] = json.loads(item.pop("strokes_json"))
+    return item
+
+
+@app.get("/api/me/dictionary-history")
+def dictionary_history(user=Depends(current_user)):
+    with database() as conn:
+        rows = conn.execute(
+            """SELECT h.*,v.hanzi,v.pinyin,v.meaning,v.hsk,v.example,v.audio_url,v.strokes_json
+               FROM dictionary_history h JOIN vocabulary v ON v.id=h.word_id
+               WHERE h.user_id=? ORDER BY h.last_looked_at DESC""",
+            (user["id"],),
+        ).fetchall()
+    items = []
+    for row in rows:
+        item = dict(row)
+        item["strokes"] = json.loads(item.pop("strokes_json"))
+        items.append(item)
+    return items
+
+
 @app.get("/api/admin/vocabulary")
 def admin_vocabulary(search: str = Query(default="", max_length=120), hsk: int | None = Query(default=None, ge=1, le=6), user=Depends(admin_user)):
     return vocabulary(search, hsk)
@@ -246,6 +310,9 @@ def exam_json(row, learner=False):
         for q in item["questions"]:
             for key in ("answer", "explanation", "transcript"):
                 q.pop(key, None)
+        for q in item["questions"]:
+            if "audio_url" not in q:
+                q["audio_url"] = ""
     return item
 
 
@@ -309,22 +376,53 @@ def delete_exam(exam_id: int, version: int = Query(ge=1), admin=Depends(admin_us
 
 
 @app.post("/api/exams/{exam_id}/submit", status_code=201)
-def submit(exam_id: int, body: Submission, user=Depends(current_user)):
+def submit(exam_id: int, body: Submission, user=Depends(current_user), grader=Depends(get_exam_ai_grader)):
     with database() as conn:
-        conn.execute("BEGIN IMMEDIATE")
         exam = require_row(conn, "exams", exam_id)
         if exam["status"] != "published":
             raise HTTPException(404, "Đề thi chưa được phát hành")
         check_version(exam, body.version)
         questions = json.loads(exam["questions_json"])
-        if any(q["section"] == "writing" and not q["options"] for q in questions):
-            raise HTTPException(422, "Bài viết tự do cần module chấm Writing; không tự động chấm bằng so khớp văn bản.")
         if set(body.answers) != {q["id"] for q in questions}:
             raise HTTPException(422, "Cần nộp đúng danh sách mã câu hỏi của đề")
+
+    sections = {q["section"] for q in questions}
+    ai_kind = next(iter(sections)) if len(sections) == 1 else "exam"
+    if sections and sections <= {"reading", "listening", "writing"}:
+        grading_content = json.dumps({
+            "exam_title": exam["title"],
+            "questions": [{
+                "id": q["id"], "section": q["section"], "prompt": q["prompt"],
+                "options": q["options"], "answer": q["answer"],
+                "submitted_answer": body.answers[q["id"]],
+                "transcript": q.get("transcript", ""),
+                "explanation": q.get("explanation", ""),
+            } for q in questions]
+        }, ensure_ascii=False)
+        grade_function = ({"reading": grader, "listening": grade_listening_exam}
+                          .get(ai_kind, grade_comprehensive_exam))
+        grade = grade_function(user["id"], grading_content)
+        score, feedback, graded_by = grade["score"], grade["feedback"], "ai"
+        ai_review_items = grade.get("review_items", [])
+        section_scores = grade.get("section_scores", {section: score for section in sections})
+    else:
         score = round(100 * sum(body.answers[q["id"]].strip() == q["answer"] for q in questions) / len(questions), 2)
-        snapshot = json.dumps({"exam_title": exam["title"], "exam_version": exam["version"], "questions": questions, "answers": body.answers}, ensure_ascii=False)
-        rid = conn.execute("INSERT INTO results(user_id,exam_id,kind,content,score,original_score,graded_by,created_at) VALUES(?,?,'exam',?,?,?,'automatic',?)",
-                           (user["id"], exam_id, snapshot, score, score, int(time.time()))).lastrowid
+        feedback, graded_by = "", "automatic"
+        ai_review_items = []
+        section_scores = {}
+
+    snapshot = json.dumps({"exam_title": exam["title"], "exam_version": exam["version"],
+                           "questions": questions, "answers": body.answers,
+                           "ai_review_items": ai_review_items,
+                           "section_scores": section_scores}, ensure_ascii=False)
+    with database() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        current = require_row(conn, "exams", exam_id)
+        if current["status"] != "published":
+            raise HTTPException(404, "Đề thi chưa được phát hành")
+        check_version(current, body.version)
+        rid = conn.execute("INSERT INTO results(user_id,exam_id,kind,content,score,original_score,feedback,graded_by,created_at) VALUES(?,?,'exam',?,?,?,?,?,?)",
+                           (user["id"], exam_id, snapshot, score, score, feedback, graded_by, int(time.time()))).lastrowid
         return require_row(conn, "results", rid)
 
 
@@ -332,15 +430,16 @@ def submit(exam_id: int, body: Submission, user=Depends(current_user)):
 def get_ai_config(user=Depends(admin_user)):
     with database() as conn:
         result = require_row(conn, "ai_config", 1)
-    result["key_configured"] = bool(os.getenv("AI_API_KEY", "").strip())
-    result["ready"] = bool(result["enabled"] and result["key_configured"] and result["model"] != "configure-your-model")
+    result["model"] = configured_model(result)
+    result["key_configured"] = bool(configured_api_key())
+    result["ready"] = bool(result["enabled"] and result["key_configured"] and result["model"])
     return result
 
 
 @app.put("/api/admin/ai-config")
 def update_ai_config(body: AIConfig, admin=Depends(admin_user)):
-    if body.enabled and (not os.getenv("AI_API_KEY", "").strip() or body.model == "configure-your-model"):
-        raise HTTPException(422, "Cần đặt AI_API_KEY trên máy chủ và chọn model trước khi bật AI")
+    if body.enabled and (not configured_api_key() or body.model == "configure-your-model"):
+        raise HTTPException(422, "Cần đặt GEMINI_API_KEY trên máy chủ và chọn model trước khi bật AI")
     with database() as conn:
         conn.execute("BEGIN IMMEDIATE")
         before = require_row(conn, "ai_config", 1)
@@ -379,6 +478,121 @@ def admin_results(user_id: int | None = None, below: float | None = Query(defaul
         return [dict(row) for row in conn.execute(query + " ORDER BY r.id DESC", params)]
 
 
+@app.post("/api/writing/submit", status_code=201)
+def submit_writing(body: WritingSubmission, user=Depends(current_user)):
+    payload = json.dumps({"content": body.content}, ensure_ascii=False)
+    return grade_with_ai(user["id"], "writing", payload, gemini_provider)
+
+
+def grade_handwriting_submission(body: HandwritingSubmission, user_id: int):
+    with database() as conn:
+        word = conn.execute("SELECT * FROM vocabulary WHERE hanzi=?", (body.target,)).fetchone()
+    if word is None:
+        raise HTTPException(404, "Chữ Hán chưa có trong kho nét chuẩn")
+    standard = json.loads(word["strokes_json"])
+    if not standard:
+        raise HTTPException(422, "Chữ Hán chưa có dữ liệu nét chuẩn")
+    payload = json.dumps({
+        "target": body.target,
+        "standard_strokes": standard,
+        "submitted_strokes": [[point.model_dump() for point in stroke] for stroke in body.strokes],
+    }, ensure_ascii=False)
+    return grade_with_ai(user_id, "handwriting", payload, gemini_handwriting_provider)
+
+
+@app.post("/api/handwriting/submit", status_code=201)
+def submit_handwriting(body: HandwritingSubmission, user=Depends(current_user)):
+    return grade_handwriting_submission(body, user["id"])
+
+
+@app.get("/api/me/review-items")
+def review_items(kind: Literal["handwriting", "writing"],
+                 below: float = Query(default=80, gt=0, le=100),
+                 user=Depends(current_user)):
+    with database() as conn:
+        rows = conn.execute(
+            """SELECT r.*,p.latest_result_id,p.completed_at,p.updated_at
+               FROM results r LEFT JOIN review_progress p ON p.source_result_id=r.id
+               WHERE r.user_id=? AND r.kind=? AND r.score<? AND p.completed_at IS NULL
+                 AND NOT EXISTS (
+                   SELECT 1 FROM review_attempts retry WHERE retry.result_id=r.id
+                 )
+               ORDER BY r.created_at DESC""",
+            (user["id"], kind, below),
+        ).fetchall()
+        items = []
+        for row in rows:
+            item = dict(row)
+            latest_id = item.get("latest_result_id")
+            item["latest_result"] = (dict(require_row(conn, "results", latest_id))
+                                     if latest_id is not None else None)
+            items.append(item)
+        return items
+
+
+@app.post("/api/me/review/writing/{source_result_id}", status_code=201)
+def resubmit_writing(source_result_id: int, body: WritingSubmission,
+                     user=Depends(current_user)):
+    with database() as conn:
+        source = require_row(conn, "results", source_result_id)
+        if source["user_id"] != user["id"]:
+            raise HTTPException(404, "Không tìm thấy bài cần ôn tập")
+        if source["kind"] != "writing" or source["score"] >= 80:
+            raise HTTPException(409, "Bài này không thuộc danh sách đoạn văn cần viết lại")
+    payload = json.dumps({"content": body.content, "review_of": source_result_id}, ensure_ascii=False)
+    result = grade_with_ai(user["id"], "writing", payload, gemini_provider)
+    now = int(time.time())
+    with database() as conn:
+        conn.execute(
+            "INSERT INTO review_attempts(result_id,source_result_id,user_id,created_at) VALUES(?,?,?,?)",
+            (result["id"], source_result_id, user["id"], now),
+        )
+        conn.execute(
+            """INSERT INTO review_progress(source_result_id,user_id,latest_result_id,completed_at,updated_at)
+               VALUES(?,?,?,?,?) ON CONFLICT(source_result_id) DO UPDATE SET
+               latest_result_id=excluded.latest_result_id,
+               completed_at=excluded.completed_at,updated_at=excluded.updated_at""",
+            (source_result_id, user["id"], result["id"], now if result["score"] >= 80 else None, now),
+        )
+    result["review_completed"] = result["score"] >= 80
+    result["source_result_id"] = source_result_id
+    return result
+
+
+@app.post("/api/me/review/handwriting/{source_result_id}", status_code=201)
+def resubmit_handwriting(source_result_id: int, body: HandwritingSubmission,
+                         user=Depends(current_user)):
+    with database() as conn:
+        source = require_row(conn, "results", source_result_id)
+        if source["user_id"] != user["id"]:
+            raise HTTPException(404, "Không tìm thấy chữ cần ôn tập")
+        if source["kind"] != "handwriting" or source["score"] >= 80:
+            raise HTTPException(409, "Chữ này không thuộc danh sách cần luyện lại")
+        try:
+            original_target = json.loads(source["content"])["target"]
+        except (KeyError, TypeError, json.JSONDecodeError):
+            raise HTTPException(409, "Bài viết tay cũ không còn đủ dữ liệu để luyện lại") from None
+        if body.target != original_target:
+            raise HTTPException(422, "Cần viết lại đúng chữ Hán của bài gốc")
+    result = grade_handwriting_submission(body, user["id"])
+    now = int(time.time())
+    with database() as conn:
+        conn.execute(
+            "INSERT INTO review_attempts(result_id,source_result_id,user_id,created_at) VALUES(?,?,?,?)",
+            (result["id"], source_result_id, user["id"], now),
+        )
+        conn.execute(
+            """INSERT INTO review_progress(source_result_id,user_id,latest_result_id,completed_at,updated_at)
+               VALUES(?,?,?,?,?) ON CONFLICT(source_result_id) DO UPDATE SET
+               latest_result_id=excluded.latest_result_id,
+               completed_at=excluded.completed_at,updated_at=excluded.updated_at""",
+            (source_result_id, user["id"], result["id"], now if result["score"] >= 80 else None, now),
+        )
+    result["review_completed"] = result["score"] >= 80
+    result["source_result_id"] = source_result_id
+    return result
+
+
 @app.get("/api/me/results")
 def my_results(user=Depends(current_user)):
     with database() as conn:
@@ -391,7 +605,133 @@ def my_results(user=Depends(current_user)):
 @app.get("/api/me/dashboard")
 def my_dashboard(user=Depends(current_user)):
     with database() as conn:
-        return dict(conn.execute("SELECT COUNT(*) results,COALESCE(ROUND(AVG(score),1),0) average_score,COALESCE(SUM(score<80),0) needs_review FROM results WHERE user_id=?", (user["id"],)).fetchone())
+        results = [dict(row) for row in conn.execute(
+            "SELECT * FROM results WHERE user_id=? ORDER BY created_at", (user["id"],))]
+        vocabulary_count = conn.execute(
+            "SELECT COUNT(*) FROM dictionary_history WHERE user_id=?", (user["id"],)).fetchone()[0]
+        needs_review = conn.execute(
+            """SELECT COUNT(*) FROM results r
+               LEFT JOIN review_progress p ON p.source_result_id=r.id
+               WHERE r.user_id=? AND r.score<80
+                 AND NOT EXISTS (
+                   SELECT 1 FROM review_attempts retry WHERE retry.result_id=r.id
+                 )
+                 AND (r.kind='exam' OR p.completed_at IS NULL)""",
+            (user["id"],),
+        ).fetchone()[0]
+        activity_days = [row[0] for row in conn.execute(
+            """SELECT DISTINCT date(created_at,'unixepoch','localtime') day FROM results
+               WHERE user_id=? UNION SELECT DISTINCT date(last_looked_at,'unixepoch','localtime')
+               FROM dictionary_history WHERE user_id=? ORDER BY day DESC""",
+            (user["id"], user["id"]),
+        )]
+        attempts = {row[0] for row in conn.execute(
+            "SELECT result_id FROM review_attempts WHERE user_id=?", (user["id"],))}
+        latest_by_source = {row[0]: row[1] for row in conn.execute(
+            "SELECT source_result_id,latest_result_id FROM review_progress WHERE user_id=?",
+            (user["id"],),
+        ) if row[1] is not None}
+    results_by_id = {result["id"]: result for result in results}
+    current_results = [
+        results_by_id.get(latest_by_source.get(result["id"]), result)
+        for result in results if result["id"] not in attempts
+    ]
+    skill_scores = {"listening": [], "reading": [], "writing": [], "handwriting": []}
+    for result in current_results:
+        skill = result["kind"]
+        used_section_scores = False
+        if skill == "exam":
+            try:
+                snapshot = json.loads(result["content"])
+                sections = {q["section"] for q in snapshot["questions"]}
+                if len(sections) > 1:
+                    for section, section_score in snapshot.get("section_scores", {}).items():
+                        if section in skill_scores:
+                            skill_scores[section].append(float(section_score))
+                            used_section_scores = True
+                skill = next(iter(sections)) if len(sections) == 1 else "mixed"
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+                skill = "mixed"
+        if skill in skill_scores and not used_section_scores:
+            skill_scores[skill].append(result["score"])
+    today = time.strftime("%Y-%m-%d", time.localtime())
+    streak = 0
+    cursor = int(time.mktime(time.strptime(today, "%Y-%m-%d")))
+    days = set(activity_days)
+    while time.strftime("%Y-%m-%d", time.localtime(cursor)) in days:
+        streak += 1
+        cursor -= 86400
+    averages = {key: round(sum(values) / len(values), 1) if values else 0
+                for key, values in skill_scores.items()}
+    return {
+        "results": len(results),
+        "average_score": round(sum(r["score"] for r in current_results) / len(current_results), 1) if current_results else 0,
+        "needs_review": needs_review,
+        "vocabulary_count": vocabulary_count,
+        "streak": streak,
+        "skill_scores": averages,
+        "progress_percent": round(sum(r["score"] for r in current_results) / len(current_results), 1) if current_results else 0,
+    }
+
+
+@app.get("/api/me/capability")
+def my_capability(user=Depends(current_user)):
+    summary = my_dashboard(user)
+    if summary["results"] == 0:
+        return {
+            "skill_scores": summary["skill_scores"],
+            "feedback": "Chưa có đủ dữ liệu. Hãy hoàn thành ít nhất một bài luyện tập.",
+            "strengths": [],
+            "improvements": ["Hoàn thành bài Nghe, Đọc hoặc Viết đầu tiên"],
+            "updated_at": None,
+            "generated_by": "default",
+        }
+    fingerprint = hashlib.sha256(json.dumps(summary, sort_keys=True).encode()).hexdigest()
+    with database() as conn:
+        cached = conn.execute("SELECT * FROM capability_reports WHERE user_id=?", (user["id"],)).fetchone()
+    if cached is not None and cached["fingerprint"] == fingerprint:
+        return {
+            "skill_scores": summary["skill_scores"], "feedback": cached["feedback"],
+            "strengths": json.loads(cached["strengths_json"]),
+            "improvements": json.loads(cached["improvements_json"]),
+            "updated_at": cached["updated_at"], "generated_by": "cache",
+        }
+    try:
+        output = gemini_capability_provider(ai_settings(), json.dumps(summary, ensure_ascii=False))
+        feedback = output["feedback"]
+        strengths, improvements = output["strengths"], output["improvements"]
+        if (not isinstance(feedback, str) or not feedback.strip()
+                or not isinstance(strengths, list) or not isinstance(improvements, list)
+                or any(not isinstance(value, str) or not value.strip()
+                       for value in strengths + improvements)):
+            raise ValueError("invalid capability report")
+    except Exception:
+        record_ai_usage(user["id"], "capability", "error")
+        raise HTTPException(502, "AI chưa thể tạo báo cáo năng lực. Vui lòng thử lại.") from None
+    record_ai_usage(user["id"], "capability", "success")
+    now = int(time.time())
+    with database() as conn:
+        conn.execute(
+            """INSERT INTO capability_reports VALUES(?,?,?,?,?,?)
+               ON CONFLICT(user_id) DO UPDATE SET fingerprint=excluded.fingerprint,
+               feedback=excluded.feedback,strengths_json=excluded.strengths_json,
+               improvements_json=excluded.improvements_json,updated_at=excluded.updated_at""",
+            (user["id"], fingerprint, feedback.strip(),
+             json.dumps(strengths, ensure_ascii=False),
+             json.dumps(improvements, ensure_ascii=False), now),
+        )
+    return {"skill_scores": summary["skill_scores"], "feedback": feedback.strip(),
+            "strengths": strengths, "improvements": improvements,
+            "updated_at": now, "generated_by": "ai"}
+
+
+def sync_review_score(conn, result_id, score):
+    """An Admin correction to the latest retry also changes review completion."""
+    now = int(time.time())
+    conn.execute(
+        "UPDATE review_progress SET completed_at=?,updated_at=? WHERE latest_result_id=?",
+        (now if score >= 80 else None, now, result_id),
+    )
 
 
 @app.patch("/api/admin/results/{result_id}/score")
@@ -401,6 +741,7 @@ def override_score(result_id: int, body: Override, admin=Depends(admin_user)):
         before = require_row(conn, "results", result_id)
         check_version(before, body.version)
         conn.execute("UPDATE results SET score=?,graded_by='admin',version=version+1 WHERE id=?", (body.score, result_id))
+        sync_review_score(conn, result_id, body.score)
         conn.execute("INSERT INTO score_overrides(result_id,admin_id,old_score,new_score,reason,created_at) VALUES(?,?,?,?,?,?)",
                      (result_id, admin["id"], before["score"], body.score, body.reason, int(time.time())))
         audit(conn, admin["id"], "override", "result", result_id,
@@ -464,6 +805,7 @@ def review_appeal(appeal_id: int, body: AppealReview, admin=Depends(admin_user))
         check_version(result, body.result_version)
         now = int(time.time())
         conn.execute("UPDATE results SET score=?,graded_by='admin',version=version+1 WHERE id=?", (body.score, result["id"]))
+        sync_review_score(conn, result["id"], body.score)
         conn.execute("INSERT INTO score_overrides(result_id,admin_id,old_score,new_score,reason,created_at) VALUES(?,?,?,?,?,?)",
                      (result["id"], admin["id"], result["score"], body.score, body.response, now))
         conn.execute("UPDATE appeals SET status='resolved',response=?,reviewer_id=?,resolved_at=?,version=version+1 WHERE id=?",

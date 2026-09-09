@@ -134,3 +134,20 @@ class AppealReview(Body):
     result_version: int = Field(ge=1)
     score: float = Field(ge=0, le=100)
     response: str = Field(min_length=5, max_length=2000)
+
+class DictionaryLookup(Body):
+    query: str = Field(default="", max_length=120)
+
+
+class WritingSubmission(Body):
+    content: str = Field(min_length=1, max_length=10000)
+
+
+class HandwritingSubmission(Body):
+    target: str = Field(min_length=1, max_length=4)
+    strokes: list[list[Point]] = Field(min_length=1, max_length=64)
+
+    @field_validator("strokes")
+    @classmethod
+    def valid_strokes(cls, value):
+        return Word.valid_strokes(value)

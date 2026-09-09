@@ -1,7 +1,7 @@
 name: Admin integration tests
 on:
   push:
-    branches: [nguyen]
+    branches: [nguyen, test]
   pull_request:
     paths: ['backend/**', 'admin/**', '.github/workflows/admin-tests.yml']
 permissions:
