@@ -1,7 +1,10 @@
 """Integration tests use isolated databases, never the developer's local data."""
+import json
+import base64
 import os
 import tempfile
 import unittest
+import httpx
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,7 +14,7 @@ from fastapi.testclient import TestClient
 import database as storage
 from main import app
 from seed import seed
-from services import grade_with_ai
+from services import grade_with_ai, _post_gemini, _render_strokes_png
 
 
 class AdminIntegrationTest(unittest.TestCase):
@@ -33,6 +36,43 @@ class AdminIntegrationTest(unittest.TestCase):
         storage.DB_PATH = self.old_db
         self.temp.cleanup()
 
+    def test_handwriting_renderer_creates_real_png_for_gemini(self):
+        encoded = _render_strokes_png([
+            [{"x": 100, "y": 500}, {"x": 900, "y": 500}],
+        ], size=64)
+        image = base64.b64decode(encoded)
+        self.assertTrue(image.startswith(b"\x89PNG\r\n\x1a\n"))
+        self.assertGreater(len(image), 100)
+
+    def test_gemini_transient_failure_is_retried(self):
+        request = httpx.Request("POST", "https://gemini.example.test")
+        responses = [
+            httpx.Response(503, request=request),
+            httpx.Response(200, request=request, json={
+                "candidates": [{"content": {"parts": [{"text": '{"ok": true}'}]}}]
+            }),
+        ]
+        with patch("services.httpx.post", side_effect=responses) as post, \
+             patch("services.time.sleep"):
+            response = _post_gemini(
+                str(request.url), {"x-goog-api-key": "secret"}, {}, 1.0)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(post.call_count, 2)
+
+    def test_gemini_truncated_json_is_regenerated_with_more_tokens(self):
+        request = httpx.Request("POST", "https://gemini.example.test")
+        def candidate(text):
+            return httpx.Response(200, request=request, json={
+                "candidates": [{"content": {"parts": [{"text": text}]}}]
+            })
+        payload = {"generationConfig": {"maxOutputTokens": 500}}
+        with patch("services.httpx.post", side_effect=[candidate('{"score":'),
+                                                        candidate('{"score": 90}')]) as post:
+            response = _post_gemini(str(request.url), {}, payload, 1.0)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(post.call_count, 2)
+        self.assertEqual(payload["generationConfig"]["maxOutputTokens"], 2048)
+
     def register(self, email, name):
         response = self.client.post("/api/auth/register", json={"email": email, "name": name, "password": "Test-password-123"})
         self.assertEqual(response.status_code, 201, response.text)
@@ -52,6 +92,7 @@ class AdminIntegrationTest(unittest.TestCase):
         body = {"title": "HSK 1 mẫu", "hsk": 1, "status": status, "duration_minutes": 15,
                 "questions": [{"id": "q1", "section": section, "prompt": "一 nghĩa là gì?",
                                "options": ["một", "hai"], "answer": "một", "explanation": "一 là một",
+                               "audio_url": "https://example.test/audio.mp3" if section == "listening" else "",
                                "word_id": word["id"] if word else None}]}
         response = self.post("/exams", body)
         self.assertEqual(response.status_code, 201, response.text)
@@ -152,6 +193,21 @@ class AdminIntegrationTest(unittest.TestCase):
             self.assertEqual(result["score"], 100)
         self.assertEqual(self.client.delete(f"/api/admin/exams/{exam['id']}?version=1", headers=self.headers).status_code, 409)
 
+    def test_listening_exam_is_graded_by_ai_and_saved(self):
+        exam = self.exam(section="listening")
+        with patch('main.grade_listening_exam', return_value={
+                "score": 88,
+                "feedback": "Nghe tốt.",
+                "review_items": [{"id": "q1", "explanation": "Transcript có từ 一; đáp án hai là nhiễu."}],
+        }) as grader:
+            result = self.submit(exam, "một")
+        grader.assert_called_once()
+        self.assertEqual(result["score"], 88)
+        self.assertEqual(result["feedback"], "Nghe tốt.")
+        self.assertEqual(result["graded_by"], "ai")
+        snapshot = json.loads(result["content"])
+        self.assertEqual(snapshot["ai_review_items"][0]["id"], "q1")
+
     def test_draft_hidden_and_stale_exam_are_not_submitted(self):
         exam=self.exam(status="draft")
         self.assertEqual(self.client.get("/api/exams", headers=self.student_headers).json(), [])
@@ -189,7 +245,10 @@ class AdminIntegrationTest(unittest.TestCase):
         self.assertEqual(rows[0]["original_score"],0)
         self.assertEqual(rows[0]["overrides"][0]["old_score"],0)
         dashboard=self.client.get("/api/me/dashboard",headers=self.student_headers).json()
-        self.assertEqual(dashboard,{"results":1,"average_score":85.0,"needs_review":0})
+        self.assertEqual(dashboard["results"], 1)
+        self.assertEqual(dashboard["average_score"], 85.0)
+        self.assertEqual(dashboard["needs_review"], 0)
+        self.assertEqual(dashboard["skill_scores"]["reading"], 85.0)
         self.assertEqual(self.client.get("/api/me/results",headers=self.headers).json(),[])
 
     def test_ai_config_keeps_key_private_and_checks_version(self):
@@ -232,12 +291,133 @@ class AdminIntegrationTest(unittest.TestCase):
         self.assertEqual(dashboard["ai_errors"],3)
         self.assertEqual(dashboard["results"],1)
 
+    def test_dictionary_history_is_private_and_updates_lookup_count(self):
+        word = self.word()
+        path = f"/api/me/dictionary-history/{word['id']}"
+        first = self.client.post(path, headers=self.student_headers, json={"query": "yi"})
+        self.assertEqual(first.status_code, 201, first.text)
+        second = self.client.post(path, headers=self.student_headers, json={"query": "一"})
+        self.assertEqual(second.json()["lookup_count"], 2)
+        history = self.client.get("/api/me/dictionary-history", headers=self.student_headers).json()
+        self.assertEqual([item["hanzi"] for item in history], ["一"])
+        self.assertEqual(self.client.get("/api/me/dictionary-history", headers=self.headers).json(), [])
+
+    def test_writing_below_80_can_be_resubmitted_until_completed(self):
+        with storage.database() as conn:
+            conn.execute("UPDATE ai_config SET enabled=1,model='test-model'")
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "private-test-secret"}), \
+             patch('main.gemini_provider', side_effect=[
+                 {"score": 60, "feedback": "Cần sửa ngữ pháp."},
+                 {"score": 70, "feedback": "Vẫn cần sửa cách dùng từ."},
+                 {"score": 85, "feedback": "Bài đã rõ ràng hơn."},
+             ]):
+            original = self.client.post("/api/writing/submit", headers=self.student_headers,
+                                        json={"content": "我学习中文。"})
+            self.assertEqual(original.status_code, 201, original.text)
+            weak = self.client.get("/api/me/review-items?kind=writing", headers=self.student_headers).json()
+            self.assertEqual(len(weak), 1)
+            retry = self.client.post(f"/api/me/review/writing/{original.json()['id']}",
+                                     headers=self.student_headers,
+                                     json={"content": "我每天学习中文。"})
+            self.assertEqual(retry.status_code, 201, retry.text)
+            self.assertFalse(retry.json()["review_completed"])
+            weak = self.client.get("/api/me/review-items?kind=writing",
+                                   headers=self.student_headers).json()
+            self.assertEqual(len(weak), 1)
+            self.assertEqual(weak[0]["latest_result"]["score"], 70)
+            retry = self.client.post(f"/api/me/review/writing/{original.json()['id']}",
+                                     headers=self.student_headers,
+                                     json={"content": "我每天认真学习中文。"})
+            self.assertEqual(retry.status_code, 201, retry.text)
+            self.assertTrue(retry.json()["review_completed"])
+        self.assertEqual(self.client.get("/api/me/review-items?kind=writing",
+                                         headers=self.student_headers).json(), [])
+        dashboard = self.client.get("/api/me/dashboard", headers=self.student_headers).json()
+        self.assertEqual(dashboard["needs_review"], 0)
+        self.assertEqual(dashboard["skill_scores"]["writing"], 85)
+
+    def test_capability_report_uses_skill_scores_and_cache(self):
+        with patch('main.grade_reading_exam', return_value={"score": 90, "feedback": "Tốt"}):
+            self.submit(self.exam(), "một")
+        with storage.database() as conn:
+            conn.execute("UPDATE ai_config SET enabled=1,model='test-model'")
+        report = {"feedback": "Đọc là điểm mạnh.", "strengths": ["Đọc hiểu tốt"],
+                  "improvements": ["Luyện nghe thêm"]}
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "private-test-secret"}), \
+             patch('main.gemini_capability_provider', return_value=report) as provider:
+            first = self.client.get("/api/me/capability", headers=self.student_headers)
+            second = self.client.get("/api/me/capability", headers=self.student_headers)
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assertEqual(first.json()["skill_scores"]["reading"], 90)
+        self.assertEqual(first.json()["generated_by"], "ai")
+        self.assertEqual(second.json()["generated_by"], "cache")
+        provider.assert_called_once()
+
+    def test_handwriting_canvas_result_enters_and_leaves_review_list(self):
+        self.word()
+        strokes = [[{"x": 100, "y": 500}, {"x": 900, "y": 500}]]
+        with storage.database() as conn:
+            conn.execute("UPDATE ai_config SET enabled=1,model='test-model'")
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "private-test-secret"}), \
+             patch('main.gemini_handwriting_provider', side_effect=[
+                 {"score": 55, "feedback": "Nét ngang chưa cân đối."},
+                 {"score": 90, "feedback": "Nét đã cân đối."},
+             ]):
+            original = self.client.post("/api/handwriting/submit", headers=self.student_headers,
+                                        json={"target": "一", "strokes": strokes})
+            self.assertEqual(original.status_code, 201, original.text)
+            weak = self.client.get("/api/me/review-items?kind=handwriting",
+                                   headers=self.student_headers).json()
+            self.assertEqual(len(weak), 1)
+            wrong_target = self.client.post(
+                f"/api/me/review/handwriting/{original.json()['id']}",
+                headers=self.student_headers, json={"target": "二", "strokes": strokes})
+            self.assertEqual(wrong_target.status_code, 422)
+            retry = self.client.post(
+                f"/api/me/review/handwriting/{original.json()['id']}",
+                headers=self.student_headers, json={"target": "一", "strokes": strokes})
+            self.assertEqual(retry.status_code, 201, retry.text)
+            self.assertTrue(retry.json()["review_completed"])
+        self.assertEqual(self.client.get("/api/me/review-items?kind=handwriting",
+                                         headers=self.student_headers).json(), [])
+
+    def test_comprehensive_exam_saves_each_skill_score(self):
+        body = {
+            "title": "HSK 1 tổng hợp", "hsk": 1, "status": "published",
+            "duration_minutes": 30,
+            "questions": [
+                {"id": "l1", "section": "listening", "prompt": "Nghe và chọn",
+                 "options": ["một", "hai"], "answer": "một",
+                 "audio_url": "https://example.test/audio.mp3", "transcript": "一"},
+                {"id": "r1", "section": "reading", "prompt": "一 nghĩa là gì?",
+                 "options": ["một", "hai"], "answer": "một"},
+                {"id": "w1", "section": "writing", "prompt": "Viết câu với 一",
+                 "options": [], "answer": "Rubric: đúng ngữ pháp và có chữ 一"},
+            ],
+        }
+        exam = self.post("/exams", body).json()
+        grade = {"score": 80, "feedback": "Khá tốt", "review_items": [],
+                 "section_scores": {"listening": 90, "reading": 80, "writing": 70}}
+        with patch('main.grade_comprehensive_exam', return_value=grade):
+            response = self.client.post(
+                f"/api/exams/{exam['id']}/submit", headers=self.student_headers,
+                json={"version": exam["version"],
+                      "answers": {"l1": "một", "r1": "một", "w1": "我有一个朋友。"}},
+            )
+        self.assertEqual(response.status_code, 201, response.text)
+        snapshot = json.loads(response.json()["content"])
+        self.assertEqual(snapshot["section_scores"]["writing"], 70)
+        dashboard = self.client.get("/api/me/dashboard", headers=self.student_headers).json()
+        self.assertEqual(dashboard["skill_scores"]["listening"], 90)
+        self.assertEqual(dashboard["skill_scores"]["reading"], 80)
+        self.assertEqual(dashboard["skill_scores"]["writing"], 70)
+
     def test_seed_is_idempotent_and_dashboard_has_no_fake_activity(self):
         seed()
         seed()
         data=self.client.get("/api/admin/dashboard",headers=self.headers).json()["totals"]
         self.assertEqual(data["vocabulary"],8)
-        self.assertEqual(data["exams"],6)
+        self.assertEqual(data["exams"],7)
         self.assertEqual(data["results"],0)
         self.assertEqual(data["ai_success"],0)
         self.assertEqual(data["average_score"],0)

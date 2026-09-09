@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 import '../models/reading_exam.dart';
 import '../services/reading_exam_service.dart';
@@ -6,9 +7,16 @@ import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 
 class PracticeScreen extends StatefulWidget {
-  const PracticeScreen({super.key, required this.repository});
+  const PracticeScreen({
+    super.key,
+    required this.repository,
+    this.title = 'Test Đọc',
+    this.eyebrow = 'Bài luyện · Kỹ năng đọc',
+    this.skillLabel = 'ĐỌC',
+  });
 
   final ReadingExamRepository repository;
+  final String title, eyebrow, skillLabel;
 
   @override
   State<PracticeScreen> createState() => _PracticeScreenState();
@@ -52,10 +60,10 @@ class _PracticeScreenState extends State<PracticeScreen> {
     return SafeArea(
       child: Column(
         children: [
-          const ScreenHeader(
-            eyebrow: 'Bài luyện · Kỹ năng đọc',
-            title: 'Test Đọc',
-            trailing: Icon(
+          ScreenHeader(
+            eyebrow: widget.eyebrow,
+            title: widget.title,
+            trailing: const Icon(
               Icons.chrome_reader_mode_outlined,
               color: AppTheme.jade,
             ),
@@ -87,8 +95,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
               },
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 22, 20, 10),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 10),
             child: Row(
               children: [
                 Expanded(
@@ -98,8 +106,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
                   ),
                 ),
                 Text(
-                  'ĐỌC',
-                  style: TextStyle(
+                  widget.skillLabel,
+                  style: const TextStyle(
                     color: AppTheme.red,
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
@@ -135,7 +143,9 @@ class _PracticeScreenState extends State<PracticeScreen> {
       return _MessageState(
         key: const Key('empty-exam-state'),
         icon: Icons.menu_book_outlined,
-        title: 'Chưa có đề Đọc HSK $_selectedHsk',
+        title: widget.title == 'Test Đọc'
+            ? 'Chưa có đề Đọc HSK $_selectedHsk'
+            : 'Chưa có ${widget.title} HSK $_selectedHsk',
         message: 'Đề cần được Admin phát hành trước khi học viên làm bài.',
       );
     }
@@ -212,6 +222,11 @@ class _PracticeScreenState extends State<PracticeScreen> {
                       ),
                     ),
                   ),
+                  if (question.section == 'listening' &&
+                      question.audioUrl.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    _ExamAudioPlayer(url: question.audioUrl),
+                  ],
                   const SizedBox(height: 22),
                   Text(
                     question.options.isEmpty
@@ -230,7 +245,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                       enabled: !_submitting,
                       maxLength: 5000,
                       minLines: 1,
-                      maxLines: 4,
+                      maxLines: question.section == 'writing' ? 10 : 4,
                       textInputAction: TextInputAction.done,
                       decoration: const InputDecoration(
                         hintText: 'Nhập câu trả lời của bạn',
@@ -302,7 +317,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
         children: [
           ScreenHeader(
             eyebrow: 'Kết quả đã được lưu',
-            title: 'Bài Test Đọc',
+            title: widget.title,
             trailing: Icon(
               passed ? Icons.emoji_events_rounded : Icons.auto_stories_rounded,
               color: passed ? AppTheme.orange : AppTheme.jade,
@@ -336,7 +351,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                       const SizedBox(height: 8),
                       Text(
                         passed
-                            ? 'Bạn đã hoàn thành tốt bài đọc.'
+                            ? 'Bạn đã hoàn thành tốt bài luyện.'
                             : 'Bạn nên xem lại lời giải và luyện thêm.',
                         textAlign: TextAlign.center,
                       ),
@@ -499,7 +514,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
     final shouldExit = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Thoát bài đọc?'),
+        title: Text('Thoát ${widget.title.toLowerCase()}?'),
         content: const Text('Các đáp án chưa nộp sẽ bị xóa.'),
         actions: [
           TextButton(
@@ -533,6 +548,93 @@ class _PracticeScreenState extends State<PracticeScreen> {
         ? score.toInt().toString()
         : score.toStringAsFixed(1);
   }
+}
+
+class _ExamAudioPlayer extends StatefulWidget {
+  const _ExamAudioPlayer({required this.url});
+
+  final String url;
+
+  @override
+  State<_ExamAudioPlayer> createState() => _ExamAudioPlayerState();
+}
+
+class _ExamAudioPlayerState extends State<_ExamAudioPlayer> {
+  final AudioPlayer _player = AudioPlayer();
+  bool _playing = false;
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _player.onPlayerComplete.listen((_) {
+      if (mounted) setState(() => _playing = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
+  }
+
+  Future<void> _toggle() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      if (_playing) {
+        await _player.pause();
+      } else {
+        await _player.play(UrlSource(widget.url));
+      }
+      if (mounted) setState(() => _playing = !_playing);
+    } on Exception {
+      if (mounted) {
+        setState(() => _error = 'Không phát được audio. Hãy kiểm tra mạng.');
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF1E8),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                IconButton.filled(
+                  key: const Key('comprehensive-audio'),
+                  onPressed: _busy ? null : _toggle,
+                  icon: _busy
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(_playing ? Icons.pause : Icons.play_arrow),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _playing ? 'Đang phát hội thoại...' : 'Nghe hội thoại',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+            if (_error != null)
+              Text(_error!, style: const TextStyle(color: AppTheme.red)),
+          ],
+        ),
+      );
 }
 
 class _ExamCard extends StatelessWidget {

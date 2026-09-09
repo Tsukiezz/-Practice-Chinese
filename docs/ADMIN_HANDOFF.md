@@ -50,7 +50,8 @@ Timestamp Unix theo giây. Từ, đề, AI config, kết quả có version tăng
 
 Nét đúng thứ tự, mỗi nét 2–512 điểm, tọa độ 0–1024, gốc trái trên, tối đa 64 nét. Mảng rỗng là chưa có chuẩn, không coi là điểm 0. Admin vẽ/bỏ nét cuối/vẽ lại; đây là dữ liệu biên soạn, không phải thuật toán OCR/chấm nét.
 
-Không xóa từ có word_id trong đề. Module kho cá nhân/lịch sử của Vy cần thêm khóa ngoại tới vocabulary(id) để tiếp tục bảo vệ tham chiếu.
+Không xóa từ có word_id trong đề. Lịch sử tra từ đã liên kết tới `vocabulary(id)`
+và được cách ly theo tài khoản học viên.
 
 ## Đề và kết quả — Kiệt / Trung
 
@@ -71,16 +72,16 @@ Không xóa từ có word_id trong đề. Module kho cá nhân/lịch sử của
 - Câu Nghe cần URL HTTPS; module học viên phát audio và xử lý lỗi tải. Admin không xác minh nguồn bên ngoài.
 - Trắc nghiệm ít nhất 2 lựa chọn khác nhau, answer nằm trong lựa chọn.
 - Viết tự do: options rỗng, answer là rubric/đáp án mẫu, do module Writing chấm.
-- `POST /api/exams/{id}/submit`: `{version,answers:{q1:"một"}}`. Server chấm theo đáp án chính xác, điểm 0–100 chia đều các câu; lưu snapshot đề/bài làm. Không nhận score từ client.
-- Đề có Viết tự do trả 422 để tránh chấm sai bằng so khớp văn bản; cần module Writing cho đề tổng hợp.
-- duration_minutes là thông tin giao diện; phiên thi tính giờ/chống nộp lại thuộc luồng thi Kiệt cần bổ sung.
+- `POST /api/exams/{id}/submit`: `{version,answers:{q1:"một"}}`. Server kiểm tra đầy đủ mã câu, bắt buộc Gemini chấm, lưu lời giải từng câu và điểm theo từng kỹ năng trong snapshot. Không nhận score từ client.
+- Đề tổng hợp Nghe–Đọc–Viết và câu Viết tự do dùng rubric/đáp án mẫu để Gemini chấm ngữ cảnh.
+- `duration_minutes` hiện được hiển thị trên danh sách đề; quản lý phiên thi có đồng hồ đếm ngược là phần mở rộng tiếp theo nếu nhóm yêu cầu.
 - Đề có kết quả chỉ được ẩn/sửa, không xóa. Snapshot giữ nội dung/đáp án lúc nộp dù đề đã sửa.
 
-`GET /api/me/results` và `/api/me/dashboard` lấy user_id từ session. Dashboard tính results, average_score, needs_review (score < 80). Điểm Admin sửa hiển thị ngay ở cả hai API; lịch sử lý do cũng trả cho học viên. Ôn tập lọc theo score, không theo original_score.
+`GET /api/me/results`, `/api/me/dashboard` và `/api/me/capability` lấy user_id từ session. Dashboard dùng dữ liệu thật, streak, từ đã tra, điểm bốn kỹ năng và tiến trình ôn tập hiện tại. Điểm Admin sửa hiển thị ngay; lịch sử lý do cũng trả cho học viên.
 
 ## Adapter AI — Trung / Kiệt
 
-Key ưu tiên `GEMINI_API_KEY`, fallback `AI_API_KEY`. ready kiểm tra cấu hình nội bộ, chưa xác minh nhà cung cấp.
+Key ưu tiên `GEMINI_API_KEY`, fallback `AI_API_KEY`. Dùng `verify_gemini.py` để xác minh thật bài Đọc và ảnh viết tay mà không in khóa.
 
 `services.grade_with_ai(user_id, kind, content, provider)` là hàm nội bộ máy chủ, không phải endpoint tự nộp điểm:
 
@@ -96,7 +97,8 @@ def gemini_provider(settings, content):
     # Trả {'score': <điểm thật 0..100>, 'feedback': <nhận xét thật>}.
 ```
 
-`services.gemini_provider` đã triển khai gọi Gemini API thực với timeout 15s, structured JSON schema (`score` 0–100, `feedback`). Nếu cần đổi nhà cung cấp, chỉ cần thay hàm provider tương ứng.
+Các provider Gemini dùng timeout, retry có giới hạn và structured JSON schema. Chấm
+viết tay dựng ảnh PNG từ Canvas, gửi ảnh học viên, ảnh chuẩn và tọa độ thứ tự nét.
 
 Hàm `evaluate_with_ai` kiểm tra điểm hữu hạn 0–100, lưu kết quả thật `graded_by=ai` và lượt dùng; lỗi provider thành 502 không lộ exception/key. AI tắt/chưa cấu hình trả 503, không tạo điểm giả. Provider phải đặt timeout mạng và do code máy chủ cung cấp.
 
@@ -112,19 +114,19 @@ Hàm `evaluate_with_ai` kiểm tra điểm hữu hạn 0–100, lưu kết quả
 
 Test API và trình duyệt theo README dùng DB tạm, không thay dữ liệu demo. Không commit DB, môi trường ảo, ảnh test, secrets.
 
-### Kết quả kiểm tra ngày 06/09/2026
+### Kết quả kiểm tra ngày 09/09/2026
 
-- 15 integration tests FastAPI/SQLite đạt: phân quyền, session, CRUD, xung đột phiên bản, ràng buộc xóa, chấm bài, ghi đè điểm, cách ly dữ liệu học viên, AI config/adapter và seed.
+- 24 integration tests FastAPI/SQLite đạt: phân quyền, session, CRUD, bài Nghe/Đọc/tổng hợp, lịch sử từ, viết tay/đoạn văn dưới 80, Dashboard, báo cáo AI, retry Gemini và dựng ảnh nét.
 - Playwright trên Microsoft Edge: desktop 1440px và mobile 390px đạt; không có lỗi JavaScript; kiểm tra cả điểm học viên sau khi Admin duyệt.
 - `node --check admin/app.js`: đạt.
 - `flutter analyze`: không có vấn đề.
-- `flutter test`: 1 widget test đạt trên bản sao mã nguồn sạch trong thư mục tạm. SDK dùng đường dẫn ổ đĩa tạm không dấu để tránh lỗi shader trên đường dẫn tiếng Việt; thư mục build cũ trong OneDrive bị khóa nên không dùng lại. Không thay mã Flutter để né lỗi kiểm thử.
+- `flutter test`: 20 kiểm thử service/widget đạt cho đề Nghe/Đọc/tổng hợp, từ điển, Flashcard, Canvas, ôn tập và Dashboard.
 - Workflow `Admin integration tests` được thêm để GitHub chạy lại kiểm thử API và Chromium. Trạng thái GitHub Actions phải xem trên repository; kết quả local không thay cho kết quả CI.
 
 ## Tích hợp toàn nhóm còn cần
 
 - Tuyến: đăng nhập/đăng ký/hồ sơ Flutter, khôi phục mật khẩu, avatar và session thống nhất.
-- Vy: giao diện API từ điển, audio, kho cá nhân.
-- Trung: adapter AI thật, OCR/Canvas học viên/chấm nét/bài viết.
-- Kiệt: giao diện thi, phiên thi, ôn tập, dashboard, kết quả Writing và bộ lọc dưới 80.
+- Vy: kho cá nhân ngoài phạm vi lịch sử tra từ/Flashcard đã tích hợp.
+- Trung: OCR nhận diện chữ tự do ngoài luồng chấm Canvas theo chữ mục tiêu đã tích hợp.
+- Kiệt: F15, F16, F17, F21, F22, F23, F25, F26 và F27 đã có luồng mobile/backend; đồng hồ phiên thi là phần mở rộng nếu nhóm bổ sung yêu cầu.
 - Nguyên: review PR về quyền, dữ liệu, lỗi API, đồng bộ điểm và kiểm thử tích hợp; chỉ merge main khi được yêu cầu.

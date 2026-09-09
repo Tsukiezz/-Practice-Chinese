@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
-import '../widgets/common.dart';
 import '../services/custom_exam_service.dart';
 
 class CustomExamHistoryScreen extends StatefulWidget {
@@ -10,7 +9,8 @@ class CustomExamHistoryScreen extends StatefulWidget {
   final CustomExamService service;
 
   @override
-  State<CustomExamHistoryScreen> createState() => _CustomExamHistoryScreenState();
+  State<CustomExamHistoryScreen> createState() =>
+      _CustomExamHistoryScreenState();
 }
 
 class _CustomExamHistoryScreenState extends State<CustomExamHistoryScreen> {
@@ -58,7 +58,9 @@ class _CustomExamHistoryScreenState extends State<CustomExamHistoryScreen> {
               grouped.putIfAbsent(key, () => <CustomExamResult>[]).add(result);
             }
 
-            final averageScore = results.map((r) => r.score).reduce((a, b) => a + b) / results.length;
+            final averageScore =
+                results.map((r) => r.score).reduce((a, b) => a + b) /
+                    results.length;
             final passCount = results.where((r) => r.score >= 80).length;
             final failCount = results.length - passCount;
 
@@ -71,7 +73,9 @@ class _CustomExamHistoryScreenState extends State<CustomExamHistoryScreen> {
                       child: _SummaryCard(
                         label: 'Điểm TB',
                         value: averageScore.toStringAsFixed(1),
-                        color: averageScore >= 80 ? AppTheme.jade : AppTheme.orange,
+                        color: averageScore >= 80
+                            ? AppTheme.jade
+                            : AppTheme.orange,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -106,7 +110,9 @@ class _CustomExamHistoryScreenState extends State<CustomExamHistoryScreen> {
                     margin: const EdgeInsets.only(bottom: 10),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: passed ? const Color(0xFFE4F4E9) : const Color(0xFFFFF1E8),
+                        backgroundColor: passed
+                            ? const Color(0xFFE4F4E9)
+                            : const Color(0xFFFFF1E8),
                         child: Text(
                           latest.score.toStringAsFixed(0),
                           style: TextStyle(
@@ -123,7 +129,8 @@ class _CustomExamHistoryScreenState extends State<CustomExamHistoryScreen> {
                       subtitle: Text(
                         '${examResults.length} lần làm · ${passed ? 'Đạt' : 'Chưa đạt'}',
                       ),
-                      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                      trailing: const Icon(Icons.chevron_right_rounded,
+                          color: Colors.grey),
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -167,7 +174,8 @@ class _ExamDetailScreen extends StatelessWidget {
           itemBuilder: (context, index) {
             final result = results[index];
             final passed = result.score >= 80;
-            final date = DateTime.fromMillisecondsSinceEpoch(result.createdAt * 1000);
+            final date =
+                DateTime.fromMillisecondsSinceEpoch(result.createdAt * 1000);
             return Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -179,7 +187,9 @@ class _ExamDetailScreen extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: passed ? const Color(0xFFE4F4E9) : const Color(0xFFFFF1E8),
+                            color: passed
+                                ? const Color(0xFFE4F4E9)
+                                : const Color(0xFFFFF1E8),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -198,17 +208,21 @@ class _ExamDetailScreen extends StatelessWidget {
                             children: [
                               Text(
                                 'Lần ${index + 1}',
-                                style: const TextStyle(fontWeight: FontWeight.w800),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w800),
                               ),
                               Text(
                                 '${date.day}/${date.month}/${date.year}',
-                                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                                style: TextStyle(
+                                    color: Colors.grey.shade600, fontSize: 12),
                               ),
                             ],
                           ),
                         ),
                         Icon(
-                          passed ? Icons.check_circle_rounded : Icons.arrow_circle_right_rounded,
+                          passed
+                              ? Icons.check_circle_rounded
+                              : Icons.arrow_circle_right_rounded,
                           color: passed ? AppTheme.jade : Colors.grey,
                         ),
                       ],

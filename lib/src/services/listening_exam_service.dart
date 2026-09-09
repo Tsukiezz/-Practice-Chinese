@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/reading_exam.dart';
@@ -29,14 +28,11 @@ class ListeningExamService implements ListeningExamRepository {
     required this.baseUrl,
     required this.tokenProvider,
     http.Client? client,
-    AudioPlayer? audioPlayer,
-  })  : _client = client ?? http.Client(),
-        _audioPlayer = audioPlayer ?? AudioPlayer();
+  }) : _client = client ?? http.Client();
 
   final String baseUrl;
   final Future<String?> Function() tokenProvider;
   final http.Client _client;
-  final AudioPlayer _audioPlayer;
 
   @override
   Future<List<ReadingExam>> fetchListeningExams(int hsk) async {
@@ -50,7 +46,8 @@ class ListeningExamService implements ListeningExamRepository {
           .map((row) => ReadingExam.fromJson(row as Map<String, dynamic>))
           .where((exam) =>
               exam.questions.isNotEmpty &&
-              exam.questions.every((question) => question.section == 'listening'))
+              exam.questions
+                  .every((question) => question.section == 'listening'))
           .toList(growable: false);
     } on Object {
       throw const ListeningApiException(
@@ -77,6 +74,14 @@ class ListeningExamService implements ListeningExamRepository {
       final submittedAnswers = (snapshot['answers'] as Map<String, dynamic>)
           .map((key, value) => MapEntry(key, value as String));
       final questions = snapshot['questions'] as List<dynamic>;
+      final aiReviewItems = <String, String>{
+        for (final item
+            in snapshot['ai_review_items'] as List<dynamic>? ?? const [])
+          if (item is Map<String, dynamic> &&
+              item['id'] is String &&
+              item['explanation'] is String)
+            item['id'] as String: item['explanation'] as String,
+      };
       return ReadingResult(
         id: result['id'] as int,
         score: (result['score'] as num).toDouble(),
@@ -89,7 +94,9 @@ class ListeningExamService implements ListeningExamRepository {
             prompt: question['prompt'] as String,
             answer: question['answer'] as String,
             submittedAnswer: submittedAnswers[id] ?? '',
-            explanation: question['explanation'] as String? ?? '',
+            explanation:
+                aiReviewItems[id] ?? question['explanation'] as String? ?? '',
+            transcript: question['transcript'] as String? ?? '',
           );
         }).toList(growable: false),
       );
@@ -158,29 +165,5 @@ class ListeningExamService implements ListeningExamRepository {
       // Fall through to the safe generic message below.
     }
     return 'Máy chủ không xử lý được yêu cầu (${response.statusCode}).';
-  }
-
-  Future<void> play(String url) async {
-    try {
-      await _audioPlayer.play(UrlSource(url));
-    } on Exception {
-      throw ListeningApiException(null, 'Không thể phát audio.');
-    }
-  }
-
-  Future<void> pause() async {
-    try {
-      await _audioPlayer.pause();
-    } on Exception {
-      // ignore pause errors
-    }
-  }
-
-  Future<void> stop() async {
-    try {
-      await _audioPlayer.stop();
-    } on Exception {
-      // ignore stop errors
-    }
   }
 }

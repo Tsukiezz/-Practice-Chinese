@@ -6,6 +6,10 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
+from config import load_environment
+
+
+load_environment()
 DB_PATH = Path(os.environ.get("DATABASE_PATH", Path(__file__).with_name("hanzi_go.db")))
 
 
@@ -85,6 +89,32 @@ def init_db():
             id INTEGER PRIMARY KEY, user_id INTEGER REFERENCES users(id), module TEXT NOT NULL,
             status TEXT NOT NULL CHECK(status IN ('success','error')), created_at INTEGER NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS dictionary_history (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            word_id INTEGER NOT NULL REFERENCES vocabulary(id) ON DELETE CASCADE,
+            query TEXT NOT NULL DEFAULT '', lookup_count INTEGER NOT NULL DEFAULT 1,
+            last_looked_at INTEGER NOT NULL,
+            UNIQUE(user_id,word_id)
+        );
+        CREATE TABLE IF NOT EXISTS review_progress (
+            source_result_id INTEGER PRIMARY KEY REFERENCES results(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            latest_result_id INTEGER REFERENCES results(id) ON DELETE SET NULL,
+            completed_at INTEGER, updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS review_attempts (
+            result_id INTEGER PRIMARY KEY REFERENCES results(id) ON DELETE CASCADE,
+            source_result_id INTEGER NOT NULL REFERENCES results(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            created_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS capability_reports (
+            user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            fingerprint TEXT NOT NULL, feedback TEXT NOT NULL,
+            strengths_json TEXT NOT NULL, improvements_json TEXT NOT NULL,
+            updated_at INTEGER NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS audit_logs (
             id INTEGER PRIMARY KEY, actor_id INTEGER NOT NULL REFERENCES users(id),
             action TEXT NOT NULL, entity TEXT NOT NULL, entity_id TEXT NOT NULL,
@@ -92,6 +122,9 @@ def init_db():
         );
         CREATE INDEX IF NOT EXISTS results_user ON results(user_id,created_at);
         CREATE INDEX IF NOT EXISTS sessions_user ON sessions(user_id);
+        CREATE INDEX IF NOT EXISTS dictionary_history_user ON dictionary_history(user_id,last_looked_at);
+        CREATE INDEX IF NOT EXISTS review_progress_user ON review_progress(user_id,completed_at);
+        CREATE INDEX IF NOT EXISTS review_attempts_source ON review_attempts(source_result_id,created_at);
         """)
         conn.execute("INSERT OR IGNORE INTO ai_config(id,model,system_prompt,temperature,max_tokens) VALUES(1,?,?,0.2,1000)",
-                     ("configure-your-model", "Bạn là giáo viên tiếng Trung. Trả điểm 0–100 và nhận xét bằng tiếng Việt."))
+                     ("gemini-3.5-flash", "Bạn là giáo viên tiếng Trung. Trả điểm 0–100 và nhận xét bằng tiếng Việt."))

@@ -85,7 +85,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: passed ? const Color(0xFFE4F4E9) : const Color(0xFFFFF1E8),
+                        color: passed
+                            ? const Color(0xFFE4F4E9)
+                            : const Color(0xFFFFF1E8),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Center(
@@ -111,13 +113,16 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           const SizedBox(height: 4),
                           Text(
                             'Chấm bởi: ${_gradedByLabel(result.gradedBy)}',
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                            style: TextStyle(
+                                color: Colors.grey.shade600, fontSize: 12),
                           ),
                         ],
                       ),
                     ),
                     Icon(
-                      passed ? Icons.check_circle_rounded : Icons.arrow_circle_right_rounded,
+                      passed
+                          ? Icons.check_circle_rounded
+                          : Icons.arrow_circle_right_rounded,
                       color: passed ? AppTheme.jade : Colors.grey,
                     ),
                   ],

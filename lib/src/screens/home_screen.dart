@@ -7,18 +7,246 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.onOpenLessons});
   final VoidCallback onOpenLessons;
 
-  @override Widget build(BuildContext context) => SafeArea(child:CustomScrollView(slivers:[
-    SliverToBoxAdapter(child:Padding(padding:const EdgeInsets.fromLTRB(20,16,20,8),child:Row(children:[const CircleAvatar(backgroundColor:Color(0xFFFFE5D8),child:Text('A',style:TextStyle(color:AppTheme.red,fontWeight:FontWeight.w800))),const SizedBox(width:12),const Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('早上好 · Chào buổi sáng',style:TextStyle(color:Colors.grey,fontSize:11)),Text('Minh Anh',style:TextStyle(fontWeight:FontWeight.w800,fontSize:18))])),Container(padding:const EdgeInsets.symmetric(horizontal:12,vertical:8),decoration:BoxDecoration(color:const Color(0xFFFFEBDD),borderRadius:BorderRadius.circular(20)),child:const Row(children:[Icon(Icons.local_fire_department_rounded,color:AppTheme.orange,size:18),Text(' 12',style:TextStyle(fontWeight:FontWeight.w800,color:AppTheme.red))]))]))),
-    SliverToBoxAdapter(child:Container(margin:const EdgeInsets.all(20),padding:const EdgeInsets.all(24),decoration:BoxDecoration(color:AppTheme.jade,borderRadius:BorderRadius.circular(26),boxShadow:[BoxShadow(color:AppTheme.jade.withValues(alpha:.2),blurRadius:25,offset:const Offset(0,12))]),child:Stack(children:[Positioned(right:-5,top:-35,child:Text('学',style:TextStyle(fontSize:130,color:Colors.white.withValues(alpha:.08),fontWeight:FontWeight.w800))),Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('MỤC TIÊU HÔM NAY',style:TextStyle(color:Colors.white.withValues(alpha:.65),fontSize:10,fontWeight:FontWeight.w800,letterSpacing:1.4)),const SizedBox(height:12),const Text('Mỗi ngày một chút,\ntiến bộ thật nhiều.',style:TextStyle(color:Colors.white,fontSize:25,height:1.2,fontWeight:FontWeight.w800)),const SizedBox(height:10),Text('15 phút · 3 hoạt động',style:TextStyle(color:Colors.white.withValues(alpha:.75),fontSize:12)),const SizedBox(height:20),FilledButton(onPressed:onOpenLessons,style:FilledButton.styleFrom(backgroundColor:Colors.white,foregroundColor:AppTheme.jade),child:const Text('Tiếp tục bài học  →'))])]))),
-    const SliverToBoxAdapter(child:Padding(padding:EdgeInsets.symmetric(horizontal:20),child:Row(children:[Expanded(child:_Stat(icon:Icons.bolt_rounded,value:'420',label:'XP',color:Color(0xFFFFEBDD))),SizedBox(width:10),Expanded(child:_Stat(icon:Icons.style_rounded,value:'86',label:'Từ đã học',color:Color(0xFFE7F1F8))),SizedBox(width:10),Expanded(child:_Stat(icon:Icons.track_changes_rounded,value:'68%',label:'Tuần này',color:Color(0xFFE7F2EB)))]))),
-    const SliverToBoxAdapter(child:Padding(padding:EdgeInsets.fromLTRB(20,28,20,12),child:Text('Từ vựng hôm nay',style:TextStyle(fontSize:20,fontWeight:FontWeight.w800)))),
-    SliverToBoxAdapter(child:_DailyWordCard(word:dailyWord)),
-    const SliverToBoxAdapter(child:Padding(padding:EdgeInsets.fromLTRB(20,28,20,12),child:Text('Tiếp tục học',style:TextStyle(fontSize:20,fontWeight:FontWeight.w800)))),
-    SliverList.builder(itemCount:3,itemBuilder:(context,index)=>_LessonTile(lesson:lessons[index])),
-    const SliverToBoxAdapter(child:SizedBox(height:24)),
-  ]));
+  @override
+  Widget build(BuildContext context) => SafeArea(
+          child: CustomScrollView(slivers: [
+        SliverToBoxAdapter(
+            child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Row(children: [
+                  const CircleAvatar(
+                      backgroundColor: Color(0xFFFFE5D8),
+                      child: Text('A',
+                          style: TextStyle(
+                              color: AppTheme.red,
+                              fontWeight: FontWeight.w800))),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                        Text('早上好 · Chào buổi sáng',
+                            style: TextStyle(color: Colors.grey, fontSize: 11)),
+                        Text('Minh Anh',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w800, fontSize: 18))
+                      ])),
+                  Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                          color: const Color(0xFFFFEBDD),
+                          borderRadius: BorderRadius.circular(20)),
+                      child: const Row(children: [
+                        Icon(Icons.local_fire_department_rounded,
+                            color: AppTheme.orange, size: 18),
+                        Text(' 12',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.red))
+                      ]))
+                ]))),
+        SliverToBoxAdapter(
+            child: Container(
+                margin: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                    color: AppTheme.jade,
+                    borderRadius: BorderRadius.circular(26),
+                    boxShadow: [
+                      BoxShadow(
+                          color: AppTheme.jade.withValues(alpha: .2),
+                          blurRadius: 25,
+                          offset: const Offset(0, 12))
+                    ]),
+                child: Stack(children: [
+                  Positioned(
+                      right: -5,
+                      top: -35,
+                      child: Text('学',
+                          style: TextStyle(
+                              fontSize: 130,
+                              color: Colors.white.withValues(alpha: .08),
+                              fontWeight: FontWeight.w800))),
+                  Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('MỤC TIÊU HÔM NAY',
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: .65),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.4)),
+                        const SizedBox(height: 12),
+                        const Text('Mỗi ngày một chút,\ntiến bộ thật nhiều.',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 25,
+                                height: 1.2,
+                                fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 10),
+                        Text('15 phút · 3 hoạt động',
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: .75),
+                                fontSize: 12)),
+                        const SizedBox(height: 20),
+                        FilledButton(
+                            onPressed: onOpenLessons,
+                            style: FilledButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: AppTheme.jade),
+                            child: const Text('Tiếp tục bài học  →'))
+                      ])
+                ]))),
+        const SliverToBoxAdapter(
+            child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Row(children: [
+                  Expanded(
+                      child: _Stat(
+                          icon: Icons.bolt_rounded,
+                          value: '420',
+                          label: 'XP',
+                          color: Color(0xFFFFEBDD))),
+                  SizedBox(width: 10),
+                  Expanded(
+                      child: _Stat(
+                          icon: Icons.style_rounded,
+                          value: '86',
+                          label: 'Từ đã học',
+                          color: Color(0xFFE7F1F8))),
+                  SizedBox(width: 10),
+                  Expanded(
+                      child: _Stat(
+                          icon: Icons.track_changes_rounded,
+                          value: '68%',
+                          label: 'Tuần này',
+                          color: Color(0xFFE7F2EB)))
+                ]))),
+        const SliverToBoxAdapter(
+            child: Padding(
+                padding: EdgeInsets.fromLTRB(20, 28, 20, 12),
+                child: Text('Từ vựng hôm nay',
+                    style:
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.w800)))),
+        SliverToBoxAdapter(child: _DailyWordCard(word: dailyWord)),
+        const SliverToBoxAdapter(
+            child: Padding(
+                padding: EdgeInsets.fromLTRB(20, 28, 20, 12),
+                child: Text('Tiếp tục học',
+                    style:
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.w800)))),
+        SliverList.builder(
+            itemCount: 3,
+            itemBuilder: (context, index) =>
+                _LessonTile(lesson: lessons[index])),
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+      ]));
 }
 
-class _Stat extends StatelessWidget { const _Stat({required this.icon,required this.value,required this.label,required this.color}); final IconData icon;final String value,label;final Color color;@override Widget build(BuildContext context)=>Container(padding:const EdgeInsets.symmetric(vertical:15,horizontal:10),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(18),border:Border.all(color:const Color(0xFFF0E8DE))),child:Column(children:[Container(padding:const EdgeInsets.all(7),decoration:BoxDecoration(color:color,borderRadius:BorderRadius.circular(10)),child:Icon(icon,size:18,color:AppTheme.jade)),const SizedBox(height:8),Text(value,style:const TextStyle(fontWeight:FontWeight.w800,fontSize:17)),Text(label,style:const TextStyle(color:Colors.grey,fontSize:9))]));}
-class _DailyWordCard extends StatelessWidget { const _DailyWordCard({required this.word}); final ChineseWord word;@override Widget build(BuildContext context)=>Container(margin:const EdgeInsets.symmetric(horizontal:20),padding:const EdgeInsets.all(22),decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(22),border:Border.all(color:const Color(0xFFF0E8DE))),child:Row(children:[HanziAvatar(word.hanzi,size:78,color:const Color(0xFFFFEDE4)),const SizedBox(width:18),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(word.category.toUpperCase(),style:const TextStyle(color:AppTheme.red,fontSize:9,fontWeight:FontWeight.w800,letterSpacing:1)),const SizedBox(height:5),Text(word.pinyin,style:const TextStyle(color:AppTheme.red,fontSize:14,fontWeight:FontWeight.w700)),Text(word.meaning,style:const TextStyle(fontSize:17,fontWeight:FontWeight.w800)),const SizedBox(height:9),Text(word.example,style:const TextStyle(fontSize:13)),Text(word.translation,style:const TextStyle(color:Colors.grey,fontSize:10))])),IconButton(onPressed:()=>ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Tính năng phát âm sẽ dùng gói flutter_tts.'))),icon:const Icon(Icons.volume_up_rounded,color:AppTheme.jade))]));}
-class _LessonTile extends StatelessWidget { const _LessonTile({required this.lesson});final Lesson lesson;@override Widget build(BuildContext context)=>Card(margin:const EdgeInsets.fromLTRB(20,0,20,10),child:Padding(padding:const EdgeInsets.all(15),child:Row(children:[HanziAvatar(lesson.icon,color:Color(lesson.color)),const SizedBox(width:14),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(lesson.level,style:const TextStyle(color:AppTheme.red,fontSize:9,fontWeight:FontWeight.w700)),const SizedBox(height:5),Text(lesson.title,style:const TextStyle(fontWeight:FontWeight.w800,fontSize:15)),const SizedBox(height:9),ProgressLine(value:lesson.progress)])),const SizedBox(width:12),const Icon(Icons.chevron_right_rounded,color:Colors.grey)])));}
+class _Stat extends StatelessWidget {
+  const _Stat(
+      {required this.icon,
+      required this.value,
+      required this.label,
+      required this.color});
+  final IconData icon;
+  final String value, label;
+  final Color color;
+  @override
+  Widget build(BuildContext context) => Container(
+      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFF0E8DE))),
+      child: Column(children: [
+        Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+                color: color, borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, size: 18, color: AppTheme.jade)),
+        const SizedBox(height: 8),
+        Text(value,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 9))
+      ]));
+}
+
+class _DailyWordCard extends StatelessWidget {
+  const _DailyWordCard({required this.word});
+  final ChineseWord word;
+  @override
+  Widget build(BuildContext context) => Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFF0E8DE))),
+      child: Row(children: [
+        HanziAvatar(word.hanzi, size: 78, color: const Color(0xFFFFEDE4)),
+        const SizedBox(width: 18),
+        Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(word.category.toUpperCase(),
+              style: const TextStyle(
+                  color: AppTheme.red,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1)),
+          const SizedBox(height: 5),
+          Text(word.pinyin,
+              style: const TextStyle(
+                  color: AppTheme.red,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700)),
+          Text(word.meaning,
+              style:
+                  const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 9),
+          Text(word.example, style: const TextStyle(fontSize: 13)),
+          Text(word.translation,
+              style: const TextStyle(color: Colors.grey, fontSize: 10))
+        ])),
+        IconButton(
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content:
+                        Text('Tính năng phát âm sẽ dùng gói flutter_tts.'))),
+            icon: const Icon(Icons.volume_up_rounded, color: AppTheme.jade))
+      ]));
+}
+
+class _LessonTile extends StatelessWidget {
+  const _LessonTile({required this.lesson});
+  final Lesson lesson;
+  @override
+  Widget build(BuildContext context) => Card(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+      child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: Row(children: [
+            HanziAvatar(lesson.icon, color: Color(lesson.color)),
+            const SizedBox(width: 14),
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(lesson.level,
+                      style: const TextStyle(
+                          color: AppTheme.red,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 5),
+                  Text(lesson.title,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 15)),
+                  const SizedBox(height: 9),
+                  ProgressLine(value: lesson.progress)
+                ])),
+            const SizedBox(width: 12),
+            const Icon(Icons.chevron_right_rounded, color: Colors.grey)
+          ])));
+}

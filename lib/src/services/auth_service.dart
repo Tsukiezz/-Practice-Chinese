@@ -46,6 +46,7 @@ class AuthService {
 
   static const _tokenKey = 'auth_token';
   static const _userKey = 'auth_user';
+  static const _apiBaseUrlKey = 'api_base_url';
 
   String? get token => _prefs.getString(_tokenKey);
 
@@ -89,7 +90,13 @@ class AuthService {
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     final token = data['token'] as String;
-    final user = AuthUser.fromJson(data['user'] as Map<String, dynamic>);
+    final expiresIn = data['expires_in'] as int? ?? 86400;
+    final userJson = Map<String, dynamic>.from(
+      data['user'] as Map<String, dynamic>,
+    )..['expires_at'] =
+        DateTime.now().millisecondsSinceEpoch ~/ 1000 + expiresIn;
+    final user = AuthUser.fromJson(userJson);
+    await _prefs.setString(_apiBaseUrlKey, baseUrl);
     await saveSession(token, user);
     return user;
   }
@@ -98,7 +105,8 @@ class AuthService {
     final tokenValue = token;
     if (tokenValue != null) {
       try {
-        final baseUrl = _prefs.getString('api_base_url') ?? 'http://localhost:8010/api';
+        final baseUrl =
+            _prefs.getString(_apiBaseUrlKey) ?? 'http://localhost:8010/api';
         await httpClient.post(
           Uri.parse('$baseUrl/auth/logout'),
           headers: {
@@ -118,7 +126,9 @@ class AuthService {
     return AuthService(prefs, httpClient);
   }
 
-  AuthService.test() : _prefs = _TestPrefs(), httpClient = http.Client();
+  AuthService.test()
+      : _prefs = _TestPrefs(),
+        httpClient = http.Client();
 }
 
 class _TestPrefs implements SharedPreferences {

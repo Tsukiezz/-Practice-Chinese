@@ -90,15 +90,10 @@ class _FakeReadingRepository implements ReadingExamRepository {
 }
 
 class _FakeListeningRepository implements ListeningExamRepository {
-  _FakeListeningRepository({this.loadError, this.submitError});
-
-  final ListeningApiException? loadError;
-  final ListeningApiException? submitError;
   Map<String, String>? submittedAnswers;
 
   @override
   Future<List<ReadingExam>> fetchListeningExams(int hsk) async {
-    if (loadError != null) throw loadError!;
     return hsk == 1 ? const [_listeningExam] : const [];
   }
 
@@ -107,7 +102,6 @@ class _FakeListeningRepository implements ListeningExamRepository {
     ReadingExam exam,
     Map<String, String> answers,
   ) async {
-    if (submitError != null) throw submitError!;
     submittedAnswers = Map.of(answers);
     return const ReadingResult(
       id: 13,
@@ -193,7 +187,8 @@ void main() {
 
     await tester.tap(find.byKey(const Key('listening-answer-một')));
     await tester.pump();
-    await tester.ensureVisible(find.byKey(const Key('listening-question-action')));
+    await tester
+        .ensureVisible(find.byKey(const Key('listening-question-action')));
     await tester.tap(find.byKey(const Key('listening-question-action')));
     await tester.pumpAndSettle();
 

@@ -1,10 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
-
-import '../theme/app_theme.dart';
-import '../widgets/common.dart';
 
 class CustomExam {
   CustomExam({
@@ -30,7 +25,8 @@ class CustomExam {
       };
 
   factory CustomExam.fromJson(Map<String, dynamic> json) {
-    final questions = (json['questions'] as List<dynamic>? ?? const <dynamic>[]);
+    final questions =
+        (json['questions'] as List<dynamic>? ?? const <dynamic>[]);
     return CustomExam(
       id: json['id'] as String,
       title: json['title'] as String,
@@ -104,7 +100,8 @@ class CustomExamResult {
       };
 
   factory CustomExamResult.fromJson(Map<String, dynamic> json) {
-    final answers = (json['answers'] as Map<String, dynamic>? ?? const <String, dynamic>{});
+    final answers =
+        (json['answers'] as Map<String, dynamic>? ?? const <String, dynamic>{});
     return CustomExamResult(
       examId: json['exam_id'] as String,
       score: (json['score'] as num).toDouble(),

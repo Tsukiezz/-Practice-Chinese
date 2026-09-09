@@ -1,11 +1,7 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../theme/app_theme.dart';
-import '../widgets/common.dart';
 import '../services/custom_exam_service.dart';
 
 class CustomExamScreen extends StatefulWidget {
@@ -42,7 +38,8 @@ class _CustomExamScreenState extends State<CustomExamScreen> {
             icon: _saving
                 ? const SizedBox.square(
                     dimension: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
                   )
                 : const Icon(Icons.save_rounded),
             tooltip: 'Lưu đề',
@@ -63,7 +60,9 @@ class _CustomExamScreenState extends State<CustomExamScreen> {
                   hintText: 'VD: HSK 1 - Nghe hiểu mẫu',
                 ),
                 validator: (value) {
-                  if (value == null || value.trim().isEmpty) return 'Nhập tên đề';
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Nhập tên đề';
+                  }
                   return null;
                 },
               ),
@@ -86,7 +85,8 @@ class _CustomExamScreenState extends State<CustomExamScreen> {
                   Expanded(
                     child: Text(
                       _section == 'listening' ? 'Câu hỏi Nghe' : 'Câu hỏi Đọc',
-                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                      style: const TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.w800),
                     ),
                   ),
                   FilledButton.icon(
@@ -113,24 +113,24 @@ class _CustomExamScreenState extends State<CustomExamScreen> {
                 )
               else
                 ..._questions.asMap().entries.map(
-                  (entry) => _QuestionCard(
-                    number: entry.key + 1,
-                    question: entry.value,
-                    section: _section,
-                    saving: _saving,
-                    onUpdate: (question) {
-                      setState(() {
-                        _questions[entry.key] = question;
-                      });
-                    },
-                    onDelete: () {
-                      setState(() {
-                        _questions.removeAt(entry.key);
-                        _nextQuestionNumber--;
-                      });
-                    },
-                  ),
-                ),
+                      (entry) => _QuestionCard(
+                        number: entry.key + 1,
+                        question: entry.value,
+                        section: _section,
+                        saving: _saving,
+                        onUpdate: (question) {
+                          setState(() {
+                            _questions[entry.key] = question;
+                          });
+                        },
+                        onDelete: () {
+                          setState(() {
+                            _questions.removeAt(entry.key);
+                            _nextQuestionNumber--;
+                          });
+                        },
+                      ),
+                    ),
             ],
           ),
         ),
@@ -166,19 +166,23 @@ class _CustomExamScreenState extends State<CustomExamScreen> {
     for (final q in _questions) {
       if (q.prompt.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Câu ${_questions.indexOf(q) + 1} thiếu nội dung')),
+          SnackBar(
+              content: Text('Câu ${_questions.indexOf(q) + 1} thiếu nội dung')),
         );
         return;
       }
       if (q.answer.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Câu ${_questions.indexOf(q) + 1} thiếu đáp án')),
+          SnackBar(
+              content: Text('Câu ${_questions.indexOf(q) + 1} thiếu đáp án')),
         );
         return;
       }
       if (_section == 'listening' && q.audioUrl.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Câu ${_questions.indexOf(q) + 1} thiếu audio URL')),
+          SnackBar(
+              content:
+                  Text('Câu ${_questions.indexOf(q) + 1} thiếu audio URL')),
         );
         return;
       }
@@ -239,10 +243,12 @@ class _QuestionCardState extends State<_QuestionCard> {
     _promptController = TextEditingController(text: widget.question.prompt);
     _answerController = TextEditingController(text: widget.question.answer);
     _audioUrlController = TextEditingController(text: widget.question.audioUrl);
-    _transcriptController = TextEditingController(text: widget.question.transcript);
+    _transcriptController =
+        TextEditingController(text: widget.question.transcript);
     _optionControllers
       ..clear()
-      ..addAll(widget.question.options.map((o) => TextEditingController(text: o)));
+      ..addAll(
+          widget.question.options.map((o) => TextEditingController(text: o)));
     if (_optionControllers.isEmpty || _optionControllers[0].text.isEmpty) {
       _optionControllers.add(TextEditingController());
     }
@@ -279,7 +285,8 @@ class _QuestionCardState extends State<_QuestionCard> {
                 ),
                 IconButton(
                   onPressed: widget.onDelete,
-                  icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.red),
+                  icon: const Icon(Icons.delete_outline_rounded,
+                      color: AppTheme.red),
                   tooltip: 'Xóa câu',
                 ),
               ],
@@ -310,7 +317,8 @@ class _QuestionCardState extends State<_QuestionCard> {
                       child: TextFormField(
                         controller: controller,
                         enabled: !widget.saving,
-                        decoration: InputDecoration(labelText: 'Đáp án ${index + 1}'),
+                        decoration:
+                            InputDecoration(labelText: 'Đáp án ${index + 1}'),
                         onChanged: (_) => _update(),
                       ),
                     ),
@@ -323,7 +331,8 @@ class _QuestionCardState extends State<_QuestionCard> {
                             _update();
                           });
                         },
-                        icon: const Icon(Icons.remove_circle_outline_rounded, color: AppTheme.red),
+                        icon: const Icon(Icons.remove_circle_outline_rounded,
+                            color: AppTheme.red),
                       ),
                   ],
                 ),

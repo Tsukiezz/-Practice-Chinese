@@ -681,7 +681,8 @@ class _AudioPlayerState extends State<_AudioPlayer> {
             icon: _loading
                 ? const SizedBox.square(
                     dimension: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.jade),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppTheme.jade),
                   )
                 : Icon(
                     _playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
@@ -801,8 +802,26 @@ class _ReviewCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text('Bạn chọn: ${item.submittedAnswer}'),
             if (!item.isCorrect) Text('Đáp án đúng: ${item.answer}'),
+            if (item.transcript.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              const Text(
+                'Transcript',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
+              SelectableText(
+                item.transcript,
+                key: Key('listening-transcript-${item.id}'),
+                style: const TextStyle(height: 1.5),
+              ),
+            ],
             if (item.explanation.isNotEmpty) ...[
               const SizedBox(height: 8),
+              const Text(
+                'Gemini giải thích',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
               Text(
                 item.explanation,
                 style: const TextStyle(color: Colors.grey, height: 1.4),

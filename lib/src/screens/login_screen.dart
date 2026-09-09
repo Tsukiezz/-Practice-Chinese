@@ -72,7 +72,8 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Spacer(),
-                const Icon(Icons.school_rounded, size: 64, color: AppTheme.jade),
+                const Icon(Icons.school_rounded,
+                    size: 64, color: AppTheme.jade),
                 const SizedBox(height: 18),
                 Text(
                   'HanziGo',
@@ -98,7 +99,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) return 'Nhập email';
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Nhập email';
+                    }
                     if (!value.contains('@')) return 'Email không hợp lệ';
                     return null;
                   },
@@ -128,7 +131,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline_rounded, color: AppTheme.red),
+                        const Icon(Icons.error_outline_rounded,
+                            color: AppTheme.red),
                         const SizedBox(width: 9),
                         Expanded(child: Text(_error!)),
                       ],

@@ -72,6 +72,7 @@ class ReadingReviewItem {
     required this.answer,
     required this.submittedAnswer,
     required this.explanation,
+    this.transcript = '',
   });
 
   final String id;
@@ -79,6 +80,7 @@ class ReadingReviewItem {
   final String answer;
   final String submittedAnswer;
   final String explanation;
+  final String transcript;
 
   bool get isCorrect => answer.trim() == submittedAnswer.trim();
 }

@@ -59,12 +59,18 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
+  static const _apiBaseUrl = String.fromEnvironment(
+    'HANZIGO_API_URL',
+    defaultValue: 'http://localhost:8010/api',
+  );
+
   http.Client? _httpClient;
   late AuthService _authService;
   late StudentService _studentService;
   bool _loading = true;
   bool _authenticated = false;
   ReadingExamRepository? _readingRepository;
+  ReadingExamRepository? _comprehensiveRepository;
   ListeningExamRepository? _listeningRepository;
 
   @override
@@ -83,35 +89,47 @@ class _AppShellState extends State<AppShell> {
     if (widget.authService != null) {
       _authService = widget.authService!;
       _studentService = StudentService(
-        baseUrl: 'http://localhost:8010/api',
+        baseUrl: _apiBaseUrl,
         tokenProvider: () async => _authService.token,
       );
       _listeningRepository = widget.listeningRepository ??
           ListeningExamService(
-            baseUrl: 'http://localhost:8010/api',
+            baseUrl: _apiBaseUrl,
             tokenProvider: () async => _authService.token,
           );
-      await CustomExamService.create();
-      setState(() {
-        _authenticated = true;
-        _loading = false;
-      });
+      _comprehensiveRepository = ReadingExamService(
+        baseUrl: _apiBaseUrl,
+        tokenProvider: () async => _authService.token,
+        comprehensive: true,
+      );
+      _authenticated = true;
+      _loading = false;
       return;
     }
 
     _httpClient = http.Client();
     _authService = await AuthService.load(_httpClient!);
     _studentService = StudentService(
-      baseUrl: 'http://localhost:8010/api',
+      baseUrl: _apiBaseUrl,
       tokenProvider: () async => _authService.token,
       client: _httpClient,
     );
     _listeningRepository ??= ListeningExamService(
-      baseUrl: 'http://localhost:8010/api',
+      baseUrl: _apiBaseUrl,
       tokenProvider: () async => _authService.token,
       client: _httpClient,
     );
-    await CustomExamService.create();
+    _comprehensiveRepository = ReadingExamService(
+      baseUrl: _apiBaseUrl,
+      tokenProvider: () async => _authService.token,
+      client: _httpClient,
+      comprehensive: true,
+    );
+    try {
+      await CustomExamService.create();
+    } on Exception {
+      // Local custom exams are optional and must not block the whole app.
+    }
     if (!mounted) return;
     setState(() {
       _authenticated = _authService.isAuthenticated;
@@ -139,21 +157,16 @@ class _AppShellState extends State<AppShell> {
 
     if (!_authenticated) {
       return LoginScreen(
-        baseUrl: const String.fromEnvironment(
-          'HANZIGO_API_URL',
-          defaultValue: 'http://localhost:8010/api',
-        ),
+        baseUrl: _apiBaseUrl,
         onLoginSuccess: _onLoginSuccess,
       );
     }
 
     _readingRepository ??= widget.readingRepository ??
         ReadingExamService(
-          baseUrl: const String.fromEnvironment(
-            'HANZIGO_API_URL',
-            defaultValue: 'http://localhost:8010/api',
-          ),
+          baseUrl: _apiBaseUrl,
           tokenProvider: () async => _authService.token,
+          client: _httpClient,
         );
 
     return Scaffold(
@@ -164,8 +177,13 @@ class _AppShellState extends State<AppShell> {
           const LessonsScreen(),
           ListeningScreen(repository: _listeningRepository!),
           PracticeScreen(repository: _readingRepository!),
-          const VocabularyScreen(),
-          ProfileScreen(onLogout: _logout, studentService: _studentService),
+          VocabularyScreen(service: _studentService),
+          ProfileScreen(
+            onLogout: _logout,
+            studentService: _studentService,
+            comprehensiveRepository: _comprehensiveRepository,
+            user: _authService.currentUser,
+          ),
         ],
       ),
       bottomNavigationBar: NavigationBar(

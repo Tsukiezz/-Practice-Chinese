@@ -145,4 +145,53 @@ void main() {
       ),
     );
   });
+
+  test('chế độ tổng hợp chỉ lấy đề nhiều kỹ năng và giữ audio', () async {
+    final client = MockClient((_) async => http.Response.bytes(
+          utf8.encode(jsonEncode([
+            {
+              'id': 3,
+              'title': 'Đề tổng hợp HSK 1',
+              'hsk': 1,
+              'duration_minutes': 30,
+              'version': 1,
+              'questions': [
+                {
+                  'id': 'l1',
+                  'section': 'listening',
+                  'prompt': 'Nghe và chọn',
+                  'options': ['một', 'hai'],
+                  'audio_url': 'https://example.test/listening.mp3',
+                },
+                {
+                  'id': 'r1',
+                  'section': 'reading',
+                  'prompt': 'Chọn nghĩa đúng',
+                  'options': ['một', 'hai'],
+                },
+                {
+                  'id': 'w1',
+                  'section': 'writing',
+                  'prompt': 'Viết một câu',
+                  'options': <String>[],
+                },
+              ],
+            }
+          ])),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        ));
+    final service = ReadingExamService(
+      baseUrl: 'http://test/api',
+      tokenProvider: () async => 'student-token',
+      client: client,
+      comprehensive: true,
+    );
+
+    final exam = (await service.fetchReadingExams(1)).single;
+
+    expect(exam.questions.map((question) => question.section),
+        ['listening', 'reading', 'writing']);
+    expect(exam.questions.first.audioUrl, 'https://example.test/listening.mp3');
+  });
 }

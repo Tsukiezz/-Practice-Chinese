@@ -47,16 +47,22 @@ Database mặc định: `backend/hanzi_go.db`. Trang Admin và API chạy chung 
 - Duyệt điểm: xem bài, sửa điểm 0–100 kèm lý do, giữ điểm gốc và lịch sử; kết quả/dashboard học viên lấy ngay điểm mới.
 - Báo cáo và nhật ký: số liệu từ SQLite, người thực hiện, thời gian, dữ liệu trước/sau. Kiểm tra phiên bản tránh ghi đè thay đổi của người khác.
 
-## Môi trường
+## Môi trường và Gemini
 
-Tham khảo `backend/.env.example`. Máy chủ đọc biến môi trường, không tự nạp `.env`:
+Sao chép `backend/.env.example` thành `backend/.env`. Backend tự nạp file này khi
+khởi động; không commit `.env` hoặc đưa API key vào Flutter:
 
 ```powershell
-$env:DATABASE_PATH = 'C:\duong-dan-du-lieu\hanzi_go.db'
-$env:FRONTEND_ORIGINS = 'http://localhost:5173,http://localhost:8080'
+GEMINI_API_KEY=your-key
+GEMINI_MODEL=gemini-3.5-flash
 ```
 
-Đặt `AI_API_KEY` riêng trên máy chủ khi tích hợp nhà cung cấp AI. Trang Admin chỉ báo khóa đã/chưa cấu hình; trạng thái sẵn sàng kiểm tra cấu hình nội bộ, chưa xác minh nhà cung cấp. Adapter của Trung/Kiệt gọi qua `backend/services.py` để dùng cấu hình, lưu kết quả thật và xử lý lỗi.
+Trong trang Admin, mở **Cấu hình AI**, kiểm tra model rồi bật AI. Backend gọi
+Gemini, bắt buộc JSON theo schema, tự thử lại lỗi mạng/429/5xx hoặc JSON bị cắt,
+chuẩn hóa điểm/nhận xét và lưu trạng thái usage. Chấm viết tay gửi cả ảnh Canvas,
+ảnh nét chuẩn và thứ tự tọa độ; khóa chỉ tồn tại phía máy chủ.
+
+Có thể bật và kiểm tra kết nối từ thư mục `backend` bằng `python configure_gemini.py`, sau đó `python verify_gemini.py`. Hai lệnh không hiển thị API key; lệnh kiểm tra không lưu kết quả mẫu vào CSDL.
 
 Demo mặc định chạy localhost. Khi triển khai, đặt sau HTTPS, giới hạn đăng nhập ở reverse proxy, cấp quyền thư mục dữ liệu và sao lưu SQLite. Không commit `.env`, database hoặc khóa.
 
@@ -75,32 +81,41 @@ Nếu không có Edge: cài bằng `.venv\Scripts\python.exe -m playwright insta
 
 Kiểm thử dùng database tạm, tự dọn sau khi chạy. Test trình duyệt kiểm tra desktop 1440px, mobile 390px, vẽ nét, tạo đề, nộp bài, sửa điểm, khóa tài khoản, AI config, nhật ký và phiên đăng nhập. Ảnh lưu tại `test-results/`, không commit.
 
-## Flutter và tích hợp
+## Chạy ứng dụng Flutter
+
+Giữ backend đang chạy ở terminal thứ nhất. Ở terminal thứ hai, từ thư mục gốc:
 
 ```powershell
 flutter pub get
-flutter run -d chrome --web-port 8080
+flutter run -d chrome --web-port 8080 `
+  --dart-define=HANZIGO_API_URL=http://localhost:8010/api
 flutter analyze
 flutter test
 ```
 
-Chức năng Test Đọc của Kiệt đã gọi API đề thi thật và yêu cầu Bearer token. Trong lúc chờ module Auth của Tuyến cung cấp session runtime, có thể kiểm thử bằng token học viên lấy từ `POST /api/auth/login`:
+Ứng dụng có màn hình đăng nhập và tự dùng token phiên hiện tại; không truyền token
+qua `--dart-define`. Với Android emulator:
 
 ```powershell
-# Flutter Web hoặc iOS simulator
-flutter run -d chrome --web-port 8080 `
-  --dart-define=HANZIGO_API_URL=http://localhost:8010/api `
-  --dart-define=HANZIGO_API_TOKEN=<token-hoc-vien>
-
-# Android emulator truy cập máy phát triển qua 10.0.2.2
 flutter run -d emulator-5554 `
-  --dart-define=HANZIGO_API_URL=http://10.0.2.2:8010/api `
-  --dart-define=HANZIGO_API_TOKEN=<token-hoc-vien>
+  --dart-define=HANZIGO_API_URL=http://10.0.2.2:8010/api
 ```
 
-`HANZIGO_API_TOKEN` chỉ là đầu nối phát triển tạm thời, không dùng để đóng gói bản phát hành. Khi tích hợp UC-01, Tuyến truyền token phiên hiện tại qua `ReadingExamService.tokenProvider`. Trên điện thoại thật, thay URL bằng IPv4 của máy chạy backend và chạy Uvicorn với `--host 0.0.0.0`; bản production phải dùng HTTPS.
+Trên điện thoại thật, chạy Uvicorn với `--host 0.0.0.0`, thay URL bằng IPv4 của
+máy tính cùng Wi-Fi và cho phép cổng 8010 qua Windows Firewall. Production phải
+dùng HTTPS. Dữ liệu seed là bản nháp; Admin cần kiểm tra và chuyển đề sang
+`published` trước khi học viên nhìn thấy.
 
-Các phần Auth/Profile, từ điển và AI/Writing vẫn cần module của Tuyến, Vy và Trung; xem tài liệu bàn giao. Không cần chạy lại `flutter create .` vì đã có cấu hình nền tảng. iOS cần macOS/Xcode.
+## Phần Kiệt đã tích hợp
+
+- F15–F16: Test Nghe, audio thật, nộp bài, Gemini chấm và giải thích transcript/bẫy nghe.
+- F17: Test Đọc gồm trắc nghiệm/điền từ/đọc hiểu; bài tổng hợp Nghe–Đọc–Viết và điểm theo từng kỹ năng.
+- F21: lịch sử tra từ riêng theo tài khoản và Flashcard.
+- F22–F23–F25: tự lọc chữ viết tay/đoạn văn dưới 80, nộp lại nhiều lần và tự hoàn thành khi đạt từ 80.
+- F26–F27: dashboard dữ liệu thật, streak, tiến độ, radar bốn kỹ năng và báo cáo năng lực Gemini có cache.
+
+Các màn hình đều có trạng thái tải, rỗng, lỗi/thử lại. Không cần chạy lại
+`flutter create .`; iOS cần macOS/Xcode.
 
 ## Git
 

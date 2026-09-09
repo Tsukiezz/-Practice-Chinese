@@ -26,7 +26,8 @@ class LessonsScreen extends StatelessWidget {
                   padding: const EdgeInsets.only(right: 8),
                   child: Chip(
                     label: Text(label),
-                    backgroundColor: selected ? const Color(0xFFFFE7DC) : Colors.white,
+                    backgroundColor:
+                        selected ? const Color(0xFFFFE7DC) : Colors.white,
                     labelStyle: TextStyle(
                       color: selected ? AppTheme.red : Colors.grey,
                       fontWeight: FontWeight.w700,
@@ -54,16 +55,26 @@ class LessonsScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(17),
                       child: Row(
                         children: [
-                          HanziAvatar(item.icon, size: 62, color: Color(item.color)),
+                          HanziAvatar(item.icon,
+                              size: 62, color: Color(item.color)),
                           const SizedBox(width: 15),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(item.level, style: const TextStyle(color: AppTheme.red, fontSize: 9, fontWeight: FontWeight.w800)),
+                                Text(item.level,
+                                    style: const TextStyle(
+                                        color: AppTheme.red,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800)),
                                 const SizedBox(height: 5),
-                                Text(item.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                                Text(item.subtitle, style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                                Text(item.title,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 16)),
+                                Text(item.subtitle,
+                                    style: const TextStyle(
+                                        color: Colors.grey, fontSize: 10)),
                                 const SizedBox(height: 10),
                                 ProgressLine(value: item.progress),
                               ],
@@ -95,7 +106,9 @@ class LessonsScreen extends StatelessWidget {
           children: [
             HanziAvatar(lesson.icon, size: 88, color: Color(lesson.color)),
             const SizedBox(height: 16),
-            Text(lesson.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+            Text(lesson.title,
+                style:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
             Text(lesson.subtitle, style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 22),
@@ -103,7 +116,8 @@ class LessonsScreen extends StatelessWidget {
               width: double.infinity,
               child: FilledButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(lesson.progress > 0 ? 'Tiếp tục học' : 'Bắt đầu bài học'),
+                child: Text(
+                    lesson.progress > 0 ? 'Tiếp tục học' : 'Bắt đầu bài học'),
               ),
             ),
           ],

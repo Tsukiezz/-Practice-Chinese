@@ -29,11 +29,13 @@ class ReadingExamService implements ReadingExamRepository {
     required this.baseUrl,
     required this.tokenProvider,
     http.Client? client,
+    this.comprehensive = false,
   }) : _client = client ?? http.Client();
 
   final String baseUrl;
   final Future<String?> Function() tokenProvider;
   final http.Client _client;
+  final bool comprehensive;
 
   @override
   Future<List<ReadingExam>> fetchReadingExams(int hsk) async {
@@ -45,10 +47,14 @@ class ReadingExamService implements ReadingExamRepository {
       final rows = jsonDecode(response.body) as List<dynamic>;
       return rows
           .map((row) => ReadingExam.fromJson(row as Map<String, dynamic>))
-          .where((exam) =>
-              exam.questions.isNotEmpty &&
-              exam.questions.every((question) => question.section == 'reading'))
-          .toList(growable: false);
+          .where((exam) {
+        if (exam.questions.isEmpty) return false;
+        final sections =
+            exam.questions.map((question) => question.section).toSet();
+        return comprehensive
+            ? sections.length > 1
+            : sections.length == 1 && sections.single == 'reading';
+      }).toList(growable: false);
     } on Object {
       throw const ReadingApiException(
         null,
@@ -74,6 +80,14 @@ class ReadingExamService implements ReadingExamRepository {
       final submittedAnswers = (snapshot['answers'] as Map<String, dynamic>)
           .map((key, value) => MapEntry(key, value as String));
       final questions = snapshot['questions'] as List<dynamic>;
+      final aiReviewItems = <String, String>{
+        for (final item
+            in snapshot['ai_review_items'] as List<dynamic>? ?? const [])
+          if (item is Map<String, dynamic> &&
+              item['id'] is String &&
+              item['explanation'] is String)
+            item['id'] as String: item['explanation'] as String,
+      };
       return ReadingResult(
         id: result['id'] as int,
         score: (result['score'] as num).toDouble(),
@@ -86,7 +100,9 @@ class ReadingExamService implements ReadingExamRepository {
             prompt: question['prompt'] as String,
             answer: question['answer'] as String,
             submittedAnswer: submittedAnswers[id] ?? '',
-            explanation: question['explanation'] as String? ?? '',
+            explanation:
+                aiReviewItems[id] ?? question['explanation'] as String? ?? '',
+            transcript: question['transcript'] as String? ?? '',
           );
         }).toList(growable: false),
       );
