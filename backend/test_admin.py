@@ -524,6 +524,51 @@ class AdminIntegrationTest(unittest.TestCase):
             json={"target": "你好", "strokes": strokes})
         self.assertEqual(response.status_code, 422)
 
+    def test_translation_analysis_endpoint_uses_cache(self):
+        output = {
+            "score": 72,
+            "feedback": "Thứ tự trạng từ chưa tự nhiên.",
+            "details": {
+                "errors": [{
+                    "position": "trước 学习",
+                    "original": "学习每天",
+                    "suggestion": "每天学习",
+                    "reason": "Trạng từ thời gian đứng trước động từ.",
+                }],
+                "corrected_sentence": "我每天学习中文。",
+            },
+        }
+        with storage.database() as conn:
+            conn.execute("UPDATE ai_config SET enabled=1,model='test-model'")
+        body = {
+            "sentence": "我学习每天中文。",
+            "context": "Tôi học tiếng Trung mỗi ngày.",
+        }
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "test-secret"}), \
+             patch("main.gemini_grammar_provider",
+                   return_value=output) as provider:
+            first = self.client.post(
+                "/api/translation/analyze",
+                headers=self.student_headers,
+                json=body,
+            )
+            second = self.client.post(
+                "/api/translation/analyze",
+                headers=self.student_headers,
+                json=body,
+            )
+
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assertEqual(first.json(), output)
+        self.assertEqual(second.json(), output)
+        provider.assert_called_once()
+        with storage.database() as conn:
+            calls = conn.execute(
+                """SELECT COUNT(*) FROM ai_usage
+                   WHERE module='grammar_analysis' AND status='success'"""
+            ).fetchone()[0]
+        self.assertEqual(calls, 1)
+
     def test_comprehensive_exam_saves_each_skill_score(self):
         body = {
             "title": "HSK 1 tổng hợp", "hsk": 1, "status": "published",

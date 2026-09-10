@@ -226,4 +226,43 @@ void main() {
     expect(result.recognizedHanzi, '一');
     expect(result.candidates.single.words.single.meaning, 'một');
   });
+
+  test('phân tích ngữ pháp gửi câu, ngữ cảnh và đọc lỗi có cấu trúc', () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'POST');
+      expect(request.url.path, '/api/translation/analyze');
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      expect(body['sentence'], '我学习每天中文。');
+      expect(body['context'], 'Tôi học tiếng Trung mỗi ngày.');
+      return _json({
+        'score': 72,
+        'feedback': 'Thứ tự trạng từ chưa tự nhiên.',
+        'details': {
+          'errors': [
+            {
+              'position': 'trước 学习',
+              'original': '学习每天',
+              'suggestion': '每天学习',
+              'reason': 'Trạng từ thời gian đứng trước động từ.',
+            }
+          ],
+          'corrected_sentence': '我每天学习中文。',
+        },
+      });
+    });
+    final service = StudentService(
+      baseUrl: 'http://test/api',
+      tokenProvider: () async => 'student-token',
+      client: client,
+    );
+
+    final result = await service.analyzeGrammar(
+      '我学习每天中文。',
+      context: 'Tôi học tiếng Trung mỗi ngày.',
+    );
+
+    expect(result.score, 72);
+    expect(result.correctedSentence, '我每天学习中文。');
+    expect(result.errors.single.suggestion, '每天学习');
+  });
 }

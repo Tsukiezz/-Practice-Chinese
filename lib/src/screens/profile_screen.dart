@@ -9,6 +9,7 @@ import 'custom_exam_history_screen.dart';
 import 'dashboard_screen.dart';
 import 'review_screen.dart';
 import 'handwriting_screen.dart';
+import 'translation_screen.dart';
 import '../services/custom_exam_service.dart';
 import '../services/reading_exam_service.dart';
 import 'practice_screen.dart';
@@ -103,6 +104,24 @@ class ProfileScreen extends StatelessWidget {
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => HandwritingScreen(service: studentService!),
+                  ),
+                ),
+              ),
+            ),
+          if (studentService != null)
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              child: ListTile(
+                leading:
+                    const Icon(Icons.auto_fix_high, color: AppTheme.orange),
+                title: const Text('Sửa câu tiếng Trung',
+                    style: TextStyle(fontWeight: FontWeight.w800)),
+                subtitle: const Text(
+                    'Kiểm tra ngữ pháp và phân tích ngữ cảnh bằng AI'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => TranslationScreen(service: studentService!),
                   ),
                 ),
               ),

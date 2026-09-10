@@ -146,6 +146,43 @@ class WritingSubmission(Body):
     content: str = Field(min_length=1, max_length=10000)
 
 
+class GrammarAnalysisRequest(Body):
+    sentence: str = Field(min_length=1, max_length=200)
+    context: str = Field(default="", max_length=200)
+
+    @field_validator("sentence")
+    @classmethod
+    def contains_han_character(cls, value):
+        ranges = (
+            (0x3400, 0x4DBF),
+            (0x4E00, 0x9FFF),
+            (0xF900, 0xFAFF),
+            (0x20000, 0x2EBEF),
+        )
+        if not any(any(start <= ord(char) <= end for start, end in ranges)
+                   for char in value):
+            raise ValueError("Câu cần kiểm tra phải chứa ít nhất một chữ Hán")
+        return value
+
+
+class GrammarError(Body):
+    position: str = Field(min_length=1, max_length=100)
+    original: str = Field(default="", max_length=200)
+    suggestion: str = Field(default="", max_length=200)
+    reason: str = Field(min_length=1, max_length=1000)
+
+
+class GrammarAnalysisDetails(Body):
+    errors: list[GrammarError] = Field(default_factory=list, max_length=20)
+    corrected_sentence: str = Field(min_length=1, max_length=300)
+
+
+class GrammarAnalysisResponse(Body):
+    score: float = Field(ge=0, le=100)
+    feedback: str = Field(min_length=1, max_length=2000)
+    details: GrammarAnalysisDetails
+
+
 class HandwritingSubmission(Body):
     target: str = Field(min_length=1, max_length=1)
     strokes: list[list[Point]] = Field(min_length=1, max_length=64)

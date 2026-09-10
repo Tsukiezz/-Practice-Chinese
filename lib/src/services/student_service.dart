@@ -229,6 +229,56 @@ class HandwritingGradeResult {
   }
 }
 
+class GrammarCorrectionError {
+  const GrammarCorrectionError({
+    required this.position,
+    required this.original,
+    required this.suggestion,
+    required this.reason,
+  });
+
+  final String position;
+  final String original;
+  final String suggestion;
+  final String reason;
+
+  factory GrammarCorrectionError.fromJson(Map<String, dynamic> json) =>
+      GrammarCorrectionError(
+        position: json['position'] as String,
+        original: json['original'] as String,
+        suggestion: json['suggestion'] as String,
+        reason: json['reason'] as String,
+      );
+}
+
+class GrammarAnalysisResult {
+  const GrammarAnalysisResult({
+    required this.score,
+    required this.feedback,
+    required this.errors,
+    required this.correctedSentence,
+  });
+
+  final double score;
+  final String feedback;
+  final List<GrammarCorrectionError> errors;
+  final String correctedSentence;
+
+  factory GrammarAnalysisResult.fromJson(Map<String, dynamic> json) {
+    final details = json['details'] as Map<String, dynamic>;
+    return GrammarAnalysisResult(
+      score: (json['score'] as num).toDouble(),
+      feedback: json['feedback'] as String,
+      errors: (details['errors'] as List<dynamic>)
+          .map((error) => GrammarCorrectionError.fromJson(
+                error as Map<String, dynamic>,
+              ))
+          .toList(growable: false),
+      correctedSentence: details['corrected_sentence'] as String,
+    );
+  }
+}
+
 class CapabilityReport {
   const CapabilityReport({
     required this.skillScores,
@@ -374,6 +424,28 @@ class StudentService {
     return StudentResult.fromJson(
       jsonDecode(response.body) as Map<String, dynamic>,
     );
+  }
+
+  Future<GrammarAnalysisResult> analyzeGrammar(
+    String sentence, {
+    String context = '',
+  }) async {
+    final response = await _request(
+      'POST',
+      Uri.parse('$baseUrl/translation/analyze'),
+      body: jsonEncode({'sentence': sentence, 'context': context}),
+      timeout: const Duration(seconds: 30),
+    );
+    try {
+      return GrammarAnalysisResult.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
+    } on Object {
+      throw const StudentApiException(
+        null,
+        'Kết quả sửa câu từ máy chủ không đúng định dạng.',
+      );
+    }
   }
 
   Future<HandwritingGradeResult> submitHandwriting(

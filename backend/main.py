@@ -18,15 +18,18 @@ from fastapi.staticfiles import StaticFiles
 from database import audit, database, init_db
 from models import Appeal, AppealReview
 from models import (AIConfig, DictionaryLookup, Exam, ExamUpdate,
+                    GrammarAnalysisRequest, GrammarAnalysisResponse,
                     HandwritingGradeResponse,
                     HandwritingRecognition, HandwritingRecognitionResponse,
                     HandwritingSubmission, Login, Override, Register,
                     Submission, UserUpdate, Word, WordUpdate, WritingSubmission)
 from services import (configured_api_key, configured_model, evaluate_with_ai,
                       gemini_capability_provider, gemini_exam_provider,
+                      gemini_grammar_provider,
                       gemini_handwriting_recognition_provider, gemini_provider,
                       grade_handwriting_offline, grade_with_ai, ai_settings,
-                      recognize_handwriting_with_ai, record_ai_usage)
+                      analyze_grammar_with_ai, recognize_handwriting_with_ai,
+                      record_ai_usage)
 
 
 @asynccontextmanager
@@ -485,6 +488,14 @@ def admin_results(user_id: int | None = None, below: float | None = Query(defaul
 def submit_writing(body: WritingSubmission, user=Depends(current_user)):
     payload = json.dumps({"content": body.content}, ensure_ascii=False)
     return grade_with_ai(user["id"], "writing", payload, gemini_provider)
+
+
+@app.post("/api/translation/analyze", response_model=GrammarAnalysisResponse)
+def analyze_translation(body: GrammarAnalysisRequest,
+                        user=Depends(current_user)):
+    """Correct one Chinese sentence and assess its optional intended context."""
+    return analyze_grammar_with_ai(
+        user["id"], body.sentence, body.context, gemini_grammar_provider)
 
 
 def grade_handwriting_submission(body: HandwritingSubmission, user_id: int):
