@@ -42,6 +42,7 @@ def run():
         )
         server = subprocess.Popen([sys.executable, '-c', server_code], cwd=Path(__file__).parent,
             env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        phase = 'server startup'
         try:
             for _ in range(100):
                 try:
@@ -61,18 +62,23 @@ def run():
                 def login(email):
                     page.goto(base)
                     page.locator('flt-semantics-placeholder').evaluate('(el) => el.click()')
-                    field = page.get_by_role('textbox', name='Email', exact=True)
-                    field.click()
-                    expect(field).to_be_focused()
-                    field.press_sequentially(email, delay=50)
-                    field = page.get_by_role('textbox', name='Mật khẩu', exact=True)
-                    field.click()
-                    expect(field).to_be_focused()
-                    field.press_sequentially(password, delay=50)
-                    expect(field).to_have_value(password)
+                    # Flutter replaces its semantics input while focus settles.
+                    # Verify the typed value instead of submitting a partial password.
+                    for label, value in [('Email', email), ('Mật khẩu', password)]:
+                        field = page.get_by_role('textbox', name=label, exact=True)
+                        field.click()
+                        expect(field).to_be_focused()
+                        for _ in range(3):
+                            field.press('ControlOrMeta+A')
+                            field.press('Backspace')
+                            field.press_sequentially(value, delay=80)
+                            if field.input_value() == value:
+                                break
+                        expect(field).to_have_value(value)
                     field.press('Tab')
                     page.get_by_role('button', name='Đăng nhập', exact=True).click()
 
+                phase = 'admin login'
                 login('admin@example.test')
                 expect(page).to_have_url(base + '/admin')
                 expect(page.get_by_role('heading', name='Tổng quan', exact=True)).to_be_visible()
@@ -80,20 +86,24 @@ def run():
                 page.get_by_role('button', name='Đăng xuất', exact=True).click()
                 expect(page).to_have_url(base + '/')
 
+                phase = 'student login'
                 login('student@example.test')
                 expect(page.get_by_role('tab', name='Nghe', exact=True)).to_be_visible()
                 page.get_by_role('tab', name='Nghe', exact=True).click()
                 print('PASS: student login on shared website', flush=True)
+                phase = 'listening playback'
                 page.get_by_text('HSK 1 · Nghe Chào hỏi (mẫu)').click()
                 with page.expect_response(lambda r: '/media/listening-greeting.mp3' in r.url) as audio:
                     page.get_by_role('button', name='Phát âm thanh', exact=True).click()
                 assert audio.value.status in (200, 206)
                 expect(page.get_by_text('Đang phát...', exact=True)).to_be_visible()
                 expect(page.get_by_text('Không thể phát audio.', exact=True)).not_to_be_visible()
+                phase = 'listening submission'
                 page.get_by_text('Tiểu Minh', exact=True).click()
                 page.get_by_role('button', name='Nộp bài', exact=True).click()
                 expect(page.get_by_text('Test grading')).to_be_visible()
                 print('PASS: bundled audio playback and listening submission', flush=True)
+                phase = 'reload and student logout'
                 page.reload()
                 page.locator('flt-semantics-placeholder').evaluate('(el) => el.click()')
                 expect(page.get_by_role('tab', name='Nghe', exact=True)).to_be_visible()
@@ -109,6 +119,7 @@ def run():
                 page.get_by_role('alertdialog').get_by_role('button', name='Đăng xuất', exact=True).click()
                 expect(page.get_by_role('textbox', name='Email', exact=True)).to_be_visible()
                 # A student cannot unlock Admin by writing a token into browser storage.
+                phase = 'role protection'
                 auth = httpx.post(base + '/api/auth/login', json={'email':'student@example.test','password':password}).json()
                 page.evaluate('(token) => sessionStorage.setItem("hanzigo_admin_token", token)', auth['token'])
                 page.goto(base + '/admin')
@@ -117,10 +128,16 @@ def run():
                 assert not errors, errors
                 browser.close()
             print('PASS: one-origin login, Admin/student routing, logout, reload, listening audio and submission, role protection.')
+        except Exception as error:
+            message = str(error).replace(password, '[redacted]')
+            message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+            print(f'::error title=Unified web - {phase}::{message}', flush=True)
+            raise
         finally:
             server.terminate()
             server.wait(timeout=10)
 
 
 if __name__ == '__main__':
+    sys.stdout.reconfigure(encoding='utf-8')
     run()
