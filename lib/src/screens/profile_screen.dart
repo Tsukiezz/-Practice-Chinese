@@ -97,7 +97,8 @@ class ProfileScreen extends StatelessWidget {
                 leading: const Icon(Icons.gesture, color: AppTheme.red),
                 title: const Text('Viết tay chữ Hán',
                     style: TextStyle(fontWeight: FontWeight.w800)),
-                subtitle: const Text('Tra từ viết tay hoặc luyện nét với AI'),
+                subtitle:
+                    const Text('Tra từ viết tay hoặc chấm thứ tự nét offline'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(

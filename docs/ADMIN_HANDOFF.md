@@ -50,7 +50,15 @@ Timestamp Unix theo giây. Từ, đề, AI config, kết quả có version tăng
 }
 ```
 
-Nét đúng thứ tự, mỗi nét 2–512 điểm, tọa độ 0–1024, gốc trái trên, tối đa 64 nét. Mảng rỗng là chưa có chuẩn, không coi là điểm 0. Admin vẽ/bỏ nét cuối/vẽ lại; đây là dữ liệu biên soạn, không phải thuật toán OCR/chấm nét.
+Nét đúng thứ tự, mỗi nét 2–512 điểm, tọa độ 0–1024, gốc trái trên, tối đa 64 nét. Mảng rỗng là chưa có chuẩn, không coi là điểm 0. Admin chọn **Từ vựng → Sửa**, vẽ từng nét chuẩn theo đúng thứ tự trên Canvas rồi lưu; có thể dùng **Bỏ nét cuối** hoặc **Vẽ lại** trước khi lưu. Luyện nét chỉ nhận một chữ Hán và chấm offline theo số nét, vị trí/thứ tự và hướng đi.
+
+`POST /api/handwriting/submit` chấm offline theo trọng số 30% số nét, 40% đúng nét tại đúng thứ tự/vị trí và 30% hướng đầu-cuối. Response dùng contract chung:
+
+```json
+{"score": 70, "feedback": "Cần kiểm tra lại nét 1.", "details": {"wrong_strokes": [1]}}
+```
+
+Chỉ số nét bắt đầu từ 1. Kết quả vẫn được lưu vào `results` với `kind=handwriting` và `graded_by=automatic`; endpoint tra từ `/api/handwriting/recognize` là luồng riêng.
 
 Không xóa từ có word_id trong đề. Lịch sử tra từ đã liên kết tới `vocabulary(id)`
 và được cách ly theo tài khoản học viên.
@@ -128,7 +136,7 @@ Test API và trình duyệt theo README dùng DB tạm, không thay dữ liệu 
 
 ### Kết quả kiểm tra ngày 09/09/2026
 
-- 24 integration tests FastAPI/SQLite đạt: phân quyền, session, CRUD, bài Nghe/Đọc/tổng hợp, lịch sử từ, viết tay/đoạn văn dưới 80, Dashboard, báo cáo AI, retry Gemini và dựng ảnh nét.
+- 38 unit/integration tests FastAPI/SQLite đạt: phân quyền, session, CRUD, bài Nghe/Đọc/tổng hợp, lịch sử từ, thuật toán viết tay offline, đoạn văn dưới 80, Dashboard, báo cáo AI, retry Gemini và dựng ảnh OCR.
 - Playwright trên Microsoft Edge: desktop 1440px và mobile 390px đạt; không có lỗi JavaScript; kiểm tra cả điểm học viên sau khi Admin duyệt.
 - `node --check admin/app.js`: đạt.
 - `flutter analyze`: không có vấn đề.

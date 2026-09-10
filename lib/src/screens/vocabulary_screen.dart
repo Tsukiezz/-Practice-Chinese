@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/student_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import 'handwriting_screen.dart';
 
 class VocabularyScreen extends StatefulWidget {
   const VocabularyScreen({super.key, required this.service});
@@ -118,6 +119,40 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                 }
                 return Column(
                   children: [
+                    if (!_historyMode)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+                        child: Row(
+                          children: [
+                            Text(
+                              '${words.length} từ vựng',
+                              key: const Key('vocabulary-count'),
+                              style: const TextStyle(
+                                color: AppTheme.jade,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              tooltip: 'Tải lại từ vựng',
+                              onPressed: _reload,
+                              icon: const Icon(Icons.refresh),
+                            ),
+                            OutlinedButton.icon(
+                              key: const Key('open-handwriting'),
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => HandwritingScreen(
+                                    service: widget.service,
+                                  ),
+                                ),
+                              ),
+                              icon: const Icon(Icons.draw_outlined),
+                              label: const Text('Viết tay'),
+                            ),
+                          ],
+                        ),
+                      ),
                     if (_historyMode)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),

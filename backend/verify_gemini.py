@@ -1,8 +1,9 @@
-"""Perform a small, non-persistent Gemini connection check."""
-import json
+"""Perform a small, non-persistent Gemini connection check for AI exam grading."""
 import sys
 
-from services import ai_settings, gemini_exam_provider, gemini_handwriting_provider
+import json
+
+from services import ai_settings, gemini_exam_provider
 
 
 def verify() -> None:
@@ -33,17 +34,7 @@ def verify() -> None:
     section_scores = result.get("section_scores")
     if not isinstance(section_scores, dict) or not isinstance(section_scores.get("reading"), (int, float)):
         raise SystemExit("Gemini chưa trả điểm theo từng kỹ năng.")
-    handwriting = json.dumps({
-        "target": "一",
-        "standard_strokes": [[{"x": 180, "y": 512}, {"x": 840, "y": 512}]],
-        "submitted_strokes": [[{"x": 200, "y": 520}, {"x": 820, "y": 510}]],
-    }, ensure_ascii=False)
-    writing_result = gemini_handwriting_provider(settings, handwriting)
-    writing_score = writing_result.get("score")
-    if not isinstance(writing_score, (int, float)) or not isinstance(
-            writing_result.get("feedback"), str):
-        raise SystemExit("Gemini chưa chấm được ảnh viết tay.")
-    print(f"Kết nối Gemini thành công. Bài Đọc: {score}; Viết tay: {writing_score}.")
+    print(f"Kết nối Gemini thành công. Bài Đọc: {score}. Luyện nét chạy offline.")
 
 
 if __name__ == "__main__":

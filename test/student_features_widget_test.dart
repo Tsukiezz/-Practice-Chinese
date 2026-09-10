@@ -106,16 +106,19 @@ class _FakeStudentService extends StudentService {
       ];
 
   @override
-  Future<StudentResult> submitHandwriting(
+  Future<HandwritingGradeResult> submitHandwriting(
     String target,
     List<List<Map<String, double>>> strokes, {
     int? sourceResultId,
   }) async {
     handwritingTarget = target;
-    return _studentResult(
-      kind: 'handwriting',
+    return const HandwritingGradeResult(
       score: 92,
       feedback: 'Nét viết cân đối.',
+      wrongStrokes: [1],
+      countScore: 100,
+      orderPositionScore: 80,
+      directionScore: 100,
     );
   }
 
@@ -172,6 +175,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
+    expect(find.text('1 từ vựng'), findsOneWidget);
+    expect(find.byKey(const Key('open-handwriting')), findsOneWidget);
     await tester.tap(find.text('nǐ hǎo'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Đóng'));
@@ -188,6 +193,10 @@ void main() {
     await tester
         .pumpWidget(MaterialApp(home: HandwritingScreen(service: service)));
     final canvas = find.byKey(const Key('handwriting-canvas'));
+    final paint = tester.widget<CustomPaint>(
+      find.descendant(of: canvas, matching: find.byType(CustomPaint)),
+    );
+    expect(paint.foregroundPainter, isNotNull);
     final gesture = await tester.startGesture(tester.getCenter(canvas));
     await gesture.moveBy(const Offset(80, 5));
     await gesture.moveBy(const Offset(80, 5));
@@ -207,6 +216,7 @@ void main() {
   });
 
   testWidgets('chế độ luyện nét cũ vẫn gửi kết quả cho Ôn tập', (tester) async {
+    final semantics = tester.ensureSemantics();
     await tester.binding.setSurfaceSize(const Size(800, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final service = _FakeStudentService();
@@ -225,6 +235,9 @@ void main() {
 
     expect(service.handwritingTarget, '一');
     expect(find.text('92 điểm'), findsOneWidget);
+    expect(find.text('Dáng, vị trí & thứ tự 40%: 80'), findsOneWidget);
+    expect(find.bySemanticsLabel('Nét sai được tô đỏ: 1'), findsOneWidget);
+    semantics.dispose();
   });
 
   testWidgets('danh sách ôn tập hiện kết quả nộp lại gần nhất', (tester) async {

@@ -196,6 +196,39 @@ class HandwritingRecognitionResult {
   }
 }
 
+class HandwritingGradeResult {
+  const HandwritingGradeResult({
+    required this.score,
+    required this.feedback,
+    required this.wrongStrokes,
+    this.countScore = 0,
+    this.orderPositionScore = 0,
+    this.directionScore = 0,
+  });
+
+  final double score;
+  final String feedback;
+  final List<int> wrongStrokes;
+  final double countScore;
+  final double orderPositionScore;
+  final double directionScore;
+
+  factory HandwritingGradeResult.fromJson(Map<String, dynamic> json) {
+    final details = json['details'] as Map<String, dynamic>;
+    return HandwritingGradeResult(
+      score: (json['score'] as num).toDouble(),
+      feedback: json['feedback'] as String,
+      wrongStrokes: (details['wrong_strokes'] as List<dynamic>)
+          .map((index) => index as int)
+          .toList(growable: false),
+      countScore: (details['count_score'] as num?)?.toDouble() ?? 0,
+      orderPositionScore:
+          (details['order_position_score'] as num?)?.toDouble() ?? 0,
+      directionScore: (details['direction_score'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
 class CapabilityReport {
   const CapabilityReport({
     required this.skillScores,
@@ -343,7 +376,7 @@ class StudentService {
     );
   }
 
-  Future<StudentResult> submitHandwriting(
+  Future<HandwritingGradeResult> submitHandwriting(
     String target,
     List<List<Map<String, double>>> strokes, {
     int? sourceResultId,
@@ -356,9 +389,16 @@ class StudentService {
       Uri.parse('$baseUrl$path'),
       body: jsonEncode({'target': target, 'strokes': strokes}),
     );
-    return StudentResult.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
-    );
+    try {
+      return HandwritingGradeResult.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
+    } on Object {
+      throw const StudentApiException(
+        null,
+        'Kết quả chấm nét từ máy chủ không đúng định dạng.',
+      );
+    }
   }
 
   Future<HandwritingRecognitionResult> recognizeHandwriting(

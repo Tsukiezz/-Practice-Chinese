@@ -24,7 +24,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
 
   late _HandwritingMode _mode;
   bool _submitting = false;
-  StudentResult? _practiceResult;
+  HandwritingGradeResult? _practiceResult;
   HandwritingRecognitionResult? _recognitionResult;
   String? _error;
 
@@ -61,197 +61,255 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
               : 'Viết lại chữ dưới 80 điểm'),
         ),
         body: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              if (widget.source == null) ...[
-                SegmentedButton<_HandwritingMode>(
-                  key: const Key('handwriting-mode'),
-                  segments: const [
-                    ButtonSegment(
-                      value: _HandwritingMode.lookup,
-                      icon: Icon(Icons.search),
-                      label: Text('Tra từ'),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  if (widget.source == null) ...[
+                    SegmentedButton<_HandwritingMode>(
+                      key: const Key('handwriting-mode'),
+                      segments: const [
+                        ButtonSegment(
+                          value: _HandwritingMode.lookup,
+                          icon: Icon(Icons.search),
+                          label: Text('Tra từ'),
+                        ),
+                        ButtonSegment(
+                          value: _HandwritingMode.practice,
+                          icon: Icon(Icons.school_outlined),
+                          label: Text('Luyện nét'),
+                        ),
+                      ],
+                      selected: {_mode},
+                      onSelectionChanged: _submitting
+                          ? null
+                          : (selection) => _changeMode(selection.single),
                     ),
-                    ButtonSegment(
-                      value: _HandwritingMode.practice,
-                      icon: Icon(Icons.school_outlined),
-                      label: Text('Luyện nét'),
+                    const SizedBox(height: 16),
+                  ],
+                  Text(
+                    _isLookup
+                        ? 'Viết một chữ Hán vào ô bên dưới để nhận dạng và tra từ.'
+                        : 'Nhập một chữ Hán, sau đó viết đúng thứ tự nét để chấm offline.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey.shade700),
+                  ),
+                  if (!_isLookup) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      key: const Key('handwriting-target'),
+                      controller: _target,
+                      enabled: !_submitting && widget.source == null,
+                      maxLength: 1,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Chữ cần viết',
+                        hintText: 'Ví dụ: 你',
+                      ),
                     ),
                   ],
-                  selected: {_mode},
-                  onSelectionChanged: _submitting
-                      ? null
-                      : (selection) => _changeMode(selection.single),
-                ),
-                const SizedBox(height: 16),
-              ],
-              Text(
-                _isLookup
-                    ? 'Viết một chữ Hán vào ô bên dưới để nhận dạng và tra từ.'
-                    : 'Nhập chữ mục tiêu, sau đó viết đúng thứ tự nét để AI chấm.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade700),
-              ),
-              if (!_isLookup) ...[
-                const SizedBox(height: 12),
-                TextField(
-                  key: const Key('handwriting-target'),
-                  controller: _target,
-                  enabled: !_submitting && widget.source == null,
-                  maxLength: 4,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w800,
-                  ),
-                  decoration: const InputDecoration(
-                    labelText: 'Chữ cần viết',
-                    hintText: 'Ví dụ: 你',
-                  ),
-                ),
-              ],
-              const SizedBox(height: 8),
-              AspectRatio(
-                aspectRatio: 1,
-                child: LayoutBuilder(
-                  builder: (_, box) => GestureDetector(
-                    key: const Key('handwriting-canvas'),
-                    onPanStart: _submitting
-                        ? null
-                        : (details) => setState(() {
-                              _strokes.add([
-                                _normalize(
-                                  details.localPosition,
-                                  box.biggest,
+                  const SizedBox(height: 8),
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 520),
+                      child: AspectRatio(
+                        aspectRatio: 1,
+                        child: LayoutBuilder(
+                          builder: (_, box) => MouseRegion(
+                            cursor: SystemMouseCursors.precise,
+                            child: GestureDetector(
+                              key: const Key('handwriting-canvas'),
+                              behavior: HitTestBehavior.opaque,
+                              onPanStart: _submitting
+                                  ? null
+                                  : (details) => setState(() {
+                                        _strokes.add([
+                                          _normalize(
+                                            details.localPosition,
+                                            box.biggest,
+                                          ),
+                                        ]);
+                                        _clearResults();
+                                      }),
+                              onPanUpdate: _submitting
+                                  ? null
+                                  : (details) => setState(() {
+                                        final point = _normalize(
+                                          details.localPosition,
+                                          box.biggest,
+                                        );
+                                        if (point.dx >= 0 &&
+                                            point.dy >= 0 &&
+                                            point.dx <= 1024 &&
+                                            point.dy <= 1024) {
+                                          _strokes.last.add(point);
+                                        }
+                                      }),
+                              onPanEnd: _submitting
+                                  ? null
+                                  : (_) => setState(() {
+                                        if (_strokes.isNotEmpty &&
+                                            _strokes.last.length < 2) {
+                                          _strokes.removeLast();
+                                        }
+                                      }),
+                              child: Semantics(
+                                label: _practiceResult
+                                            ?.wrongStrokes.isNotEmpty ==
+                                        true
+                                    ? 'Nét sai được tô đỏ: ${_practiceResult!.wrongStrokes.join(', ')}'
+                                    : null,
+                                child: CustomPaint(
+                                  // Draw above the white Container. A normal
+                                  // painter is rendered behind its child.
+                                  foregroundPainter: _HanziPainter(
+                                    _strokes,
+                                    wrongStrokes:
+                                        _practiceResult?.wrongStrokes.toSet() ??
+                                            const {},
+                                  ),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      border: Border.all(
+                                          color: AppTheme.jade, width: 2),
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                  ),
                                 ),
-                              ]);
-                              _clearResults();
-                            }),
-                    onPanUpdate: _submitting
-                        ? null
-                        : (details) => setState(() {
-                              final point = _normalize(
-                                details.localPosition,
-                                box.biggest,
-                              );
-                              if (point.dx >= 0 &&
-                                  point.dy >= 0 &&
-                                  point.dx <= 1024 &&
-                                  point.dy <= 1024) {
-                                _strokes.last.add(point);
-                              }
-                            }),
-                    onPanEnd: _submitting
-                        ? null
-                        : (_) => setState(() {
-                              if (_strokes.isNotEmpty &&
-                                  _strokes.last.length < 2) {
-                                _strokes.removeLast();
-                              }
-                            }),
-                    child: CustomPaint(
-                      painter: _HanziPainter(_strokes),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: AppTheme.jade, width: 2),
-                          borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _submitting || _strokes.isEmpty
-                          ? null
-                          : () => setState(() {
-                                _strokes.removeLast();
-                                _clearResults();
-                              }),
-                      icon: const Icon(Icons.undo),
-                      label: const Text('Hoàn tác nét'),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: Text(
+                      'Giữ chuột và kéo trên ô vuông (hoặc dùng ngón tay) để viết từng nét.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _submitting || _strokes.isEmpty
-                          ? null
-                          : () => setState(() {
-                                _strokes.clear();
-                                _clearResults();
-                              }),
-                      icon: const Icon(Icons.delete_outline),
-                      label: const Text('Viết lại'),
-                    ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _submitting || _strokes.isEmpty
+                              ? null
+                              : () => setState(() {
+                                    _strokes.removeLast();
+                                    _clearResults();
+                                  }),
+                          icon: const Icon(Icons.undo),
+                          label: const Text('Hoàn tác nét'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _submitting || _strokes.isEmpty
+                              ? null
+                              : () => setState(() {
+                                    _strokes.clear();
+                                    _clearResults();
+                                  }),
+                          icon: const Icon(Icons.delete_outline),
+                          label: const Text('Viết lại'),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                key: const Key('submit-handwriting'),
-                onPressed: _submitting ? null : _submit,
-                icon: _submitting
-                    ? const SizedBox.square(
-                        dimension: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(_isLookup ? Icons.search : Icons.auto_awesome),
-                label:
-                    Text(_isLookup ? 'Nhận dạng & tra từ' : 'Gửi AI chấm nét'),
-              ),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(
-                    _error!,
-                    key: const Key('handwriting-error'),
-                    style: const TextStyle(color: AppTheme.red),
-                    textAlign: TextAlign.center,
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    key: const Key('submit-handwriting'),
+                    onPressed: _submitting ? null : _submit,
+                    icon: _submitting
+                        ? const SizedBox.square(
+                            dimension: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(_isLookup ? Icons.search : Icons.auto_awesome),
+                    label: Text(_isLookup
+                        ? 'Nhận dạng & tra từ'
+                        : 'Chấm thứ tự nét offline'),
                   ),
-                ),
-              if (_recognitionResult != null)
-                _RecognitionCard(
-                  result: _recognitionResult!,
-                  savingWordIds: _savingWordIds,
-                  onSaveWord: _saveWord,
-                ),
-              if (_practiceResult != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Card(
-                    color: _practiceResult!.score >= 80
-                        ? const Color(0xFFE4F4E9)
-                        : const Color(0xFFFFF1E8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        children: [
-                          Text(
-                            '${_practiceResult!.score.toStringAsFixed(0)} điểm',
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w900,
-                              color: AppTheme.jade,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _practiceResult!.feedback,
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                  if (_error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        _error!,
+                        key: const Key('handwriting-error'),
+                        style: const TextStyle(color: AppTheme.red),
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                  ),
-                ),
-            ],
+                  if (_recognitionResult != null)
+                    _RecognitionCard(
+                      result: _recognitionResult!,
+                      savingWordIds: _savingWordIds,
+                      onSaveWord: _saveWord,
+                    ),
+                  if (_practiceResult != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: Card(
+                        color: _practiceResult!.score >= 80
+                            ? const Color(0xFFE4F4E9)
+                            : const Color(0xFFFFF1E8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(18),
+                          child: Column(
+                            children: [
+                              Text(
+                                '${_practiceResult!.score.toStringAsFixed(0)} điểm',
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppTheme.jade,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _practiceResult!.feedback,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 14),
+                              Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _ScoreChip(
+                                    label: 'Số nét 30%',
+                                    score: _practiceResult!.countScore,
+                                  ),
+                                  _ScoreChip(
+                                    label: 'Dáng, vị trí & thứ tự 40%',
+                                    score: _practiceResult!.orderPositionScore,
+                                  ),
+                                  _ScoreChip(
+                                    label: 'Hướng nét 30%',
+                                    score: _practiceResult!.directionScore,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       );
@@ -479,10 +537,25 @@ class _CandidateSection extends StatelessWidget {
       );
 }
 
+class _ScoreChip extends StatelessWidget {
+  const _ScoreChip({required this.label, required this.score});
+
+  final String label;
+  final double score;
+
+  @override
+  Widget build(BuildContext context) => Chip(
+        label: Text('$label: ${score.toStringAsFixed(0)}'),
+        side: BorderSide(color: AppTheme.jade.withValues(alpha: 0.3)),
+        backgroundColor: Colors.white.withValues(alpha: 0.75),
+      );
+}
+
 class _HanziPainter extends CustomPainter {
-  const _HanziPainter(this.strokes);
+  const _HanziPainter(this.strokes, {this.wrongStrokes = const {}});
 
   final List<List<Offset>> strokes;
+  final Set<int> wrongStrokes;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -500,13 +573,15 @@ class _HanziPainter extends CustomPainter {
       guide,
     );
     final ink = Paint()
-      ..color = AppTheme.ink
       ..strokeWidth = 7
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..style = PaintingStyle.stroke;
-    for (final stroke in strokes) {
+    for (var index = 0; index < strokes.length; index++) {
+      final stroke = strokes[index];
       if (stroke.length < 2) continue;
+      ink.color =
+          wrongStrokes.contains(index + 1) ? AppTheme.red : AppTheme.ink;
       final path = Path()
         ..moveTo(
           stroke.first.dx / 1024 * size.width,

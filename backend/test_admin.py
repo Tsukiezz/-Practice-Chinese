@@ -479,31 +479,50 @@ class AdminIntegrationTest(unittest.TestCase):
 
     def test_handwriting_canvas_result_enters_and_leaves_review_list(self):
         self.word()
-        strokes = [[{"x": 100, "y": 500}, {"x": 900, "y": 500}]]
-        with storage.database() as conn:
-            conn.execute("UPDATE ai_config SET enabled=1,model='test-model'")
-        with patch.dict(os.environ, {"GEMINI_API_KEY": "private-test-secret"}), \
-             patch('main.gemini_handwriting_provider', side_effect=[
-                 {"score": 55, "feedback": "Nét ngang chưa cân đối."},
-                 {"score": 90, "feedback": "Nét đã cân đối."},
-             ]):
-            original = self.client.post("/api/handwriting/submit", headers=self.student_headers,
-                                        json={"target": "一", "strokes": strokes})
-            self.assertEqual(original.status_code, 201, original.text)
-            weak = self.client.get("/api/me/review-items?kind=handwriting",
-                                   headers=self.student_headers).json()
-            self.assertEqual(len(weak), 1)
-            wrong_target = self.client.post(
-                f"/api/me/review/handwriting/{original.json()['id']}",
-                headers=self.student_headers, json={"target": "二", "strokes": strokes})
-            self.assertEqual(wrong_target.status_code, 422)
-            retry = self.client.post(
-                f"/api/me/review/handwriting/{original.json()['id']}",
-                headers=self.student_headers, json={"target": "一", "strokes": strokes})
-            self.assertEqual(retry.status_code, 201, retry.text)
-            self.assertTrue(retry.json()["review_completed"])
+        correct = [[{"x": 100, "y": 500}, {"x": 900, "y": 500}]]
+        reversed_stroke = [[{"x": 900, "y": 500}, {"x": 100, "y": 500}]]
+
+        original = self.client.post(
+            "/api/handwriting/submit", headers=self.student_headers,
+            json={"target": "一", "strokes": reversed_stroke})
+        self.assertEqual(original.status_code, 201, original.text)
+        self.assertEqual(original.json(), {
+            "score": 70.0,
+            "feedback": "Cần kiểm tra lại nét 1.",
+            "details": {
+                "wrong_strokes": [1],
+                "count_score": 100.0,
+                "order_position_score": 100.0,
+                "direction_score": 0.0,
+            },
+        })
+        results = self.client.get(
+            "/api/me/results", headers=self.student_headers).json()
+        source_result_id = results[0]["id"]
+        self.assertEqual(results[0]["graded_by"], "automatic")
+
+        weak = self.client.get("/api/me/review-items?kind=handwriting",
+                               headers=self.student_headers).json()
+        self.assertEqual(len(weak), 1)
+        wrong_target = self.client.post(
+            f"/api/me/review/handwriting/{source_result_id}",
+            headers=self.student_headers, json={"target": "二", "strokes": correct})
+        self.assertEqual(wrong_target.status_code, 422)
+        retry = self.client.post(
+            f"/api/me/review/handwriting/{source_result_id}",
+            headers=self.student_headers, json={"target": "一", "strokes": correct})
+        self.assertEqual(retry.status_code, 201, retry.text)
+        self.assertEqual(retry.json()["score"], 100)
+        self.assertEqual(retry.json()["details"]["wrong_strokes"], [])
         self.assertEqual(self.client.get("/api/me/review-items?kind=handwriting",
                                          headers=self.student_headers).json(), [])
+
+    def test_handwriting_practice_rejects_words_with_multiple_characters(self):
+        strokes = [[{"x": 100, "y": 500}, {"x": 900, "y": 500}]]
+        response = self.client.post(
+            "/api/handwriting/submit", headers=self.student_headers,
+            json={"target": "你好", "strokes": strokes})
+        self.assertEqual(response.status_code, 422)
 
     def test_comprehensive_exam_saves_each_skill_score(self):
         body = {
@@ -591,7 +610,7 @@ class AdminIntegrationTest(unittest.TestCase):
         seed()
         seed()
         data=self.client.get("/api/admin/dashboard",headers=self.headers).json()["totals"]
-        self.assertEqual(data["vocabulary"],8)
+        self.assertEqual(data["vocabulary"], 33)
         self.assertEqual(data["exams"],7)
         self.assertEqual(data["results"],0)
         self.assertEqual(data["ai_success"],0)

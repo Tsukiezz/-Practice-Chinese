@@ -18,15 +18,15 @@ from fastapi.staticfiles import StaticFiles
 from database import audit, database, init_db
 from models import Appeal, AppealReview
 from models import (AIConfig, DictionaryLookup, Exam, ExamUpdate,
+                    HandwritingGradeResponse,
                     HandwritingRecognition, HandwritingRecognitionResponse,
                     HandwritingSubmission, Login, Override, Register,
                     Submission, UserUpdate, Word, WordUpdate, WritingSubmission)
 from services import (configured_api_key, configured_model, evaluate_with_ai,
                       gemini_capability_provider, gemini_exam_provider,
-                      gemini_handwriting_provider,
                       gemini_handwriting_recognition_provider, gemini_provider,
-                      grade_with_ai, ai_settings, recognize_handwriting_with_ai,
-                      record_ai_usage)
+                      grade_handwriting_offline, grade_with_ai, ai_settings,
+                      recognize_handwriting_with_ai, record_ai_usage)
 
 
 @asynccontextmanager
@@ -495,17 +495,15 @@ def grade_handwriting_submission(body: HandwritingSubmission, user_id: int):
     standard = json.loads(word["strokes_json"])
     if not standard:
         raise HTTPException(422, "Chữ Hán chưa có dữ liệu nét chuẩn")
-    payload = json.dumps({
-        "target": body.target,
-        "standard_strokes": standard,
-        "submitted_strokes": [[point.model_dump() for point in stroke] for stroke in body.strokes],
-    }, ensure_ascii=False)
-    return grade_with_ai(user_id, "handwriting", payload, gemini_handwriting_provider)
+    submitted = [[point.model_dump() for point in stroke] for stroke in body.strokes]
+    return grade_handwriting_offline(user_id, body.target, standard, submitted)
 
 
-@app.post("/api/handwriting/submit", status_code=201)
+@app.post("/api/handwriting/submit", status_code=201,
+          response_model=HandwritingGradeResponse)
 def submit_handwriting(body: HandwritingSubmission, user=Depends(current_user)):
-    return grade_handwriting_submission(body, user["id"])
+    grade, _ = grade_handwriting_submission(body, user["id"])
+    return grade
 
 
 @app.post(
@@ -588,7 +586,7 @@ def resubmit_handwriting(source_result_id: int, body: HandwritingSubmission,
             raise HTTPException(409, "Bài viết tay cũ không còn đủ dữ liệu để luyện lại") from None
         if body.target != original_target:
             raise HTTPException(422, "Cần viết lại đúng chữ Hán của bài gốc")
-    result = grade_handwriting_submission(body, user["id"])
+    grade, result = grade_handwriting_submission(body, user["id"])
     now = int(time.time())
     with database() as conn:
         conn.execute(
@@ -602,9 +600,7 @@ def resubmit_handwriting(source_result_id: int, body: HandwritingSubmission,
                completed_at=excluded.completed_at,updated_at=excluded.updated_at""",
             (source_result_id, user["id"], result["id"], now if result["score"] >= 80 else None, now),
         )
-    result["review_completed"] = result["score"] >= 80
-    result["source_result_id"] = source_result_id
-    return result
+    return grade
 
 
 @app.get("/api/me/results")

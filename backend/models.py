@@ -147,13 +147,46 @@ class WritingSubmission(Body):
 
 
 class HandwritingSubmission(Body):
-    target: str = Field(min_length=1, max_length=4)
+    target: str = Field(min_length=1, max_length=1)
     strokes: list[list[Point]] = Field(min_length=1, max_length=64)
+
+    @field_validator("target")
+    @classmethod
+    def single_han_character(cls, value):
+        codepoint = ord(value)
+        if not (0x3400 <= codepoint <= 0x4DBF
+                or 0x4E00 <= codepoint <= 0x9FFF
+                or 0xF900 <= codepoint <= 0xFAFF
+                or 0x20000 <= codepoint <= 0x2EBEF):
+            raise ValueError("Luyện nét chỉ hỗ trợ một chữ Hán")
+        return value
 
     @field_validator("strokes")
     @classmethod
     def valid_strokes(cls, value):
         return Word.valid_strokes(value)
+
+
+class HandwritingGradeDetails(Body):
+    wrong_strokes: list[int] = Field(default_factory=list, max_length=64)
+    # Keep the three rubric components explicit so Flutter/Admin can explain
+    # where the final 0-100 score came from.
+    count_score: float = Field(default=0, ge=0, le=100)
+    order_position_score: float = Field(default=0, ge=0, le=100)
+    direction_score: float = Field(default=0, ge=0, le=100)
+
+    @field_validator("wrong_strokes")
+    @classmethod
+    def valid_indices(cls, value):
+        if any(index < 1 for index in value) or len(value) != len(set(value)):
+            raise ValueError("Chỉ số nét sai phải duy nhất và bắt đầu từ 1")
+        return value
+
+
+class HandwritingGradeResponse(Body):
+    score: float = Field(ge=0, le=100)
+    feedback: str = Field(min_length=1, max_length=2000)
+    details: HandwritingGradeDetails
 
 
 class HandwritingRecognition(Body):

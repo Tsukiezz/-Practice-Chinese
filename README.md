@@ -77,8 +77,8 @@ GEMINI_MODEL=gemini-3.5-flash
 
 Trong trang Admin, mở **Cấu hình AI**, kiểm tra model rồi bật AI. Backend gọi
 Gemini, bắt buộc JSON theo schema, tự thử lại lỗi mạng/429/5xx hoặc JSON bị cắt,
-chuẩn hóa điểm/nhận xét và lưu trạng thái usage. Chấm viết tay gửi cả ảnh Canvas,
-ảnh nét chuẩn và thứ tự tọa độ; khóa chỉ tồn tại phía máy chủ.
+chuẩn hóa điểm/nhận xét và lưu trạng thái usage. Tra từ viết tay dùng Gemini OCR;
+chế độ Luyện nét so sánh tọa độ với nét chuẩn hoàn toàn offline và không cần API key.
 
 Có thể bật và kiểm tra kết nối từ thư mục `backend` bằng `python configure_gemini.py`, sau đó `python verify_gemini.py`. Hai lệnh không hiển thị API key; lệnh kiểm tra không lưu kết quả mẫu vào CSDL.
 

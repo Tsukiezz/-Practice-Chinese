@@ -146,7 +146,16 @@ void main() {
       final body = jsonDecode(request.body) as Map<String, dynamic>;
       expect(body['target'], '一');
       expect((body['strokes'] as List).single, hasLength(2));
-      return _json(_result(kind: 'handwriting', score: 88), 201);
+      return _json({
+        'score': 70,
+        'feedback': 'Cần kiểm tra lại nét 1.',
+        'details': {
+          'wrong_strokes': [1],
+          'count_score': 100,
+          'order_position_score': 100,
+          'direction_score': 0,
+        },
+      }, 201);
     });
     final service = StudentService(
       baseUrl: 'http://test/api',
@@ -161,7 +170,11 @@ void main() {
       ]
     ]);
 
-    expect(result.score, 88);
+    expect(result.score, 70);
+    expect(result.wrongStrokes, [1]);
+    expect(result.countScore, 100);
+    expect(result.orderPositionScore, 100);
+    expect(result.directionScore, 0);
   });
 
   test('nhận dạng viết tay đọc contract điểm, feedback và từ tương ứng',
