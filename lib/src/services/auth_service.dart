@@ -121,6 +121,17 @@ class AuthService {
     await clearSession();
   }
 
+  Future<void> refreshUser(String baseUrl) async {
+    final response = await httpClient.get(Uri.parse('$baseUrl/me'),
+        headers: {'Authorization': 'Bearer $token'});
+    if (response.statusCode != 200) {
+      throw const AuthException('Phiên đăng nhập đã hết hạn.');
+    }
+    final data = Map<String, dynamic>.from(jsonDecode(response.body) as Map)
+      ..['expires_at'] = currentUser?.expiresAt ?? 0;
+    await saveSession(token!, AuthUser.fromJson(data));
+  }
+
   static Future<AuthService> load(http.Client httpClient) async {
     final prefs = await SharedPreferences.getInstance();
     return AuthService(prefs, httpClient);

@@ -25,10 +25,18 @@ class ReadingQuestion {
       options: (json['options'] as List<dynamic>? ?? const [])
           .map((option) => option as String)
           .toList(growable: false),
-      audioUrl: (json['audio_url'] as String? ?? ''),
+      audioUrl: _audioUrl(json['audio_url'] as String? ?? ''),
       transcript: (json['transcript'] as String? ?? ''),
       explanation: (json['explanation'] as String? ?? ''),
     );
+  }
+
+  static String _audioUrl(String value) {
+    if (!value.startsWith('/media/')) return value;
+    const configured = String.fromEnvironment('HANZIGO_API_URL');
+    return (configured.isEmpty ? Uri.base : Uri.parse(configured))
+        .resolve(value)
+        .toString();
   }
 }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'screens/home_screen.dart';
@@ -9,6 +10,7 @@ import 'screens/practice_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/vocabulary_screen.dart';
 import 'services/auth_service.dart';
+import 'services/web_navigation.dart';
 import 'services/reading_exam_service.dart';
 import 'services/student_service.dart';
 import 'services/listening_exam_service.dart';
@@ -59,10 +61,14 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  static const _apiBaseUrl = String.fromEnvironment(
-    'HANZIGO_API_URL',
-    defaultValue: 'http://localhost:8010/api',
-  );
+  static String get _apiBaseUrl {
+    const configured = String.fromEnvironment('HANZIGO_API_URL');
+    return configured.isNotEmpty
+        ? configured
+        : (kIsWeb
+            ? Uri.base.resolve('/api').toString()
+            : 'http://localhost:8010/api');
+  }
 
   http.Client? _httpClient;
   late AuthService _authService;
@@ -130,6 +136,14 @@ class _AppShellState extends State<AppShell> {
     } on Exception {
       // Local custom exams are optional and must not block the whole app.
     }
+    if (_authService.isAuthenticated) {
+      try {
+        await _authService.refreshUser(_apiBaseUrl);
+      } on Exception {
+        await _authService.clearSession();
+      }
+    }
+    if (await _routeAdmin()) return;
     if (!mounted) return;
     setState(() {
       _authenticated = _authService.isAuthenticated;
@@ -137,12 +151,29 @@ class _AppShellState extends State<AppShell> {
     });
   }
 
-  void _onLoginSuccess() {
+  Future<bool> _routeAdmin() async {
+    if (kIsWeb &&
+        _authService.isAuthenticated &&
+        _authService.currentUser?.isAdmin == true) {
+      final token = _authService.token!;
+      await _authService.clearSession();
+      openAdmin(token);
+      return true;
+    }
+    return false;
+  }
+
+  void _onLoginSuccess() async {
+    if (await _routeAdmin() || !mounted) return;
+    await CustomExamService.create();
+    if (!mounted) return;
     setState(() => _authenticated = true);
   }
 
   Future<void> _logout() async {
     await _authService.logout();
+    _readingRepository = null;
+    _index = 0;
     if (!mounted) return;
     setState(() => _authenticated = false);
   }
@@ -158,6 +189,7 @@ class _AppShellState extends State<AppShell> {
     if (!_authenticated) {
       return LoginScreen(
         baseUrl: _apiBaseUrl,
+        authService: _authService,
         onLoginSuccess: _onLoginSuccess,
       );
     }

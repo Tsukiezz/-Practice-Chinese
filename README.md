@@ -2,7 +2,25 @@
 
 Ứng dụng học tiếng Trung cho người Việt. Nhánh `test` tích hợp **Admin của Nguyên** (UC-08, chức năng 28 và 31–35) với ứng dụng học viên và backend của **Kiệt**. Xem [biên bản tích hợp](docs/INTEGRATION_TEST.md).
 
-## Cấu trúc
+## Chạy một website cho Admin và học viên
+
+Build Flutter (`flutter pub get`, `flutter build web --no-wasm-dry-run`) rồi chạy từ `backend/`:
+
+```powershell
+python -m pip install -r requirements.txt
+python seed.py
+python listening_demo.py --publish
+$env:WEB_APP_DIR = (Resolve-Path ../build/web).Path
+python -m uvicorn main:app --host 127.0.0.1 --port 8010
+```
+
+Mở **http://127.0.0.1:8010/** cho cả hai loại tài khoản. Đăng nhập bằng tài khoản Admin sẽ chuyển sang `/admin`; học viên vào ứng dụng Flutter. Khi đăng xuất, cả hai trở về cùng trang đăng nhập. API kiểm tra vai trò trên máy chủ. Không cần chạy web-server Flutter trên cổng riêng.
+
+Trên Windows nên đặt SDK và thư mục build ở đường dẫn không dấu/không khoảng trắng. Nếu build ở thư mục khác, đặt `WEB_APP_DIR` tới đúng `build/web` đó. Khi build cùng website, không truyền `HANZIGO_API_URL` để Flutter tự lấy `/api` trên cùng địa chỉ. Mỗi người dùng cần tài khoản riêng; tạo Admin bằng `create_admin.py`, học viên bằng `register_student.py`.
+
+Ba bài Nghe HSK 1 mẫu (Chào hỏi, Thời gian, Mua sắm) có MP3 đi kèm, transcript và đáp án khớp văn bản đọc. `listening_demo.py --publish` chỉ phát hành bài mẫu mới, không ghi đè hoặc tự phát hành lại đề đã chỉnh sửa/ẩn. Đây là dữ liệu mẫu bổ sung, không phải lịch sử/điểm cá nhân của Kiệt. Các đề Nghe cũ ở trạng thái nháp vẫn cần Admin kiểm tra trước khi phát hành. Nghe audio không cần khóa AI; chấm bài bằng Gemini cần khóa/model hợp lệ như phần cấu hình bên dưới.
+
+## Thư mục
 
 - `lib/`, `android/`, `ios/`, `web/`: ứng dụng học viên Flutter hiện có.
 - `admin/`: trang quản trị responsive HTML/CSS/JavaScript tại `/admin`.

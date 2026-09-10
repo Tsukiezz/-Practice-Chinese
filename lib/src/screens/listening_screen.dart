@@ -650,6 +650,7 @@ class _AudioPlayerState extends State<_AudioPlayer> {
       child: Row(
         children: [
           IconButton(
+            tooltip: _playing ? 'Tạm dừng âm thanh' : 'Phát âm thanh',
             onPressed: _loading
                 ? null
                 : () async {

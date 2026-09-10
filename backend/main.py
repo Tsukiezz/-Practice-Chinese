@@ -12,7 +12,7 @@ from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from database import audit, database, init_db
@@ -818,16 +818,25 @@ def review_appeal(appeal_id: int, body: AppealReview, admin=Depends(admin_user))
 
 
 ADMIN_DIR = Path(__file__).resolve().parent.parent / "admin"
+WEB_DIR = Path(os.environ["WEB_APP_DIR"]).resolve() if os.getenv("WEB_APP_DIR") else None
 app.mount("/admin/assets", StaticFiles(directory=ADMIN_DIR), name="admin-assets")
+app.mount("/media", StaticFiles(directory=Path(__file__).parent / "media", check_dir=False), name="media")
 
 
 @app.get("/admin", include_in_schema=False)
 @app.get("/admin/", include_in_schema=False)
 def admin_page():
     # The shell shows login only. Every administrative data route requires admin_user.
+    if WEB_DIR is not None:
+        html = (ADMIN_DIR / "index.html").read_text(encoding="utf-8")
+        return HTMLResponse(html.replace('<head>', '<head><script>window.HANZIGO_UNIFIED_WEB=true;</script>'))
     return FileResponse(ADMIN_DIR / "index.html")
 
 
 @app.get("/review", include_in_schema=False)
 def learner_review_page():
     return FileResponse(ADMIN_DIR / "review.html")
+
+
+if WEB_DIR is not None:
+    app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="learner-web")

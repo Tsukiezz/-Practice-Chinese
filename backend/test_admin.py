@@ -522,6 +522,36 @@ class AdminIntegrationTest(unittest.TestCase):
         self.assertEqual(totals["ai_success"], 0)
         self.assertEqual(totals["ai_errors"], len(invalid))
 
+    def test_listening_demo_is_visible_playable_and_preserves_admin_edits(self):
+        from listening_demo import seed_listening
+        seed_listening(publish=True)
+        seed_listening(publish=True)
+        exams = self.client.get('/api/exams', headers=self.student_headers).json()
+        self.assertEqual(len(exams), 3)
+        for exam in exams:
+            question = exam['questions'][0]
+            self.assertEqual(question['section'], 'listening')
+            self.assertNotIn('answer', question)
+            self.assertNotIn('transcript', question)
+            response = self.client.get(question['audio_url'])
+            self.assertEqual(response.status_code, 200)
+            self.assertIn('audio/', response.headers['content-type'])
+            self.assertGreater(len(response.content), 1000)
+        admin_exam = self.client.get('/api/admin/exams', headers=self.headers).json()[0]
+        body = {k: v for k, v in admin_exam.items() if k != 'id'}
+        body['status'] = 'hidden'
+        self.assertEqual(self.client.put(f"/api/admin/exams/{admin_exam['id']}",
+            headers=self.headers, json=body).status_code, 200)
+        seed_listening(publish=True)
+        self.assertEqual(len(self.client.get('/api/exams', headers=self.student_headers).json()), 2)
+        self.assertEqual(self.client.get('/api/me/results', headers=self.student_headers).json(), [])
+
+    def test_local_audio_validation_rejects_other_paths(self):
+        from models import Word
+        for value in ['/media/../main.py', '//example.test/a.mp3', '/admin/assets/app.js']:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                Word.valid_url(value)
+
     def test_seed_is_idempotent_and_dashboard_has_no_fake_activity(self):
         seed()
         seed()

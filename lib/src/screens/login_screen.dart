@@ -8,10 +8,12 @@ class LoginScreen extends StatefulWidget {
     super.key,
     required this.baseUrl,
     required this.onLoginSuccess,
+    this.authService,
   });
 
   final String baseUrl;
   final void Function() onLoginSuccess;
+  final AuthService? authService;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -41,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final auth = await AuthService.load(_client);
+      final auth = widget.authService ?? await AuthService.load(_client);
       await auth.login(
         baseUrl: widget.baseUrl,
         email: _emailController.text.trim(),
@@ -85,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Đăng nhập để luyện tập',
+                  'Đăng nhập tài khoản học viên hoặc quản trị viên',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey.shade600),
                 ),

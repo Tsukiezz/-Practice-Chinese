@@ -3,7 +3,7 @@ on:
   push:
     branches: [nguyen, test]
   pull_request:
-    paths: ['backend/**', 'admin/**', '.github/workflows/admin-tests.yml']
+    paths: ['backend/**', 'admin/**', 'lib/**', 'test/**', 'web/**', 'pubspec.*', '.github/workflows/admin-tests.yml']
 permissions:
   contents: read
 jobs:
@@ -21,3 +21,25 @@ jobs:
       - run: python -m unittest -v test_admin
       - run: python -m playwright install --with-deps chromium
       - run: python smoke_browser.py
+  unified-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install Flutter 3.47.2
+        run: |
+          git clone --depth 1 --branch 3.47.2 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build web --no-wasm-dry-run
+      - run: python -m pip install -r backend/requirements-dev.txt
+      - run: python -m playwright install --with-deps chromium
+      - name: Test shared login and listening playback
+        working-directory: backend
+        env:
+          WEB_APP_DIR: ${{ github.workspace }}/build/web
+        run: python smoke_unified.py

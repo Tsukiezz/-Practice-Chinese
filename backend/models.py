@@ -48,6 +48,9 @@ class Word(Body):
     @classmethod
     def valid_url(cls, value):
         from urllib.parse import urlparse
+        import re
+        if re.fullmatch(r'/media/[a-zA-Z0-9_-]+\.(mp3|wav)', value):
+            return value
         if value and (urlparse(value).scheme != "https" or not urlparse(value).netloc):
             raise ValueError("Audio phải là URL HTTPS")
         return value

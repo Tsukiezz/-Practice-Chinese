@@ -1,5 +1,17 @@
 # Tích hợp Nguyên + Kiệt vào test — 09/09/2026
 
+## Cập nhật 10/09/2026: website chung và bài Nghe
+
+`kiet` vẫn tại `bb9d307`, đã là tổ tiên của nhánh test; phần bài Nghe thiếu do đề seed ở trạng thái nháp, không phải thiếu commit. Bổ sung 3 bài Nghe HSK 1 mẫu có audio MP3 tổng hợp từ đúng transcript; seed riêng cho phép phát hành bài mới, giữ nguyên chỉnh sửa của Admin và dữ liệu học viên.
+
+FastAPI phục vụ Flutter build ở `/` khi đặt `WEB_APP_DIR`, cùng với `/api`, `/admin` và `/media`. Flutter dùng cùng phiên đăng nhập để đọc vai trò từ server. Admin chuyển tới `/admin`, học viên ở ứng dụng học tập; đăng xuất quay về cùng trang đăng nhập. Tài khoản học viên không được phép lấy dữ liệu Admin dù sửa token trong trình duyệt.
+
+Kiểm thử mới: `test/auth_service_test.dart`, hai bài kiểm thử API về dữ liệu/audio, và `backend/smoke_unified.py` chạy website build thật với database tạm. Bộ chấm được thay thế chỉ trong tiến trình kiểm thử; vận hành thật vẫn cần cấu hình Gemini để chấm bài. Giọng đọc là giọng tổng hợp, không phải bản ghi người thật hay đề HSK chính thức.
+
+Hướng dẫn chạy website chung ở README. Workflow `unified-web` bổ sung analyze, Flutter tests, build web và kiểm thử chung trên Chromium.
+
+Kết quả local 10/09: **31/31 API**, **21/21 Flutter**, `flutter analyze`, build web, smoke Admin và smoke website chung đều PASS. Smoke website đã kiểm tra phát MP3 thành công, nộp bài với grader chỉ dành cho test, đăng nhập/đăng xuất Admin và học viên, khôi phục phiên sau reload và chặn token học viên truy cập Admin.
+
 Nguồn: `origin/nguyen` tại `022265f`, `origin/kiet` tại `bb9d307`, trên lịch sử `origin/test` tại `3403b81`. Giữ thêm bản sửa kiểm tra output AI và biên bản nghiệm thu của Nguyên trong workspace.
 
 ## Kết quả tích hợp
