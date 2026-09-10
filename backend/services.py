@@ -283,6 +283,152 @@ def gemini_handwriting_provider(settings: dict, content: str):
     return json.loads(data["candidates"][0]["content"]["parts"][0]["text"])
 
 
+def gemini_handwriting_recognition_provider(settings: dict, strokes: list[list[dict]]):
+    """Recognize a freely drawn Han character and return ranked candidates."""
+    model = quote(settings["model"], safe="._-")
+    base_url = os.getenv(
+        "GEMINI_API_BASE_URL",
+        "https://generativelanguage.googleapis.com/v1beta",
+    ).rstrip("/")
+    image = _render_strokes_png(strokes)
+    prompt = (
+        f"{settings['system_prompt']}\n\n"
+        "Bạn đang nhận dạng một chữ Hán viết tay, không phải chấm bài theo chữ mẫu. "
+        "Ảnh bên dưới chỉ chứa nét người học vẽ. Hãy trả tối đa 5 chữ Hán ứng viên, "
+        "xếp theo độ tin cậy giảm dần. score và confidence dùng thang 0–100; score "
+        "là độ tin cậy của ứng viên đầu tiên. feedback là một nhận xét ngắn bằng "
+        "tiếng Việt. Không thêm trường ngoài schema."
+    )
+    response = _post_gemini(
+        f"{base_url}/models/{model}:generateContent",
+        headers={"x-goog-api-key": settings["api_key"], "Content-Type": "application/json"},
+        json={
+            "contents": [{"role": "user", "parts": [
+                {"text": prompt},
+                {"inlineData": {"mimeType": "image/png", "data": image}},
+            ]}],
+            "generationConfig": {
+                "temperature": 0.1,
+                "maxOutputTokens": max(2048, settings["max_tokens"]),
+                "responseMimeType": "application/json",
+                "responseSchema": {
+                    "type": "object",
+                    "properties": {
+                        "score": {"type": "number", "minimum": 0, "maximum": 100},
+                        "feedback": {"type": "string"},
+                        "candidates": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 5,
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "hanzi": {"type": "string"},
+                                    "confidence": {"type": "number", "minimum": 0, "maximum": 100},
+                                },
+                                "required": ["hanzi", "confidence"],
+                            },
+                        },
+                    },
+                    "required": ["score", "feedback", "candidates"],
+                },
+            },
+        },
+        timeout=20.0,
+    )
+    return _decode_gemini_candidate(response)
+
+
+def recognize_handwriting_with_ai(
+        user_id: int,
+        strokes: list[list[dict]],
+        provider: Callable[[dict, list[list[dict]]], dict[str, Any]] =
+        gemini_handwriting_recognition_provider):
+    """Validate OCR output and enrich candidates with server vocabulary.
+
+    The score is recognition confidence, not a persisted learning-result score.
+    This keeps dictionary lookup independent from Test/Review score history.
+    """
+    def is_han_text(value: str) -> bool:
+        ranges = (
+            (0x3400, 0x4DBF),
+            (0x4E00, 0x9FFF),
+            (0xF900, 0xFAFF),
+            (0x20000, 0x2EBEF),
+        )
+        return all(any(start <= ord(char) <= end for start, end in ranges)
+                   for char in value)
+
+    try:
+        settings = ai_settings()
+    except HTTPException:
+        record_ai_usage(user_id, "handwriting_recognition", "error")
+        raise
+
+    try:
+        output = provider(settings, strokes)
+        score = output["score"]
+        feedback = output["feedback"]
+        candidates = output["candidates"]
+        if (isinstance(score, bool) or not isinstance(score, (int, float))
+                or not math.isfinite(float(score)) or not 0 <= float(score) <= 100
+                or not isinstance(feedback, str) or not feedback.strip()
+                or len(feedback) > 2000 or not isinstance(candidates, list)
+                or not 1 <= len(candidates) <= 5):
+            raise ValueError("Invalid recognition result")
+
+        normalized = []
+        seen = set()
+        for candidate in candidates:
+            hanzi = candidate.get("hanzi") if isinstance(candidate, dict) else None
+            confidence = candidate.get("confidence") if isinstance(candidate, dict) else None
+            if (not isinstance(hanzi, str) or not 1 <= len(hanzi.strip()) <= 4
+                    or not is_han_text(hanzi.strip())
+                    or hanzi.strip() in seen or isinstance(confidence, bool)
+                    or not isinstance(confidence, (int, float))
+                    or not math.isfinite(float(confidence))
+                    or not 0 <= float(confidence) <= 100):
+                raise ValueError("Invalid recognition candidate")
+            hanzi = hanzi.strip()
+            seen.add(hanzi)
+            normalized.append({
+                "hanzi": hanzi,
+                "confidence": round(float(confidence), 2),
+            })
+        normalized.sort(key=lambda item: item["confidence"], reverse=True)
+    except Exception:
+        record_ai_usage(user_id, "handwriting_recognition", "error")
+        raise HTTPException(
+            502,
+            "Dịch vụ AI chưa nhận dạng được chữ viết tay. Vui lòng thử lại.",
+        ) from None
+
+    # Match exact entries first, then words containing the recognized character.
+    with database() as conn:
+        vocabulary = [dict(row) for row in conn.execute(
+            "SELECT id,hanzi,pinyin,meaning,hsk,example,audio_url FROM vocabulary ORDER BY hsk,id"
+        )]
+    for candidate in normalized:
+        hanzi = candidate["hanzi"]
+        matches = [word for word in vocabulary if word["hanzi"] == hanzi]
+        matches.extend(
+            word for word in vocabulary
+            if hanzi in word["hanzi"] and word["hanzi"] != hanzi
+        )
+        candidate["words"] = matches[:10]
+
+    record_ai_usage(user_id, "handwriting_recognition", "success")
+    return {
+        # Make the public score deterministic: it is the top confidence.
+        "score": normalized[0]["confidence"],
+        "feedback": feedback.strip(),
+        "details": {
+            "recognized_hanzi": normalized[0]["hanzi"],
+            "candidates": normalized,
+        },
+    }
+
+
 def _render_strokes_png(strokes: list[list[dict]], size: int = 384) -> str:
     """Render normalized touch points to a PNG without a native image dependency."""
     pixels = bytearray([255] * size * size * 3)

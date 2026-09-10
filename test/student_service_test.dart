@@ -163,4 +163,54 @@ void main() {
 
     expect(result.score, 88);
   });
+
+  test('nhận dạng viết tay đọc contract điểm, feedback và từ tương ứng',
+      () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'POST');
+      expect(request.url.path, '/api/handwriting/recognize');
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      expect((body['strokes'] as List).single, hasLength(2));
+      return _json({
+        'score': 96,
+        'feedback': 'Nhận dạng rõ ràng.',
+        'details': {
+          'recognized_hanzi': '一',
+          'candidates': [
+            {
+              'hanzi': '一',
+              'confidence': 96,
+              'words': [
+                {
+                  'id': 7,
+                  'hanzi': '一',
+                  'pinyin': 'yī',
+                  'meaning': 'một',
+                  'hsk': 1,
+                  'example': '一个人',
+                  'audio_url': '',
+                }
+              ],
+            }
+          ],
+        },
+      });
+    });
+    final service = StudentService(
+      baseUrl: 'http://test/api',
+      tokenProvider: () async => 'student-token',
+      client: client,
+    );
+
+    final result = await service.recognizeHandwriting([
+      [
+        {'x': 10, 'y': 20},
+        {'x': 900, 'y': 20},
+      ]
+    ]);
+
+    expect(result.score, 96);
+    expect(result.recognizedHanzi, '一');
+    expect(result.candidates.single.words.single.meaning, 'một');
+  });
 }

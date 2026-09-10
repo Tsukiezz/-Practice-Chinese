@@ -154,3 +154,41 @@ class HandwritingSubmission(Body):
     @classmethod
     def valid_strokes(cls, value):
         return Word.valid_strokes(value)
+
+
+class HandwritingRecognition(Body):
+    """Canvas payload shared by Flutter and the handwriting OCR endpoint."""
+
+    strokes: list[list[Point]] = Field(min_length=1, max_length=64)
+
+    @field_validator("strokes")
+    @classmethod
+    def valid_strokes(cls, value):
+        return Word.valid_strokes(value)
+
+
+class HandwritingWordMatch(Body):
+    id: int = Field(ge=1)
+    hanzi: str
+    pinyin: str
+    meaning: str
+    hsk: int = Field(ge=1, le=6)
+    example: str = ""
+    audio_url: str = ""
+
+
+class HandwritingCandidate(Body):
+    hanzi: str = Field(min_length=1, max_length=4)
+    confidence: float = Field(ge=0, le=100)
+    words: list[HandwritingWordMatch] = Field(default_factory=list, max_length=10)
+
+
+class HandwritingRecognitionDetails(Body):
+    recognized_hanzi: str = Field(min_length=1, max_length=4)
+    candidates: list[HandwritingCandidate] = Field(min_length=1, max_length=5)
+
+
+class HandwritingRecognitionResponse(Body):
+    score: float = Field(ge=0, le=100)
+    feedback: str = Field(min_length=1, max_length=2000)
+    details: HandwritingRecognitionDetails

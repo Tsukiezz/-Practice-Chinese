@@ -44,6 +44,41 @@ class AdminIntegrationTest(unittest.TestCase):
         self.assertTrue(image.startswith(b"\x89PNG\r\n\x1a\n"))
         self.assertGreater(len(image), 100)
 
+    def test_handwriting_recognition_returns_contract_and_vocabulary(self):
+        self.word()
+        strokes = [[{"x": 100, "y": 500}, {"x": 900, "y": 500}]]
+        with storage.database() as conn:
+            conn.execute("UPDATE ai_config SET enabled=1,model='test-model'")
+        ai_result = {
+            "score": 96,
+            "feedback": "Chữ được nhận dạng rõ ràng.",
+            "candidates": [
+                {"hanzi": "一", "confidence": 96},
+                {"hanzi": "二", "confidence": 31},
+            ],
+        }
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "private-test-secret"}), \
+             patch("main.gemini_handwriting_recognition_provider",
+                   return_value=ai_result):
+            response = self.client.post(
+                "/api/handwriting/recognize",
+                headers=self.student_headers,
+                json={"strokes": strokes},
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        payload = response.json()
+        self.assertEqual(set(payload), {"score", "feedback", "details"})
+        self.assertEqual(payload["score"], 96)
+        self.assertEqual(payload["details"]["recognized_hanzi"], "一")
+        self.assertEqual(payload["details"]["candidates"][0]["words"][0]["meaning"], "một")
+        with storage.database() as conn:
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM results").fetchone()[0], 0)
+            usage = conn.execute(
+                "SELECT module,status FROM ai_usage ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+        self.assertEqual(tuple(usage), ("handwriting_recognition", "success"))
+
     def test_gemini_transient_failure_is_retried(self):
         request = httpx.Request("POST", "https://gemini.example.test")
         responses = [

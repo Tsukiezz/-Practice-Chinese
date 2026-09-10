@@ -147,6 +147,55 @@ class VocabularyEntry {
   }
 }
 
+class HandwritingCandidate {
+  const HandwritingCandidate({
+    required this.hanzi,
+    required this.confidence,
+    required this.words,
+  });
+
+  final String hanzi;
+  final double confidence;
+  final List<VocabularyEntry> words;
+
+  factory HandwritingCandidate.fromJson(Map<String, dynamic> json) =>
+      HandwritingCandidate(
+        hanzi: json['hanzi'] as String,
+        confidence: (json['confidence'] as num).toDouble(),
+        words: (json['words'] as List<dynamic>? ?? const [])
+            .map((word) =>
+                VocabularyEntry.fromJson(word as Map<String, dynamic>))
+            .toList(growable: false),
+      );
+}
+
+class HandwritingRecognitionResult {
+  const HandwritingRecognitionResult({
+    required this.score,
+    required this.feedback,
+    required this.recognizedHanzi,
+    required this.candidates,
+  });
+
+  final double score;
+  final String feedback;
+  final String recognizedHanzi;
+  final List<HandwritingCandidate> candidates;
+
+  factory HandwritingRecognitionResult.fromJson(Map<String, dynamic> json) {
+    final details = json['details'] as Map<String, dynamic>;
+    return HandwritingRecognitionResult(
+      score: (json['score'] as num).toDouble(),
+      feedback: json['feedback'] as String,
+      recognizedHanzi: details['recognized_hanzi'] as String,
+      candidates: (details['candidates'] as List<dynamic>)
+          .map((candidate) =>
+              HandwritingCandidate.fromJson(candidate as Map<String, dynamic>))
+          .toList(growable: false),
+    );
+  }
+}
+
 class CapabilityReport {
   const CapabilityReport({
     required this.skillScores,
@@ -312,6 +361,27 @@ class StudentService {
     );
   }
 
+  Future<HandwritingRecognitionResult> recognizeHandwriting(
+    List<List<Map<String, double>>> strokes,
+  ) async {
+    final response = await _request(
+      'POST',
+      Uri.parse('$baseUrl/handwriting/recognize'),
+      body: jsonEncode({'strokes': strokes}),
+      timeout: const Duration(seconds: 30),
+    );
+    try {
+      return HandwritingRecognitionResult.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
+    } on Object {
+      throw const StudentApiException(
+        null,
+        'Kết quả nhận dạng chữ viết tay không đúng định dạng.',
+      );
+    }
+  }
+
   List<VocabularyEntry> _decodeVocabularyList(String body) {
     try {
       return (jsonDecode(body) as List<dynamic>)
@@ -323,7 +393,12 @@ class StudentService {
     }
   }
 
-  Future<http.Response> _request(String method, Uri uri, {String? body}) async {
+  Future<http.Response> _request(
+    String method,
+    Uri uri, {
+    String? body,
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
     final token = (await tokenProvider())?.trim() ?? '';
     if (token.isEmpty) {
       throw const StudentApiException(
@@ -340,10 +415,8 @@ class StudentService {
       final response = method == 'POST'
           ? await _client
               .post(uri, headers: headers, body: body)
-              .timeout(const Duration(seconds: 15))
-          : await _client
-              .get(uri, headers: headers)
-              .timeout(const Duration(seconds: 15));
+              .timeout(timeout)
+          : await _client.get(uri, headers: headers).timeout(timeout);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return response;
       }

@@ -18,11 +18,14 @@ from fastapi.staticfiles import StaticFiles
 from database import audit, database, init_db
 from models import Appeal, AppealReview
 from models import (AIConfig, DictionaryLookup, Exam, ExamUpdate,
+                    HandwritingRecognition, HandwritingRecognitionResponse,
                     HandwritingSubmission, Login, Override, Register,
                     Submission, UserUpdate, Word, WordUpdate, WritingSubmission)
 from services import (configured_api_key, configured_model, evaluate_with_ai,
                       gemini_capability_provider, gemini_exam_provider,
-                      gemini_handwriting_provider, gemini_provider, grade_with_ai, ai_settings,
+                      gemini_handwriting_provider,
+                      gemini_handwriting_recognition_provider, gemini_provider,
+                      grade_with_ai, ai_settings, recognize_handwriting_with_ai,
                       record_ai_usage)
 
 
@@ -503,6 +506,17 @@ def grade_handwriting_submission(body: HandwritingSubmission, user_id: int):
 @app.post("/api/handwriting/submit", status_code=201)
 def submit_handwriting(body: HandwritingSubmission, user=Depends(current_user)):
     return grade_handwriting_submission(body, user["id"])
+
+
+@app.post(
+    "/api/handwriting/recognize",
+    response_model=HandwritingRecognitionResponse,
+)
+def recognize_handwriting(body: HandwritingRecognition, user=Depends(current_user)):
+    """Recognize Canvas strokes and return ranked, vocabulary-enriched matches."""
+    strokes = [[point.model_dump() for point in stroke] for stroke in body.strokes]
+    return recognize_handwriting_with_ai(
+        user["id"], strokes, gemini_handwriting_recognition_provider)
 
 
 @app.get("/api/me/review-items")

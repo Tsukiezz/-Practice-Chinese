@@ -37,6 +37,7 @@ class _FakeStudentService extends StudentService {
       : super(baseUrl: 'http://test/api', tokenProvider: () async => 'token');
 
   String? handwritingTarget;
+  bool handwritingRecognitionRequested = false;
   List<VocabularyEntry> history = const [];
 
   static const word = VocabularyEntry(
@@ -117,6 +118,35 @@ class _FakeStudentService extends StudentService {
       feedback: 'Nét viết cân đối.',
     );
   }
+
+  @override
+  Future<HandwritingRecognitionResult> recognizeHandwriting(
+    List<List<Map<String, double>>> strokes,
+  ) async {
+    handwritingRecognitionRequested = true;
+    return const HandwritingRecognitionResult(
+      score: 96,
+      feedback: 'Nhận dạng rõ ràng.',
+      recognizedHanzi: '一',
+      candidates: [
+        HandwritingCandidate(
+          hanzi: '一',
+          confidence: 96,
+          words: [
+            VocabularyEntry(
+              id: 2,
+              hanzi: '一',
+              pinyin: 'yī',
+              meaning: 'một',
+              hsk: 1,
+              example: '一个人',
+              audioUrl: '',
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }
 
 void main() {
@@ -152,27 +182,49 @@ void main() {
     expect(find.text('Ôn Flashcard (1 từ)'), findsOneWidget);
   });
 
-  testWidgets('Canvas ngón tay gửi nét cho Gemini và hiện điểm',
+  testWidgets('Canvas gửi nét thật và hiện kết quả tra từ viết tay',
       (tester) async {
     final service = _FakeStudentService();
     await tester
         .pumpWidget(MaterialApp(home: HandwritingScreen(service: service)));
-    await tester.enterText(find.byKey(const Key('handwriting-target')), '一');
-    await tester.pump();
     final canvas = find.byKey(const Key('handwriting-canvas'));
     final gesture = await tester.startGesture(tester.getCenter(canvas));
     await gesture.moveBy(const Offset(80, 5));
     await gesture.moveBy(const Offset(80, 5));
     await gesture.up();
     await tester.pump();
-    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.drag(find.byType(ListView), const Offset(0, -1000));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('submit-handwriting')));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -1000));
+    await tester.pumpAndSettle();
+
+    expect(service.handwritingRecognitionRequested, isTrue);
+    expect(find.text('96% tin cậy'), findsOneWidget);
+    expect(find.text('一 · yī'), findsOneWidget);
+    expect(find.text('một'), findsOneWidget);
+  });
+
+  testWidgets('chế độ luyện nét cũ vẫn gửi kết quả cho Ôn tập', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final service = _FakeStudentService();
+    await tester
+        .pumpWidget(MaterialApp(home: HandwritingScreen(service: service)));
+    await tester.tap(find.text('Luyện nét'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('handwriting-target')), '一');
+    final canvas = find.byKey(const Key('handwriting-canvas'));
+    final gesture = await tester.startGesture(tester.getCenter(canvas));
+    await gesture.moveBy(const Offset(80, 5));
+    await gesture.moveBy(const Offset(80, 5));
+    await gesture.up();
     await tester.tap(find.byKey(const Key('submit-handwriting')));
     await tester.pumpAndSettle();
 
     expect(service.handwritingTarget, '一');
     expect(find.text('92 điểm'), findsOneWidget);
-    expect(find.text('Nét viết cân đối.'), findsOneWidget);
   });
 
   testWidgets('danh sách ôn tập hiện kết quả nộp lại gần nhất', (tester) async {
