@@ -3,6 +3,7 @@
 WEB_APP_DIR must point at `flutter build web` output. No real AI calls.
 """
 import os
+import re
 import secrets
 import socket
 import subprocess
@@ -59,23 +60,27 @@ def run():
                 errors = []
                 page.on('pageerror', lambda e: errors.append(str(e)))
 
+                def fill_field(label, value):
+                    # Flutter replaces its semantics input while focus settles.
+                    # Verify the typed value instead of submitting a partial password.
+                    # Flutter adds the hint to the accessible name when focused.
+                    field = page.get_by_role('textbox', name=re.compile('^' + re.escape(label) + r'(?:\s|$)'))
+                    field.click()
+                    expect(field).to_be_focused()
+                    for _ in range(3):
+                        field.press('ControlOrMeta+A')
+                        field.press('Backspace')
+                        field.press_sequentially(value, delay=80)
+                        if field.input_value() == value:
+                            break
+                    expect(field).to_have_value(value)
+                    field.press('Tab')
+
                 def login(email):
                     page.goto(base)
                     page.locator('flt-semantics-placeholder').evaluate('(el) => el.click()')
-                    # Flutter replaces its semantics input while focus settles.
-                    # Verify the typed value instead of submitting a partial password.
                     for label, value in [('Email', email), ('Mật khẩu', password)]:
-                        field = page.get_by_role('textbox', name=label, exact=True)
-                        field.click()
-                        expect(field).to_be_focused()
-                        for _ in range(3):
-                            field.press('ControlOrMeta+A')
-                            field.press('Backspace')
-                            field.press_sequentially(value, delay=80)
-                            if field.input_value() == value:
-                                break
-                        expect(field).to_have_value(value)
-                    field.press('Tab')
+                        fill_field(label, value)
                     page.get_by_role('button', name='Đăng nhập', exact=True).click()
 
                 phase = 'admin login'
@@ -117,7 +122,7 @@ def run():
                     page.wait_for_timeout(150)
                 logout.click()
                 page.get_by_role('alertdialog').get_by_role('button', name='Đăng xuất', exact=True).click()
-                expect(page.get_by_role('textbox', name='Email', exact=True)).to_be_visible()
+                expect(page.get_by_role('textbox', name=re.compile(r'^Email(?:\s|$)'))).to_be_visible()
                 # A student cannot unlock Admin by writing a token into browser storage.
                 phase = 'role protection'
                 auth = httpx.post(base + '/api/auth/login', json={'email':'student@example.test','password':password}).json()
@@ -125,6 +130,34 @@ def run():
                 page.goto(base + '/admin')
                 expect(page).to_have_url(base + '/')
                 assert httpx.get(base + '/api/admin/exams', headers={'Authorization':'Bearer '+auth['token']}).status_code == 403
+                phase = 'Tuyen mobile registration'
+                page.close()
+                page = browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True)
+                page.on('pageerror', lambda e: errors.append(str(e)))
+                artifacts = Path(__file__).resolve().parent.parent / 'test-results'
+                artifacts.mkdir(exist_ok=True)
+                for duplicate in (False, True):
+                    page.goto(base)
+                    page.locator('flt-semantics-placeholder').evaluate('(el) => el.click()')
+                    page.screenshot(path=str(artifacts/'tuyen-login-mobile.png'))
+                    page.get_by_role('button', name='Đăng ký mới', exact=True).click()
+                    for label,value in [('Họ và tên','Tuyen Test'),('Email','newstudent@example.test'),
+                                        ('Mật khẩu',password),('Xác nhận mật khẩu',password)]:
+                        fill_field(label,value)
+                    page.get_by_role('checkbox').tap()
+                    expect(page.get_by_role('checkbox')).to_be_checked()
+                    page.get_by_role('button',name='Tạo tài khoản',exact=True).click()
+                    if duplicate:
+                        expect(page.get_by_text('Email đã được sử dụng',exact=True)).to_be_visible()
+                        page.screenshot(path=str(artifacts/'tuyen-register-mobile.png'))
+                    else:
+                        expect(page.get_by_role('tab',name='Nghe',exact=True)).to_be_visible()
+                        created=httpx.post(base+'/api/auth/login',json={'email':'newstudent@example.test','password':password})
+                        assert created.status_code==200 and created.json()['user']['role']=='student'
+                        page.close()
+                        page=browser.new_page(viewport={'width':320,'height':740},is_mobile=True,has_touch=True)
+                        page.on('pageerror', lambda e: errors.append(str(e)))
+                print('PASS: Tuyen mobile registration, automatic student session, duplicate email error',flush=True)
                 assert not errors, errors
                 browser.close()
             print('PASS: one-origin login, Admin/student routing, logout, reload, listening audio and submission, role protection.')

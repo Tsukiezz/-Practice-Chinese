@@ -47,10 +47,15 @@ class AuthService {
   static const _tokenKey = 'auth_token';
   static const _userKey = 'auth_user';
   static const _apiBaseUrlKey = 'api_base_url';
+  bool _persistSession = true;
+  String? _memoryToken;
+  AuthUser? _memoryUser;
+  String? _memoryBaseUrl;
 
-  String? get token => _prefs.getString(_tokenKey);
+  String? get token => _memoryToken ?? _prefs.getString(_tokenKey);
 
   AuthUser? get currentUser {
+    if (_memoryUser != null) return _memoryUser;
     final raw = _prefs.getString(_userKey);
     if (raw == null || raw.isEmpty) return null;
     return AuthUser.fromJson(jsonDecode(raw) as Map<String, dynamic>);
@@ -63,11 +68,17 @@ class AuthService {
   }
 
   Future<void> saveSession(String token, AuthUser user) async {
-    await _prefs.setString(_tokenKey, token);
-    await _prefs.setString(_userKey, jsonEncode(user.toJson()));
+    _memoryToken = token;
+    _memoryUser = user;
+    if (_persistSession) {
+      await _prefs.setString(_tokenKey, token);
+      await _prefs.setString(_userKey, jsonEncode(user.toJson()));
+    }
   }
 
   Future<void> clearSession() async {
+    _memoryToken = null;
+    _memoryUser = null;
     await _prefs.remove(_tokenKey);
     await _prefs.remove(_userKey);
   }
@@ -76,19 +87,53 @@ class AuthService {
     required String baseUrl,
     required String email,
     required String password,
+    bool remember = true,
   }) async {
-    final response = await httpClient.post(
-      Uri.parse('$baseUrl/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
-    );
+    return _authenticate(baseUrl, 'login',
+        {'email': email.trim(), 'password': password}, remember);
+  }
 
-    if (response.statusCode != 200) {
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      throw AuthException(data['detail'] as String? ?? 'Đăng nhập thất bại');
+  Future<AuthUser> register(
+      {required String baseUrl,
+      required String name,
+      required String email,
+      required String password}) {
+    return _authenticate(
+        baseUrl,
+        'register',
+        {'name': name.trim(), 'email': email.trim(), 'password': password},
+        true);
+  }
+
+  Future<AuthUser> _authenticate(String baseUrl, String action,
+      Map<String, String> body, bool remember) async {
+    final response = await httpClient
+        .post(
+          Uri.parse('$baseUrl/auth/$action'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(body),
+        )
+        .timeout(const Duration(seconds: 20));
+
+    Map<String, dynamic> data;
+    try {
+      data =
+          jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } on FormatException {
+      throw const AuthException(
+          'Máy chủ chưa phản hồi hợp lệ. Vui lòng thử lại.');
+    } on TypeError {
+      throw const AuthException(
+          'Máy chủ chưa phản hồi hợp lệ. Vui lòng thử lại.');
     }
-
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode != (action == 'register' ? 201 : 200)) {
+      final detail = data['detail'];
+      throw AuthException(detail is String
+          ? detail
+          : response.statusCode == 422
+              ? 'Thông tin chưa hợp lệ. Kiểm tra họ tên, email và mật khẩu.'
+              : 'Không thực hiện được yêu cầu. Vui lòng thử lại.');
+    }
     final token = data['token'] as String;
     final expiresIn = data['expires_in'] as int? ?? 86400;
     final userJson = Map<String, dynamic>.from(
@@ -96,7 +141,10 @@ class AuthService {
     )..['expires_at'] =
         DateTime.now().millisecondsSinceEpoch ~/ 1000 + expiresIn;
     final user = AuthUser.fromJson(userJson);
-    await _prefs.setString(_apiBaseUrlKey, baseUrl);
+    await clearSession();
+    _persistSession = remember;
+    _memoryBaseUrl = baseUrl;
+    if (remember) await _prefs.setString(_apiBaseUrlKey, baseUrl);
     await saveSession(token, user);
     return user;
   }
@@ -105,8 +153,9 @@ class AuthService {
     final tokenValue = token;
     if (tokenValue != null) {
       try {
-        final baseUrl =
-            _prefs.getString(_apiBaseUrlKey) ?? 'http://localhost:8010/api';
+        final baseUrl = _memoryBaseUrl ??
+            _prefs.getString(_apiBaseUrlKey) ??
+            'http://localhost:8010/api';
         await httpClient.post(
           Uri.parse('$baseUrl/auth/logout'),
           headers: {

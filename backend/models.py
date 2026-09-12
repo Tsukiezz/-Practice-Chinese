@@ -7,13 +7,25 @@ class Body(BaseModel):
 
 
 class Login(Body):
+    # Password whitespace is significant; normalize email explicitly instead.
+    model_config = ConfigDict(str_strip_whitespace=False)
     email: str = Field(min_length=3, max_length=120)
     password: str = Field(min_length=1, max_length=128)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value):
+        return value.strip().lower() if isinstance(value, str) else value
 
 
 class Register(Login):
     name: str = Field(min_length=2, max_length=60)
     password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def normalize_name(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
     @field_validator("email")
     @classmethod
