@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../services/student_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/hanzi_drawing_canvas.dart';
 
 enum _HandwritingMode { lookup, practice }
 
@@ -19,7 +20,7 @@ class HandwritingScreen extends StatefulWidget {
 
 class _HandwritingScreenState extends State<HandwritingScreen> {
   final _target = TextEditingController();
-  final List<List<Offset>> _strokes = [];
+  final _canvasController = HanziCanvasController();
   final Set<int> _savingWordIds = {};
 
   late _HandwritingMode _mode;
@@ -48,6 +49,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
   @override
   void dispose() {
     _target.dispose();
+    _canvasController.dispose();
     super.dispose();
   }
 
@@ -115,79 +117,17 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                     ),
                   ],
                   const SizedBox(height: 8),
-                  Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 520),
-                      child: AspectRatio(
-                        aspectRatio: 1,
-                        child: LayoutBuilder(
-                          builder: (_, box) => MouseRegion(
-                            cursor: SystemMouseCursors.precise,
-                            child: GestureDetector(
-                              key: const Key('handwriting-canvas'),
-                              behavior: HitTestBehavior.opaque,
-                              onPanStart: _submitting
-                                  ? null
-                                  : (details) => setState(() {
-                                        _strokes.add([
-                                          _normalize(
-                                            details.localPosition,
-                                            box.biggest,
-                                          ),
-                                        ]);
-                                        _clearResults();
-                                      }),
-                              onPanUpdate: _submitting
-                                  ? null
-                                  : (details) => setState(() {
-                                        final point = _normalize(
-                                          details.localPosition,
-                                          box.biggest,
-                                        );
-                                        if (point.dx >= 0 &&
-                                            point.dy >= 0 &&
-                                            point.dx <= 1024 &&
-                                            point.dy <= 1024) {
-                                          _strokes.last.add(point);
-                                        }
-                                      }),
-                              onPanEnd: _submitting
-                                  ? null
-                                  : (_) => setState(() {
-                                        if (_strokes.isNotEmpty &&
-                                            _strokes.last.length < 2) {
-                                          _strokes.removeLast();
-                                        }
-                                      }),
-                              child: Semantics(
-                                label: _practiceResult
-                                            ?.wrongStrokes.isNotEmpty ==
-                                        true
-                                    ? 'Nét sai được tô đỏ: ${_practiceResult!.wrongStrokes.join(', ')}'
-                                    : null,
-                                child: CustomPaint(
-                                  // Draw above the white Container. A normal
-                                  // painter is rendered behind its child.
-                                  foregroundPainter: _HanziPainter(
-                                    _strokes,
-                                    wrongStrokes:
-                                        _practiceResult?.wrongStrokes.toSet() ??
-                                            const {},
-                                  ),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      border: Border.all(
-                                          color: AppTheme.jade, width: 2),
-                                      borderRadius: BorderRadius.circular(18),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+                  Semantics(
+                    label: _practiceResult?.wrongStrokes.isNotEmpty == true
+                        ? 'Nét sai được tô đỏ: ${_practiceResult!.wrongStrokes.join(', ')}'
+                        : null,
+                    child: HanziDrawingCanvas(
+                      controller: _canvasController,
+                      enabled: !_submitting,
+                      wrongStrokes:
+                          _practiceResult?.wrongStrokes.toSet() ?? const {},
+                      canvasKey: const Key('handwriting-canvas'),
+                      onChanged: () => setState(_clearResults),
                     ),
                   ),
                   const Padding(
@@ -203,10 +143,10 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: _submitting || _strokes.isEmpty
+                          onPressed: _submitting || _canvasController.isEmpty
                               ? null
                               : () => setState(() {
-                                    _strokes.removeLast();
+                                    _canvasController.undo();
                                     _clearResults();
                                   }),
                           icon: const Icon(Icons.undo),
@@ -216,10 +156,10 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: _submitting || _strokes.isEmpty
+                          onPressed: _submitting || _canvasController.isEmpty
                               ? null
                               : () => setState(() {
-                                    _strokes.clear();
+                                    _canvasController.clear();
                                     _clearResults();
                                   }),
                           icon: const Icon(Icons.delete_outline),
@@ -317,7 +257,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
   void _changeMode(_HandwritingMode mode) {
     setState(() {
       _mode = mode;
-      _strokes.clear();
+      _canvasController.clear();
       _clearResults();
     });
   }
@@ -328,20 +268,9 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
     _error = null;
   }
 
-  Offset _normalize(Offset point, Size size) => Offset(
-        point.dx / size.width * 1024,
-        point.dy / size.height * 1024,
-      );
-
-  List<List<Map<String, double>>> _strokePayload() => _strokes
-      .map((stroke) => stroke
-          .map((point) => {'x': point.dx, 'y': point.dy})
-          .toList(growable: false))
-      .toList(growable: false);
-
   Future<void> _submit() async {
     final target = _target.text.trim();
-    if (_strokes.isEmpty || (!_isLookup && target.isEmpty)) {
+    if (_canvasController.isEmpty || (!_isLookup && target.isEmpty)) {
       setState(() => _error = _isLookup
           ? 'Hãy viết ít nhất một nét trước khi nhận dạng.'
           : 'Hãy nhập chữ và viết ít nhất một nét.');
@@ -353,14 +282,14 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
     });
     try {
       if (_isLookup) {
-        final result =
-            await widget.service.recognizeHandwriting(_strokePayload());
+        final result = await widget.service
+            .recognizeHandwriting(_canvasController.payload);
         if (!mounted) return;
         setState(() => _recognitionResult = result);
       } else {
         final result = await widget.service.submitHandwriting(
           target,
-          _strokePayload(),
+          _canvasController.payload,
           sourceResultId: widget.source?.id,
         );
         if (!mounted) return;
@@ -549,54 +478,4 @@ class _ScoreChip extends StatelessWidget {
         side: BorderSide(color: AppTheme.jade.withValues(alpha: 0.3)),
         backgroundColor: Colors.white.withValues(alpha: 0.75),
       );
-}
-
-class _HanziPainter extends CustomPainter {
-  const _HanziPainter(this.strokes, {this.wrongStrokes = const {}});
-
-  final List<List<Offset>> strokes;
-  final Set<int> wrongStrokes;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final guide = Paint()
-      ..color = const Color(0xFFE6DED5)
-      ..strokeWidth = 1;
-    canvas.drawLine(
-      Offset(size.width / 2, 0),
-      Offset(size.width / 2, size.height),
-      guide,
-    );
-    canvas.drawLine(
-      Offset(0, size.height / 2),
-      Offset(size.width, size.height / 2),
-      guide,
-    );
-    final ink = Paint()
-      ..strokeWidth = 7
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
-    for (var index = 0; index < strokes.length; index++) {
-      final stroke = strokes[index];
-      if (stroke.length < 2) continue;
-      ink.color =
-          wrongStrokes.contains(index + 1) ? AppTheme.red : AppTheme.ink;
-      final path = Path()
-        ..moveTo(
-          stroke.first.dx / 1024 * size.width,
-          stroke.first.dy / 1024 * size.height,
-        );
-      for (final point in stroke.skip(1)) {
-        path.lineTo(
-          point.dx / 1024 * size.width,
-          point.dy / 1024 * size.height,
-        );
-      }
-      canvas.drawPath(path, ink);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _HanziPainter oldDelegate) => true;
 }

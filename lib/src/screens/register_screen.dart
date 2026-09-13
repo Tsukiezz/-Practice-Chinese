@@ -1,31 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
-import 'register_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen(
-      {super.key,
-      required this.baseUrl,
-      this.authService,
-      required this.onLoginSuccess});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key, required this.baseUrl, this.authService});
   final String baseUrl;
   final AuthService? authService;
-  final VoidCallback onLoginSuccess;
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
+  final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
 
   final _client = http.Client();
   bool _submitting = false;
   String? _error;
   bool obscurePassword = true;
-  bool rememberLogin = true;
+  bool obscureConfirmPassword = true;
+  bool acceptTerms = false;
 
   static const primary = Color(0xFF1B4D3E);
   static const secondary = Color(0xFFE2C391);
@@ -36,8 +33,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
+    confirmPasswordController.dispose();
     _client.close();
     super.dispose();
   }
@@ -77,21 +76,21 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Future<void> _openRegister() async {
-    final success = await Navigator.push<bool>(
-        context,
-        MaterialPageRoute(
-            builder: (_) => RegisterScreen(
-                baseUrl: widget.baseUrl, authService: widget.authService)));
-    if (success == true && mounted) widget.onLoginSuccess();
-  }
-
   Future<void> _submit() async {
-    if (_submitting) return;
+    if (_submitting || !acceptTerms) return;
     final email = emailController.text.trim();
-    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email) ||
-        passwordController.text.isEmpty) {
-      setState(() => _error = 'Nhập email hợp lệ và mật khẩu.');
+    String? error;
+    if (nameController.text.trim().length < 2) {
+      error = 'Họ tên cần ít nhất 2 ký tự.';
+    } else if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
+      error = 'Email không hợp lệ.';
+    } else if (passwordController.text.length < 8) {
+      error = 'Mật khẩu cần ít nhất 8 ký tự.';
+    } else if (passwordController.text != confirmPasswordController.text) {
+      error = 'Mật khẩu xác nhận không khớp.';
+    }
+    if (error != null) {
+      setState(() => _error = error);
       return;
     }
     setState(() {
@@ -100,12 +99,12 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       final auth = widget.authService ?? await AuthService.load(_client);
-      await auth.login(
+      await auth.register(
           baseUrl: widget.baseUrl,
+          name: nameController.text.trim(),
           email: email,
-          password: passwordController.text,
-          remember: rememberLogin);
-      if (mounted) widget.onLoginSuccess();
+          password: passwordController.text);
+      if (mounted) Navigator.pop(context, true);
     } on AuthException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } on Exception {
@@ -156,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Học tiếng Trung theo cách đơn giản và hiệu quả',
+                    'Tạo tài khoản và bắt đầu học tiếng Trung',
                     style: TextStyle(fontSize: 15, color: outline),
                   ),
                   const SizedBox(height: 28),
@@ -169,6 +168,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Row(
                       children: [
                         Expanded(
+                          child: TextButton(
+                            onPressed: _submitting
+                                ? null
+                                : () => Navigator.pop(context),
+                            child: const Text(
+                              'Đăng nhập',
+                              style: TextStyle(
+                                color: textColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
@@ -177,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             child: const Center(
                               child: Text(
-                                'Đăng nhập',
+                                'Đăng ký mới',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
@@ -186,22 +199,29 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-                        Expanded(
-                          child: TextButton(
-                            onPressed: _submitting ? null : _openRegister,
-                            child: const Text(
-                              'Đăng ký mới',
-                              style: TextStyle(
-                                color: textColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 28),
+                  const Text(
+                    'Họ và tên',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    enabled: !_submitting,
+                    controller: nameController,
+                    maxLength: 60,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: inputDecoration(
+                      hint: 'Nhập họ và tên',
+                      icon: Icons.person_outline_rounded,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
                   const Text(
                     'Email',
                     style: TextStyle(
@@ -218,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     keyboardType: TextInputType.emailAddress,
                     decoration: inputDecoration(
                       hint: 'Nhập email',
-                      icon: Icons.person_outline_rounded,
+                      icon: Icons.alternate_email_rounded,
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -237,7 +257,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     maxLength: 128,
                     obscureText: obscurePassword,
                     decoration: inputDecoration(
-                      hint: 'Nhập mật khẩu',
+                      hint: 'Tạo mật khẩu',
                       icon: Icons.lock_outline_rounded,
                       suffix: IconButton(
                         onPressed: () {
@@ -252,16 +272,57 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Xác nhận mật khẩu',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    enabled: !_submitting,
+                    controller: confirmPasswordController,
+                    maxLength: 128,
+                    obscureText: obscureConfirmPassword,
+                    decoration: inputDecoration(
+                      hint: 'Nhập lại mật khẩu',
+                      icon: Icons.lock_reset_outlined,
+                      suffix: IconButton(
+                        onPressed: () {
+                          setState(
+                            () => obscureConfirmPassword =
+                                !obscureConfirmPassword,
+                          );
+                        },
+                        icon: Icon(
+                          obscureConfirmPassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: outline,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
                   CheckboxListTile(
-                    value: rememberLogin,
+                    value: acceptTerms,
                     activeColor: primary,
                     contentPadding: EdgeInsets.zero,
                     controlAffinity: ListTileControlAffinity.leading,
-                    title: const Text('Ghi nhớ đăng nhập'),
+                    title: const Text(
+                      'Tôi đồng ý tạo tài khoản và lưu tiến trình học.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.4,
+                        color: textColor,
+                      ),
+                    ),
                     onChanged: _submitting
                         ? null
                         : (value) {
-                            setState(() => rememberLogin = value ?? false);
+                            setState(() => acceptTerms = value ?? false);
                           },
                   ),
                   const SizedBox(height: 12),
@@ -279,9 +340,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   SizedBox(
                     height: 54,
                     child: ElevatedButton(
-                      onPressed: _submitting ? null : _submit,
+                      onPressed: acceptTerms && !_submitting ? _submit : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primary,
+                        disabledBackgroundColor: outline.withValues(alpha: .25),
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -289,7 +351,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       child: const Text(
-                        'Đăng nhập',
+                        'Tạo tài khoản',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
@@ -304,15 +366,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: secondary.withValues(alpha: .35),
                       borderRadius: BorderRadius.circular(18),
                     ),
-                    child: Row(
+                    child: const Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.local_fire_department_rounded,
                           color: accent,
                           size: 30,
                         ),
-                        const SizedBox(width: 12),
-                        const Expanded(
+                        SizedBox(width: 12),
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -325,7 +387,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               SizedBox(height: 4),
                               Text(
-                                'Bắt đầu hành trình học tiếng Trung ngay hôm nay.',
+                                'Khởi động thói quen học tiếng Trung mỗi ngày.',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: outline,
@@ -337,15 +399,27 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Đăng nhập bằng email đã đăng ký. Tài khoản quản trị được cấp riêng bởi quản trị viên.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      height: 1.5,
-                      color: outline,
-                    ),
+                  const SizedBox(height: 20),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      const Text(
+                        'Đã có tài khoản? ',
+                        style: TextStyle(color: outline),
+                      ),
+                      TextButton(
+                        onPressed:
+                            _submitting ? null : () => Navigator.pop(context),
+                        child: const Text(
+                          'Đăng nhập',
+                          style: TextStyle(
+                            color: primary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

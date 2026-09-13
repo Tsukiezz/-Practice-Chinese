@@ -10,7 +10,7 @@ abstract interface class ReadingExamRepository {
 
   Future<ReadingResult> submitReadingExam(
     ReadingExam exam,
-    Map<String, String> answers,
+    Map<String, dynamic> answers,
   );
 }
 
@@ -66,7 +66,7 @@ class ReadingExamService implements ReadingExamRepository {
   @override
   Future<ReadingResult> submitReadingExam(
     ReadingExam exam,
-    Map<String, String> answers,
+    Map<String, dynamic> answers,
   ) async {
     final response = await _request(
       'POST',
@@ -77,9 +77,10 @@ class ReadingExamService implements ReadingExamRepository {
       final result = jsonDecode(response.body) as Map<String, dynamic>;
       final snapshot =
           jsonDecode(result['content'] as String) as Map<String, dynamic>;
-      final submittedAnswers = (snapshot['answers'] as Map<String, dynamic>)
-          .map((key, value) => MapEntry(key, value as String));
+      final submittedAnswers = snapshot['answers'] as Map<String, dynamic>;
       final questions = snapshot['questions'] as List<dynamic>;
+      final questionScores =
+          snapshot['question_scores'] as Map<String, dynamic>? ?? const {};
       final aiReviewItems = <String, String>{
         for (final item
             in snapshot['ai_review_items'] as List<dynamic>? ?? const [])
@@ -95,14 +96,19 @@ class ReadingExamService implements ReadingExamRepository {
         reviewItems: questions.map((item) {
           final question = item as Map<String, dynamic>;
           final id = question['id'] as String;
+          final scoreData = questionScores[id] as Map<String, dynamic>?;
           return ReadingReviewItem(
             id: id,
             prompt: question['prompt'] as String,
             answer: question['answer'] as String,
-            submittedAnswer: submittedAnswers[id] ?? '',
-            explanation:
-                aiReviewItems[id] ?? question['explanation'] as String? ?? '',
+            submittedAnswer: _displayAnswer(submittedAnswers[id]),
+            explanation: _questionFeedback(
+              scoreData,
+              aiReviewItems[id] ?? question['explanation'] as String? ?? '',
+            ),
             transcript: question['transcript'] as String? ?? '',
+            questionType: question['question_type'] as String?,
+            score: (scoreData?['score'] as num?)?.toDouble(),
           );
         }).toList(growable: false),
       );
@@ -112,6 +118,57 @@ class ReadingExamService implements ReadingExamRepository {
         'Kết quả chấm từ máy chủ không đúng định dạng.',
       );
     }
+  }
+
+  String _displayAnswer(dynamic answer) {
+    if (answer is String) return answer;
+    if (answer is Map<String, dynamic>) {
+      if (answer['kind'] == 'essay') return answer['text'] as String? ?? '';
+      if (answer['kind'] == 'hanzi_canvas') {
+        final strokes = answer['strokes'] as List<dynamic>? ?? const [];
+        return 'Đã viết ${strokes.length} nét';
+      }
+    }
+    return '';
+  }
+
+  String _questionFeedback(
+    Map<String, dynamic>? scoreData,
+    String fallback,
+  ) {
+    if (scoreData == null) return fallback;
+    final lines = <String>[
+      if ((scoreData['feedback'] as String? ?? '').isNotEmpty)
+        scoreData['feedback'] as String,
+    ];
+    final details = scoreData['details'];
+    if (details is Map<String, dynamic>) {
+      const labels = {
+        'grammar': 'Ngữ pháp',
+        'vocabulary': 'Từ vựng',
+        'coherence': 'Mạch lạc',
+        'task_fulfillment': 'Đáp ứng đề bài và độ dài',
+      };
+      for (final entry in labels.entries) {
+        final criterion = details[entry.key];
+        if (criterion is Map<String, dynamic>) {
+          lines.add(
+            '${entry.value}: ${criterion['score']} điểm — '
+            '${criterion['feedback']}',
+          );
+        }
+      }
+      for (final entry in const {
+        'strengths': 'Điểm mạnh',
+        'weaknesses': 'Điểm cần cải thiện',
+      }.entries) {
+        final values = details[entry.key];
+        if (values is List && values.isNotEmpty) {
+          lines.add('${entry.value}: ${values.join('; ')}');
+        }
+      }
+    }
+    return lines.isEmpty ? fallback : lines.join('\n');
   }
 
   Future<http.Response> _request(

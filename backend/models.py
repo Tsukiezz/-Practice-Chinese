@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
@@ -7,13 +7,25 @@ class Body(BaseModel):
 
 
 class Login(Body):
+    # Password whitespace is significant; normalize email explicitly instead.
+    model_config = ConfigDict(str_strip_whitespace=False)
     email: str = Field(min_length=3, max_length=120)
     password: str = Field(min_length=1, max_length=128)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value):
+        return value.strip().lower() if isinstance(value, str) else value
 
 
 class Register(Login):
     name: str = Field(min_length=2, max_length=60)
     password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def normalize_name(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
     @field_validator("email")
     @classmethod
@@ -33,6 +45,29 @@ class UserUpdate(Body):
 class Point(Body):
     x: float = Field(ge=0, le=1024)
     y: float = Field(ge=0, le=1024)
+
+
+class HanziCanvasExamAnswer(Body):
+    kind: Literal["hanzi_canvas"]
+    strokes: list[list[Point]] = Field(min_length=1, max_length=64)
+
+    @field_validator("strokes")
+    @classmethod
+    def valid_strokes(cls, value):
+        if any(not 2 <= len(stroke) <= 512 for stroke in value):
+            raise ValueError("Mỗi nét Canvas cần 2–512 điểm tọa độ")
+        return value
+
+
+class EssayExamAnswer(Body):
+    kind: Literal["essay"]
+    text: str = Field(min_length=1, max_length=500)
+
+
+StructuredExamAnswer = Annotated[
+    HanziCanvasExamAnswer | EssayExamAnswer,
+    Field(discriminator="kind"),
+]
 
 
 class Word(Body):
@@ -70,6 +105,8 @@ class WordUpdate(Word):
 class Question(Body):
     id: str = Field(min_length=1, max_length=40)
     section: Literal["listening", "reading", "writing"]
+    question_type: Literal["hanzi_canvas", "essay"] | None = None
+    weight: float = Field(default=1, gt=0, le=100)
     prompt: str = Field(min_length=1, max_length=5000)
     options: list[str] = Field(default_factory=list, max_length=10)
     answer: str = Field(min_length=1, max_length=5000)
@@ -81,12 +118,31 @@ class Question(Body):
     @model_validator(mode="after")
     def validate_question(self):
         Word.valid_url(self.audio_url)
+        if self.question_type is not None and self.section != "writing":
+            raise ValueError("Loại Canvas/đoạn văn chỉ dùng cho kỹ năng writing")
+        if self.question_type is not None and self.options:
+            raise ValueError("Câu Canvas/đoạn văn không dùng lựa chọn trắc nghiệm")
+        if self.question_type == "hanzi_canvas":
+            if len(self.answer) != 1 or not self._is_han(self.answer):
+                raise ValueError("Đáp án Canvas phải là đúng một chữ Hán")
+        if self.question_type == "essay":
+            if len(self.prompt) > 1000 or len(self.answer) > 2000:
+                raise ValueError(
+                    "Đề đoạn văn tối đa 1000 ký tự và rubric tối đa 2000 ký tự")
         if self.section == "listening" and not self.audio_url:
             raise ValueError("Câu nghe cần audio HTTPS")
         if self.options and (len(self.options) < 2 or len(set(self.options)) != len(self.options)
                              or any(not option.strip() for option in self.options) or self.answer not in self.options):
             raise ValueError("Lựa chọn phải khác nhau, không rỗng và chứa đáp án")
         return self
+
+    @staticmethod
+    def _is_han(value):
+        codepoint = ord(value)
+        return (0x3400 <= codepoint <= 0x4DBF
+                or 0x4E00 <= codepoint <= 0x9FFF
+                or 0xF900 <= codepoint <= 0xFAFF
+                or 0x20000 <= codepoint <= 0x2EBEF)
 
 
 class Exam(Body):
@@ -125,7 +181,51 @@ class Override(Body):
 
 class Submission(Body):
     version: int = Field(ge=1)
-    answers: dict[str, str] = Field(max_length=200)
+    answers: dict[str, str | StructuredExamAnswer] = Field(
+        max_length=200)
+
+
+class ExamCanvasGradeRequest(Body):
+    target: str = Field(min_length=1, max_length=1)
+    strokes: list[list[Point]] = Field(min_length=1, max_length=64)
+
+    @field_validator("target")
+    @classmethod
+    def valid_target(cls, value):
+        if not Question._is_han(value):
+            raise ValueError("Mục tiêu Canvas phải là một chữ Hán")
+        return value
+
+    @field_validator("strokes")
+    @classmethod
+    def valid_strokes(cls, value):
+        return HanziCanvasExamAnswer.valid_strokes(value)
+
+
+class EssayGradeRequest(Body):
+    prompt: str = Field(min_length=1, max_length=1000)
+    rubric: str = Field(min_length=1, max_length=2000)
+    text: str = Field(min_length=1, max_length=500)
+
+
+class EssayCriterion(Body):
+    score: float = Field(ge=0, le=100)
+    feedback: str = Field(min_length=1, max_length=1000)
+
+
+class EssayGradeDetails(Body):
+    grammar: EssayCriterion
+    vocabulary: EssayCriterion
+    coherence: EssayCriterion
+    task_fulfillment: EssayCriterion
+    strengths: list[str] = Field(default_factory=list, max_length=5)
+    weaknesses: list[str] = Field(default_factory=list, max_length=5)
+
+
+class EssayGradeResponse(Body):
+    score: float = Field(ge=0, le=100)
+    feedback: str = Field(min_length=1, max_length=3000)
+    details: EssayGradeDetails
 
 
 class Appeal(Body):

@@ -1,6 +1,6 @@
 # HanziGo · Chinese Learning
 
-Ứng dụng học tiếng Trung cho người Việt. Nhánh `test` tích hợp **Admin của Nguyên** (UC-08, chức năng 28 và 31–35) với ứng dụng học viên và backend của **Kiệt**. Xem [biên bản tích hợp](docs/INTEGRATION_TEST.md).
+Ứng dụng học tiếng Trung cho người Việt. Nhánh `test` tích hợp **Admin của Nguyên** (UC-08, chức năng 28 và 31–35), ứng dụng học viên/backend của **Kiệt** và **giao diện đăng nhập/đăng ký của Tuyến**. Xem [biên bản tích hợp](docs/INTEGRATION_TEST.md).
 
 ## Chạy một website cho Admin và học viên
 
@@ -15,6 +15,8 @@ python -m uvicorn main:app --host 127.0.0.1 --port 8010
 ```
 
 Mở **http://127.0.0.1:8010/** cho cả hai loại tài khoản. Đăng nhập bằng tài khoản Admin sẽ chuyển sang `/admin`; học viên vào ứng dụng Flutter. Khi đăng xuất, cả hai trở về cùng trang đăng nhập. API kiểm tra vai trò trên máy chủ. Không cần chạy web-server Flutter trên cổng riêng.
+
+Chọn **Đăng ký mới** để tạo tài khoản học viên bằng họ tên, email, mật khẩu và xác nhận mật khẩu. Tạo thành công sẽ đăng nhập ngay vào ứng dụng; email trùng sẽ báo lỗi. **Ghi nhớ đăng nhập** lưu phiên trên thiết bị đến khi hết hạn/đăng xuất; bỏ chọn sẽ chỉ giữ phiên trong bộ nhớ khi ứng dụng đang mở. Mật khẩu không lưu trong trình duyệt. Giao diện dùng email; đăng nhập số điện thoại, Google/Apple/WeChat và khôi phục mật khẩu chưa được cấu hình, nên không hiển thị nút chưa hoạt động.
 
 Trên Windows nên đặt SDK và thư mục build ở đường dẫn không dấu/không khoảng trắng. Nếu build ở thư mục khác, đặt `WEB_APP_DIR` tới đúng `build/web` đó. Khi build cùng website, không truyền `HANZIGO_API_URL` để Flutter tự lấy `/api` trên cùng địa chỉ. Mỗi người dùng cần tài khoản riêng; tạo Admin bằng `create_admin.py`, học viên bằng `register_student.py`.
 

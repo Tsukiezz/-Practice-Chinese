@@ -1,5 +1,23 @@
 # Tích hợp Nguyên + Kiệt vào test — 09/09/2026
 
+## Cập nhật 12/09/2026: ghép giao diện Tuyến và xác thực
+
+Nguồn `origin/tuyen` tại `58fb360` (hai màn hình đăng nhập/đăng ký), ghép vào `test` đang ở `b01de59`. Giải quyết xung đột add/add của login bằng thiết kế Tuyến và cơ chế xác thực/phân quyền hiện có của nhánh test. Giữ nguyên các luồng học, chấm bài, Admin và phúc khảo đã tích hợp.
+
+- `LoginScreen`: nhận baseUrl/AuthService/callback của AppShell, gọi API thật, giữ hiện/ẩn mật khẩu, trạng thái chờ và thông báo lỗi. Ghi nhớ đăng nhập có tác dụng thực; khi bỏ chọn, session chỉ nằm trong bộ nhớ.
+- `RegisterScreen`: điều hướng qua lại với login, kiểm tra họ tên/email/mật khẩu/xác nhận, khóa nút trong lúc gửi, gọi API rồi trở về AppShell với phiên học viên mới.
+- `AuthService.register`: `POST /api/auth/register` với `{name,email,password}`, nhận 201 `{token,user,expires_in}`; lưu đúng phiên do server cấp. Xử lý lỗi trùng email, 422 và phản hồi không phải JSON; timeout request xác thực 20 giây.
+- Backend: dùng chung bảng users và sessions, chỉ tạo role student, mật khẩu PBKDF2, email chuẩn hóa và unique; tên được trim nhưng mật khẩu giữ nguyên khoảng trắng. Khóa/hạ quyền vẫn thu hồi phiên theo luồng Admin.
+- Không nhận role, score hay trường quản trị từ form đăng ký. Admin được cấp riêng qua công cụ server.
+- Chỉ hiển thị đăng nhập/đăng ký bằng email. Các nút số điện thoại, OAuth, quên mật khẩu trong bản thiết kế chưa có dịch vụ tương ứng; đã ẩn khỏi bản tích hợp để không có nút bấm rỗng. Checkbox đăng ký mô tả việc tạo tài khoản/lưu tiến trình, không dẫn tới điều khoản chưa được cung cấp.
+- Chỉ commit/push **test**, không cập nhật main.
+
+Kiểm thử bổ sung trong `test/auth_screens_test.dart`, `test/auth_service_test.dart`, `backend/test_admin.py` và `backend/smoke_unified.py`: xác nhận mật khẩu, lỗi đăng nhập, đăng ký lưu phiên, tùy chọn ghi nhớ, mật khẩu có khoảng trắng, đăng ký bằng web mobile 390px/320px và lỗi email trùng. Smoke hiện có tiếp tục kiểm tra chuyển Admin/học viên, logout/reload, audio bài Nghe, nộp bài và chặn học viên truy cập Admin. Các kiểm thử dùng DB tạm và không gọi AI thật.
+
+Chạy theo README: build Flutter web, đặt `WEB_APP_DIR`, chạy FastAPI rồi mở `/`. Khi cập nhật giao diện phải build lại web; khởi động riêng backend không tự biên dịch Dart.
+
+Kết quả local 12/09: **32/32 API**, **26/26 Flutter**, `flutter analyze`, build web, smoke Admin và smoke website chung trên Edge đều PASS. Đăng ký mới ở 390px vào đúng phiên student; đăng ký trùng email ở 320px hiển thị lỗi từ backend. Đã kiểm tra ảnh giao diện và không có lỗi JavaScript. Chưa build/chạy bản cài Android/iOS; kết quả mobile ở đây là trình duyệt cảm ứng và widget test.
+
 ## Cập nhật 10/09/2026: website chung và bài Nghe
 
 `kiet` vẫn tại `bb9d307`, đã là tổ tiên của nhánh test; phần bài Nghe thiếu do đề seed ở trạng thái nháp, không phải thiếu commit. Bổ sung 3 bài Nghe HSK 1 mẫu có audio MP3 tổng hợp từ đúng transcript; seed riêng cho phép phát hành bài mới, giữ nguyên chỉnh sửa của Admin và dữ liệu học viên.

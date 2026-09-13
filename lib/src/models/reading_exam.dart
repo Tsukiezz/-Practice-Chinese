@@ -4,6 +4,8 @@ class ReadingQuestion {
     required this.section,
     required this.prompt,
     required this.options,
+    this.questionType,
+    this.weight = 1,
     this.audioUrl = '',
     this.transcript = '',
     this.explanation = '',
@@ -13,6 +15,8 @@ class ReadingQuestion {
   final String section;
   final String prompt;
   final List<String> options;
+  final String? questionType;
+  final double weight;
   final String audioUrl;
   final String transcript;
   final String explanation;
@@ -25,6 +29,8 @@ class ReadingQuestion {
       options: (json['options'] as List<dynamic>? ?? const [])
           .map((option) => option as String)
           .toList(growable: false),
+      questionType: json['question_type'] as String?,
+      weight: (json['weight'] as num?)?.toDouble() ?? 1,
       audioUrl: _audioUrl(json['audio_url'] as String? ?? ''),
       transcript: (json['transcript'] as String? ?? ''),
       explanation: (json['explanation'] as String? ?? ''),
@@ -81,6 +87,8 @@ class ReadingReviewItem {
     required this.submittedAnswer,
     required this.explanation,
     this.transcript = '',
+    this.questionType,
+    this.score,
   });
 
   final String id;
@@ -89,8 +97,11 @@ class ReadingReviewItem {
   final String submittedAnswer;
   final String explanation;
   final String transcript;
+  final String? questionType;
+  final double? score;
 
-  bool get isCorrect => answer.trim() == submittedAnswer.trim();
+  bool get isCorrect =>
+      score != null ? score! >= 80 : answer.trim() == submittedAnswer.trim();
 }
 
 class ReadingResult {

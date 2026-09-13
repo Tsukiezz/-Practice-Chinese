@@ -36,6 +36,23 @@ class AdminIntegrationTest(unittest.TestCase):
         storage.DB_PATH = self.old_db
         self.temp.cleanup()
 
+    def test_registration_normalizes_identity_but_preserves_password(self):
+        body = {'name': '  Tuyến  ', 'email': '  TUYEN@example.test  ', 'password': '  password-123  '}
+        response = self.client.post('/api/auth/register', json=body)
+        self.assertEqual(response.status_code, 201, response.text)
+        user = response.json()['user']
+        self.assertEqual((user['name'], user['email'], user['role']), ('Tuyến', 'tuyen@example.test', 'student'))
+        self.assertNotIn('password_hash', user)
+        with storage.database() as conn:
+            saved = conn.execute('SELECT password_hash FROM users WHERE id=?', (user['id'],)).fetchone()[0]
+        self.assertNotEqual(saved, body['password'])
+        self.assertEqual(self.client.post('/api/auth/register', json=body).status_code, 409)
+        login = {'email': body['email'], 'password': body['password']}
+        self.assertEqual(self.client.post('/api/auth/login', json=login).status_code, 200)
+        login['password'] = body['password'].strip()
+        self.assertEqual(self.client.post('/api/auth/login', json=login).status_code, 401)
+        self.assertEqual(self.client.post('/api/auth/register', json={**body, 'name': '   '}).status_code, 422)
+
     def test_handwriting_renderer_creates_real_png_for_gemini(self):
         encoded = _render_strokes_png([
             [{"x": 100, "y": 500}, {"x": 900, "y": 500}],
