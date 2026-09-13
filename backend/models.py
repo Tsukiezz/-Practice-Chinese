@@ -326,6 +326,13 @@ class HandwritingGradeResponse(Body):
     details: HandwritingGradeDetails
 
 
+class HandwritingRetryItem(Body):
+    hanzi: str = Field(min_length=1, max_length=1)
+    latest_score: float = Field(ge=0, le=100)
+    attempts: int = Field(ge=1)
+    last_practiced_at: int = Field(ge=0)
+
+
 class HandwritingRecognition(Body):
     """Canvas payload shared by Flutter and the handwriting OCR endpoint."""
 

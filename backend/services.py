@@ -763,6 +763,76 @@ def grade_handwriting_offline(
     return grade, result
 
 
+def build_handwriting_retry_items(rows, threshold: float = 80) -> list[dict]:
+    """Return characters whose latest Canvas attempt is below ``threshold``.
+
+    Handwriting practice stores one result per attempt. UC-04 stores Canvas
+    question scores inside an exam snapshot, so both sources are normalized
+    into the same per-character timeline without changing the results schema.
+    """
+    history: dict[str, dict] = {}
+
+    def record(hanzi, score, practiced_at, result_id):
+        if (not isinstance(hanzi, str) or len(hanzi) != 1
+                or isinstance(score, bool)
+                or not isinstance(score, (int, float))
+                or not math.isfinite(float(score))
+                or not 0 <= float(score) <= 100):
+            return
+        item = history.setdefault(hanzi, {
+            "hanzi": hanzi,
+            "latest_score": 0.0,
+            "attempts": 0,
+            "last_practiced_at": 0,
+            "_latest_key": (-1, -1),
+        })
+        item["attempts"] += 1
+        key = (int(practiced_at or 0), int(result_id or 0))
+        if key >= item["_latest_key"]:
+            item["latest_score"] = round(float(score), 2)
+            item["last_practiced_at"] = key[0]
+            item["_latest_key"] = key
+
+    for raw_row in rows:
+        row = dict(raw_row)
+        try:
+            content = json.loads(row.get("content", ""))
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if not isinstance(content, dict):
+            continue
+        if row.get("kind") == "handwriting":
+            record(content.get("target"), row.get("score"),
+                   row.get("created_at"), row.get("id"))
+            continue
+        if row.get("kind") != "exam":
+            continue
+        questions = content.get("questions")
+        scores = content.get("question_scores")
+        if not isinstance(questions, list) or not isinstance(scores, dict):
+            continue
+        for question in questions:
+            if (not isinstance(question, dict)
+                    or question.get("question_type") != "hanzi_canvas"):
+                continue
+            score_data = scores.get(question.get("id"))
+            if not isinstance(score_data, dict):
+                continue
+            record(question.get("answer"), score_data.get("score"),
+                   row.get("created_at"), row.get("id"))
+
+    retry_items = []
+    for item in history.values():
+        item.pop("_latest_key", None)
+        if item["latest_score"] < threshold:
+            retry_items.append(item)
+    return sorted(
+        retry_items,
+        key=lambda item: (
+            item["latest_score"], item["last_practiced_at"], item["hanzi"]),
+    )
+
+
 def gemini_handwriting_recognition_provider(settings: dict, strokes: list[list[dict]]):
     """Recognize a freely drawn Han character and return ranked candidates."""
     model = quote(settings["model"], safe="._-")

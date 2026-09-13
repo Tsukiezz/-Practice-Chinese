@@ -9,6 +9,7 @@ import 'custom_exam_history_screen.dart';
 import 'dashboard_screen.dart';
 import 'review_screen.dart';
 import 'handwriting_screen.dart';
+import 'handwriting_retry_screen.dart';
 import 'translation_screen.dart';
 import '../services/custom_exam_service.dart';
 import '../services/reading_exam_service.dart';
@@ -122,6 +123,25 @@ class ProfileScreen extends StatelessWidget {
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => TranslationScreen(service: studentService!),
+                  ),
+                ),
+              ),
+            ),
+          if (studentService != null)
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              child: ListTile(
+                key: const Key('open-handwriting-retry'),
+                leading: const Icon(Icons.history_edu, color: AppTheme.orange),
+                title: const Text('Luyện lại chữ dưới 80',
+                    style: TextStyle(fontWeight: FontWeight.w800)),
+                subtitle: const Text(
+                    'Chọn một hoặc nhiều chữ và luyện bằng Canvas offline'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        HandwritingRetryScreen(service: studentService!),
                   ),
                 ),
               ),

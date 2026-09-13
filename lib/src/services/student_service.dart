@@ -229,6 +229,28 @@ class HandwritingGradeResult {
   }
 }
 
+class HandwritingRetryItem {
+  const HandwritingRetryItem({
+    required this.hanzi,
+    required this.latestScore,
+    required this.attempts,
+    required this.lastPracticedAt,
+  });
+
+  final String hanzi;
+  final double latestScore;
+  final int attempts;
+  final int lastPracticedAt;
+
+  factory HandwritingRetryItem.fromJson(Map<String, dynamic> json) =>
+      HandwritingRetryItem(
+        hanzi: json['hanzi'] as String,
+        latestScore: (json['latest_score'] as num).toDouble(),
+        attempts: json['attempts'] as int,
+        lastPracticedAt: json['last_practiced_at'] as int,
+      );
+}
+
 class GrammarCorrectionError {
   const GrammarCorrectionError({
     required this.position,
@@ -401,6 +423,25 @@ class StudentService {
     return rows
         .map((row) => StudentResult.fromJson(row as Map<String, dynamic>))
         .toList(growable: false);
+  }
+
+  Future<List<HandwritingRetryItem>> fetchHandwritingRetryItems() async {
+    final response = await _request(
+      'GET',
+      Uri.parse('$baseUrl/me/handwriting-retry-items'),
+    );
+    try {
+      return (jsonDecode(response.body) as List<dynamic>)
+          .map((row) => HandwritingRetryItem.fromJson(
+                row as Map<String, dynamic>,
+              ))
+          .toList(growable: false);
+    } on Object {
+      throw const StudentApiException(
+        null,
+        'Danh sách chữ cần luyện lại không đúng định dạng.',
+      );
+    }
   }
 
   Future<StudentResult> resubmitWriting(

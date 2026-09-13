@@ -22,6 +22,7 @@ from models import (AIConfig, DictionaryLookup, Exam, ExamUpdate,
                     ExamCanvasGradeRequest,
                     GrammarAnalysisRequest, GrammarAnalysisResponse,
                     HandwritingGradeResponse,
+                    HandwritingRetryItem,
                     HandwritingRecognition, HandwritingRecognitionResponse,
                     HandwritingSubmission, Login, Override, Register,
                     Submission, UserUpdate, Word, WordUpdate, WritingSubmission)
@@ -33,7 +34,7 @@ from services import (configured_api_key, configured_model, evaluate_with_ai,
                       grade_essay_with_ai, grade_handwriting_offline,
                       grade_with_ai, ai_settings,
                       analyze_grammar_with_ai, recognize_handwriting_with_ai,
-                      record_ai_usage)
+                      record_ai_usage, build_handwriting_retry_items)
 
 
 @asynccontextmanager
@@ -688,6 +689,20 @@ def grade_handwriting_submission(body: HandwritingSubmission, user_id: int):
 def submit_handwriting(body: HandwritingSubmission, user=Depends(current_user)):
     grade, _ = grade_handwriting_submission(body, user["id"])
     return grade
+
+
+@app.get("/api/me/handwriting-retry-items",
+         response_model=list[HandwritingRetryItem])
+def handwriting_retry_items(user=Depends(current_user)):
+    """List weak characters by their latest attempt, lowest score first."""
+    with database() as conn:
+        rows = conn.execute(
+            """SELECT id,kind,content,score,created_at FROM results
+               WHERE user_id=? AND kind IN ('handwriting','exam')
+               ORDER BY created_at,id""",
+            (user["id"],),
+        ).fetchall()
+    return build_handwriting_retry_items(rows)
 
 
 @app.post(
