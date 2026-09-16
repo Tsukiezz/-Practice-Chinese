@@ -291,7 +291,21 @@ function newQuestionId() {
 }
 
 function questionHTML(q = {}) {
-  return `<fieldset class="question"><legend>Câu hỏi</legend><div class="grid"><label>Mã câu<input data-key="id" required maxlength="40" value="${escape(q.id || newQuestionId())}"></label><label>Kỹ năng<select data-key="section">${[['reading','Đọc'],['listening','Nghe'],['writing','Viết']].map(([v,l])=>`<option value="${v}" ${q.section===v?'selected':''}>${l}</option>`).join('')}</select></label><label class="span-2">Yêu cầu / nội dung<textarea data-key="prompt" required maxlength="5000">${escape(q.prompt || '')}</textarea></label><label>Lựa chọn (mỗi dòng một đáp án)<textarea data-key="options">${escape((q.options || []).join('\n'))}</textarea></label><label>Đáp án / rubric chấm<textarea data-key="answer" required maxlength="5000">${escape(q.answer || '')}</textarea></label><label>Audio HTTPS (bắt buộc cho Nghe)<input data-key="audio_url" type="text" value="${escape(q.audio_url || '')}"></label><label>ID từ liên quan (tùy chọn)<input data-key="word_id" type="number" min="1" value="${q.word_id || ''}"></label><label>Transcript<textarea data-key="transcript">${escape(q.transcript || '')}</textarea></label><label>Giải thích đáp án<textarea data-key="explanation">${escape(q.explanation || '')}</textarea></label></div><button type="button" class="danger remove">Bỏ câu hỏi</button></fieldset>`;
+  const questionType = q.question_type || '';
+  return `<fieldset class="question"><legend>Câu hỏi</legend><div class="grid">
+    <label>Mã câu<input data-key="id" required maxlength="40" value="${escape(q.id || newQuestionId())}"></label>
+    <label>Kỹ năng<select data-key="section">${[['reading','Đọc'],['listening','Nghe'],['writing','Viết']].map(([v,l])=>`<option value="${v}" ${q.section===v?'selected':''}>${l}</option>`).join('')}</select></label>
+    <label>Loại câu hỏi (tùy chọn)<select data-key="question_type"><option value="">Loại cũ / mặc định</option><option value="hanzi_canvas" ${questionType==='hanzi_canvas'?'selected':''}>Canvas viết chữ Hán</option><option value="essay" ${questionType==='essay'?'selected':''}>Đoạn văn tự luận</option></select></label>
+    <label>Trọng số<input data-key="weight" type="number" min="0.01" max="100" step="0.01" value="${q.weight || 1}"></label>
+    <label class="span-2">Yêu cầu / nội dung<textarea data-key="prompt" required maxlength="5000">${escape(q.prompt || '')}</textarea></label>
+    <label>Lựa chọn (mỗi dòng một đáp án)<textarea data-key="options">${escape((q.options || []).join('\n'))}</textarea></label>
+    <label>Đáp án / rubric chấm<textarea data-key="answer" required maxlength="5000">${escape(q.answer || '')}</textarea></label>
+    <label>Audio HTTPS (bắt buộc cho Nghe)<input data-key="audio_url" type="text" value="${escape(q.audio_url || '')}"></label>
+    <label>ID từ liên quan (tùy chọn)<input data-key="word_id" type="number" min="1" value="${q.word_id || ''}"></label>
+    <label>Transcript<textarea data-key="transcript">${escape(q.transcript || '')}</textarea></label>
+    <label>Giải thích đáp án<textarea data-key="explanation">${escape(q.explanation || '')}</textarea></label>
+    <p class="note span-2">Canvas: chọn kỹ năng Viết và nhập đúng một chữ Hán ở ô đáp án; máy chủ tự liên kết strokes_json trong Từ vựng. Essay: prompt là đề bài, ô đáp án là rubric bổ sung.</p>
+  </div><button type="button" class="danger remove">Bỏ câu hỏi</button></fieldset>`;
 }
 
 function examEditor(row) {
@@ -302,6 +316,8 @@ function examEditor(row) {
       fieldset.querySelectorAll('[data-key]').forEach(el=>q[el.dataset.key]=el.value.trim());
       q.options=q.options.split('\n').map(s=>s.trim()).filter(Boolean);
       q.word_id=q.word_id?Number(q.word_id):null;
+      q.question_type=q.question_type || null;
+      q.weight=Number(q.weight || 1);
       return q;
     });
     const body={...Object.fromEntries(new FormData(form)),hsk:Number(form.elements.hsk.value),duration_minutes:Number(form.elements.duration_minutes.value),questions};

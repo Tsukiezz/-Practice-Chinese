@@ -37,7 +37,17 @@ class _FakeStudentService extends StudentService {
       : super(baseUrl: 'http://test/api', tokenProvider: () async => 'token');
 
   String? handwritingTarget;
+  bool handwritingRecognitionRequested = false;
   List<VocabularyEntry> history = const [];
+  List<VocabularyEntry> saved = [];
+
+  @override
+  Future<List<VocabularyEntry>> fetchSavedVocabulary() async => saved;
+
+  @override
+  Future<void> setWordSaved(int wordId, bool save) async {
+    saved = save ? [word] : [];
+  }
 
   static const word = VocabularyEntry(
     id: 1,
@@ -105,21 +115,70 @@ class _FakeStudentService extends StudentService {
       ];
 
   @override
-  Future<StudentResult> submitHandwriting(
+  Future<HandwritingGradeResult> submitHandwriting(
     String target,
     List<List<Map<String, double>>> strokes, {
     int? sourceResultId,
   }) async {
     handwritingTarget = target;
-    return _studentResult(
-      kind: 'handwriting',
+    return const HandwritingGradeResult(
       score: 92,
       feedback: 'Nét viết cân đối.',
+      wrongStrokes: [1],
+      countScore: 100,
+      orderPositionScore: 80,
+      directionScore: 100,
+    );
+  }
+
+  @override
+  Future<HandwritingRecognitionResult> recognizeHandwriting(
+    List<List<Map<String, double>>> strokes,
+  ) async {
+    handwritingRecognitionRequested = true;
+    return const HandwritingRecognitionResult(
+      score: 96,
+      feedback: 'Nhận dạng rõ ràng.',
+      recognizedHanzi: '一',
+      candidates: [
+        HandwritingCandidate(
+          hanzi: '一',
+          confidence: 96,
+          words: [
+            VocabularyEntry(
+              id: 2,
+              hanzi: '一',
+              pinyin: 'yī',
+              meaning: 'một',
+              hsk: 1,
+              example: '一个人',
+              audioUrl: '',
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
 
 void main() {
+  testWidgets('Vy notebook saves, opens and removes words', (tester) async {
+    final service = _FakeStudentService();
+    await tester.pumpWidget(
+        MaterialApp(home: Scaffold(body: VocabularyScreen(service: service))));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Lưu vào sổ tay'));
+    await tester.pumpAndSettle();
+    expect(service.saved.length, 1);
+    await tester.tap(find.byTooltip('Sổ tay từ vựng'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sổ tay'), findsOneWidget);
+    await tester.tap(find.byTooltip('Bỏ lưu').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Sổ tay chưa có từ vựng'), findsOneWidget);
+    expect(service.saved, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('Dashboard hiển thị dữ liệu thật và nhận xét Gemini',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
@@ -142,6 +201,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
+    expect(find.text('1 từ vựng'), findsOneWidget);
+    expect(find.byKey(const Key('open-handwriting')), findsOneWidget);
     await tester.tap(find.text('nǐ hǎo'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Đóng'));
@@ -152,27 +213,57 @@ void main() {
     expect(find.text('Ôn Flashcard (1 từ)'), findsOneWidget);
   });
 
-  testWidgets('Canvas ngón tay gửi nét cho Gemini và hiện điểm',
+  testWidgets('Canvas gửi nét thật và hiện kết quả tra từ viết tay',
       (tester) async {
     final service = _FakeStudentService();
     await tester
         .pumpWidget(MaterialApp(home: HandwritingScreen(service: service)));
-    await tester.enterText(find.byKey(const Key('handwriting-target')), '一');
-    await tester.pump();
     final canvas = find.byKey(const Key('handwriting-canvas'));
+    final paint = tester.widget<CustomPaint>(
+      find.descendant(of: canvas, matching: find.byType(CustomPaint)),
+    );
+    expect(paint.foregroundPainter, isNotNull);
     final gesture = await tester.startGesture(tester.getCenter(canvas));
     await gesture.moveBy(const Offset(80, 5));
     await gesture.moveBy(const Offset(80, 5));
     await gesture.up();
     await tester.pump();
-    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.drag(find.byType(ListView), const Offset(0, -1000));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('submit-handwriting')));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -1000));
+    await tester.pumpAndSettle();
+
+    expect(service.handwritingRecognitionRequested, isTrue);
+    expect(find.text('96% tin cậy'), findsOneWidget);
+    expect(find.text('一 · yī'), findsOneWidget);
+    expect(find.text('một'), findsOneWidget);
+  });
+
+  testWidgets('chế độ luyện nét cũ vẫn gửi kết quả cho Ôn tập', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final service = _FakeStudentService();
+    await tester
+        .pumpWidget(MaterialApp(home: HandwritingScreen(service: service)));
+    await tester.tap(find.text('Luyện nét'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('handwriting-target')), '一');
+    final canvas = find.byKey(const Key('handwriting-canvas'));
+    final gesture = await tester.startGesture(tester.getCenter(canvas));
+    await gesture.moveBy(const Offset(80, 5));
+    await gesture.moveBy(const Offset(80, 5));
+    await gesture.up();
     await tester.tap(find.byKey(const Key('submit-handwriting')));
     await tester.pumpAndSettle();
 
     expect(service.handwritingTarget, '一');
     expect(find.text('92 điểm'), findsOneWidget);
-    expect(find.text('Nét viết cân đối.'), findsOneWidget);
+    expect(find.text('Dáng, vị trí & thứ tự 40%: 80'), findsOneWidget);
+    expect(find.bySemanticsLabel('Nét sai được tô đỏ: 1'), findsOneWidget);
+    semantics.dispose();
   });
 
   testWidgets('danh sách ôn tập hiện kết quả nộp lại gần nhất', (tester) async {

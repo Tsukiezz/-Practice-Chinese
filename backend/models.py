@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
@@ -47,6 +47,29 @@ class Point(Body):
     y: float = Field(ge=0, le=1024)
 
 
+class HanziCanvasExamAnswer(Body):
+    kind: Literal["hanzi_canvas"]
+    strokes: list[list[Point]] = Field(min_length=1, max_length=64)
+
+    @field_validator("strokes")
+    @classmethod
+    def valid_strokes(cls, value):
+        if any(not 2 <= len(stroke) <= 512 for stroke in value):
+            raise ValueError("Mỗi nét Canvas cần 2–512 điểm tọa độ")
+        return value
+
+
+class EssayExamAnswer(Body):
+    kind: Literal["essay"]
+    text: str = Field(min_length=1, max_length=500)
+
+
+StructuredExamAnswer = Annotated[
+    HanziCanvasExamAnswer | EssayExamAnswer,
+    Field(discriminator="kind"),
+]
+
+
 class Word(Body):
     hanzi: str = Field(min_length=1, max_length=30)
     pinyin: str = Field(min_length=1, max_length=120)
@@ -82,6 +105,8 @@ class WordUpdate(Word):
 class Question(Body):
     id: str = Field(min_length=1, max_length=40)
     section: Literal["listening", "reading", "writing"]
+    question_type: Literal["hanzi_canvas", "essay"] | None = None
+    weight: float = Field(default=1, gt=0, le=100)
     prompt: str = Field(min_length=1, max_length=5000)
     options: list[str] = Field(default_factory=list, max_length=10)
     answer: str = Field(min_length=1, max_length=5000)
@@ -93,12 +118,31 @@ class Question(Body):
     @model_validator(mode="after")
     def validate_question(self):
         Word.valid_url(self.audio_url)
+        if self.question_type is not None and self.section != "writing":
+            raise ValueError("Loại Canvas/đoạn văn chỉ dùng cho kỹ năng writing")
+        if self.question_type is not None and self.options:
+            raise ValueError("Câu Canvas/đoạn văn không dùng lựa chọn trắc nghiệm")
+        if self.question_type == "hanzi_canvas":
+            if len(self.answer) != 1 or not self._is_han(self.answer):
+                raise ValueError("Đáp án Canvas phải là đúng một chữ Hán")
+        if self.question_type == "essay":
+            if len(self.prompt) > 1000 or len(self.answer) > 2000:
+                raise ValueError(
+                    "Đề đoạn văn tối đa 1000 ký tự và rubric tối đa 2000 ký tự")
         if self.section == "listening" and not self.audio_url:
             raise ValueError("Câu nghe cần audio HTTPS")
         if self.options and (len(self.options) < 2 or len(set(self.options)) != len(self.options)
                              or any(not option.strip() for option in self.options) or self.answer not in self.options):
             raise ValueError("Lựa chọn phải khác nhau, không rỗng và chứa đáp án")
         return self
+
+    @staticmethod
+    def _is_han(value):
+        codepoint = ord(value)
+        return (0x3400 <= codepoint <= 0x4DBF
+                or 0x4E00 <= codepoint <= 0x9FFF
+                or 0xF900 <= codepoint <= 0xFAFF
+                or 0x20000 <= codepoint <= 0x2EBEF)
 
 
 class Exam(Body):
@@ -137,7 +181,51 @@ class Override(Body):
 
 class Submission(Body):
     version: int = Field(ge=1)
-    answers: dict[str, str] = Field(max_length=200)
+    answers: dict[str, str | StructuredExamAnswer] = Field(
+        max_length=200)
+
+
+class ExamCanvasGradeRequest(Body):
+    target: str = Field(min_length=1, max_length=1)
+    strokes: list[list[Point]] = Field(min_length=1, max_length=64)
+
+    @field_validator("target")
+    @classmethod
+    def valid_target(cls, value):
+        if not Question._is_han(value):
+            raise ValueError("Mục tiêu Canvas phải là một chữ Hán")
+        return value
+
+    @field_validator("strokes")
+    @classmethod
+    def valid_strokes(cls, value):
+        return HanziCanvasExamAnswer.valid_strokes(value)
+
+
+class EssayGradeRequest(Body):
+    prompt: str = Field(min_length=1, max_length=1000)
+    rubric: str = Field(min_length=1, max_length=2000)
+    text: str = Field(min_length=1, max_length=500)
+
+
+class EssayCriterion(Body):
+    score: float = Field(ge=0, le=100)
+    feedback: str = Field(min_length=1, max_length=1000)
+
+
+class EssayGradeDetails(Body):
+    grammar: EssayCriterion
+    vocabulary: EssayCriterion
+    coherence: EssayCriterion
+    task_fulfillment: EssayCriterion
+    strengths: list[str] = Field(default_factory=list, max_length=5)
+    weaknesses: list[str] = Field(default_factory=list, max_length=5)
+
+
+class EssayGradeResponse(Body):
+    score: float = Field(ge=0, le=100)
+    feedback: str = Field(min_length=1, max_length=3000)
+    details: EssayGradeDetails
 
 
 class Appeal(Body):
@@ -158,11 +246,126 @@ class WritingSubmission(Body):
     content: str = Field(min_length=1, max_length=10000)
 
 
+class GrammarAnalysisRequest(Body):
+    sentence: str = Field(min_length=1, max_length=200)
+    context: str = Field(default="", max_length=200)
+
+    @field_validator("sentence")
+    @classmethod
+    def contains_han_character(cls, value):
+        ranges = (
+            (0x3400, 0x4DBF),
+            (0x4E00, 0x9FFF),
+            (0xF900, 0xFAFF),
+            (0x20000, 0x2EBEF),
+        )
+        if not any(any(start <= ord(char) <= end for start, end in ranges)
+                   for char in value):
+            raise ValueError("Câu cần kiểm tra phải chứa ít nhất một chữ Hán")
+        return value
+
+
+class GrammarError(Body):
+    position: str = Field(min_length=1, max_length=100)
+    original: str = Field(default="", max_length=200)
+    suggestion: str = Field(default="", max_length=200)
+    reason: str = Field(min_length=1, max_length=1000)
+
+
+class GrammarAnalysisDetails(Body):
+    errors: list[GrammarError] = Field(default_factory=list, max_length=20)
+    corrected_sentence: str = Field(min_length=1, max_length=300)
+
+
+class GrammarAnalysisResponse(Body):
+    score: float = Field(ge=0, le=100)
+    feedback: str = Field(min_length=1, max_length=2000)
+    details: GrammarAnalysisDetails
+
+
 class HandwritingSubmission(Body):
-    target: str = Field(min_length=1, max_length=4)
+    target: str = Field(min_length=1, max_length=1)
+    strokes: list[list[Point]] = Field(min_length=1, max_length=64)
+
+    @field_validator("target")
+    @classmethod
+    def single_han_character(cls, value):
+        codepoint = ord(value)
+        if not (0x3400 <= codepoint <= 0x4DBF
+                or 0x4E00 <= codepoint <= 0x9FFF
+                or 0xF900 <= codepoint <= 0xFAFF
+                or 0x20000 <= codepoint <= 0x2EBEF):
+            raise ValueError("Luyện nét chỉ hỗ trợ một chữ Hán")
+        return value
+
+    @field_validator("strokes")
+    @classmethod
+    def valid_strokes(cls, value):
+        return Word.valid_strokes(value)
+
+
+class HandwritingGradeDetails(Body):
+    wrong_strokes: list[int] = Field(default_factory=list, max_length=64)
+    # Keep the three rubric components explicit so Flutter/Admin can explain
+    # where the final 0-100 score came from.
+    count_score: float = Field(default=0, ge=0, le=100)
+    order_position_score: float = Field(default=0, ge=0, le=100)
+    direction_score: float = Field(default=0, ge=0, le=100)
+
+    @field_validator("wrong_strokes")
+    @classmethod
+    def valid_indices(cls, value):
+        if any(index < 1 for index in value) or len(value) != len(set(value)):
+            raise ValueError("Chỉ số nét sai phải duy nhất và bắt đầu từ 1")
+        return value
+
+
+class HandwritingGradeResponse(Body):
+    score: float = Field(ge=0, le=100)
+    feedback: str = Field(min_length=1, max_length=2000)
+    details: HandwritingGradeDetails
+
+
+class HandwritingRetryItem(Body):
+    hanzi: str = Field(min_length=1, max_length=1)
+    latest_score: float = Field(ge=0, le=100)
+    attempts: int = Field(ge=1)
+    last_practiced_at: int = Field(ge=0)
+
+
+class HandwritingRecognition(Body):
+    """Canvas payload shared by Flutter and the handwriting OCR endpoint."""
+
     strokes: list[list[Point]] = Field(min_length=1, max_length=64)
 
     @field_validator("strokes")
     @classmethod
     def valid_strokes(cls, value):
         return Word.valid_strokes(value)
+
+
+class HandwritingWordMatch(Body):
+    id: int = Field(ge=1)
+    hanzi: str
+    pinyin: str
+    meaning: str
+    hsk: int = Field(ge=1, le=6)
+    example: str = ""
+    audio_url: str = ""
+
+
+class HandwritingCandidate(Body):
+    hanzi: str = Field(min_length=1, max_length=4)
+    confidence: float = Field(ge=0, le=100)
+    words: list[HandwritingWordMatch] = Field(default_factory=list, max_length=10)
+
+
+class HandwritingRecognitionDetails(Body):
+    recognized_hanzi: str = Field(min_length=1, max_length=4)
+    candidates: list[HandwritingCandidate] = Field(min_length=1, max_length=5)
+
+
+class HandwritingRecognitionResponse(Body):
+    score: float = Field(ge=0, le=100)
+    feedback: str = Field(min_length=1, max_length=2000)
+    details: HandwritingRecognitionDetails

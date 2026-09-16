@@ -1,5 +1,7 @@
 # HanziGo · Chinese Learning
 
+Cập nhật nhánh `test` 17/09: đã tích hợp phần từ vựng của Vy trên `main` và các chức năng viết tay/ngữ pháp/bài thi viết của Trung. Trong **Từ vựng**, gõ để tìm, bấm loa để nghe và biểu tượng lưu để thêm vào **Sổ tay từ vựng**. Sổ tay lưu riêng theo tài khoản trên backend. Xem [biên bản tích hợp](docs/INTEGRATION_TEST.md) để biết dữ liệu seed, API và phạm vi kiểm chứng.
+
 Ứng dụng học tiếng Trung cho người Việt. Nhánh `test` tích hợp **Admin của Nguyên** (UC-08, chức năng 28 và 31–35), ứng dụng học viên/backend của **Kiệt** và **giao diện đăng nhập/đăng ký của Tuyến**. Xem [biên bản tích hợp](docs/INTEGRATION_TEST.md).
 
 ## Chạy một website cho Admin và học viên
@@ -54,7 +56,7 @@ Trên điện thoại, nhấn nút **☰** để mở menu gồm nhóm Học t�
 
 Mở `http://<IPv4-cua-may-tinh>:8010/admin` trên điện thoại (xem IPv4 bằng `ipconfig`). Trên máy tính vẫn mở `http://127.0.0.1:8010/admin`. Dừng tiến trình cũ trên cổng 8010 trước khi đổi lệnh chạy. Nếu không kết nối được từ điện thoại, kiểm tra cùng mạng và quyền kết nối mạng riêng của Python trong Windows Firewall. Đây là bản web responsive, chưa phải màn hình Admin native trong Flutter.
 
-`seed.py` thêm 8 từ và 6 đề Đọc mẫu HSK 1–6; chạy lại không tạo trùng. Đề minh họa ở trạng thái nháp để Admin kiểm tra trước khi phát hành. Không tạo tài khoản/mật khẩu mặc định, điểm hay lịch sử AI giả. Có thể tạo câu Nghe/Viết trong trang ngân hàng đề; câu Nghe cần audio HTTPS thật.
+`seed.py` thêm 33 từ (26 chữ đơn có nét mẫu) và 6 đề Đọc mẫu HSK 1–6; chạy lại không tạo trùng. Đề minh họa ở trạng thái nháp để Admin kiểm tra trước khi phát hành. Không tạo tài khoản/mật khẩu mặc định, điểm hay lịch sử AI giả. Có thể tạo câu Nghe/Viết trong trang ngân hàng đề; câu Nghe cần audio HTTPS thật.
 
 Database mặc định: `backend/hanzi_go.db`. Trang Admin và API chạy chung máy chủ, không cần Node.js để sử dụng.
 
@@ -79,8 +81,8 @@ GEMINI_MODEL=gemini-3.5-flash
 
 Trong trang Admin, mở **Cấu hình AI**, kiểm tra model rồi bật AI. Backend gọi
 Gemini, bắt buộc JSON theo schema, tự thử lại lỗi mạng/429/5xx hoặc JSON bị cắt,
-chuẩn hóa điểm/nhận xét và lưu trạng thái usage. Chấm viết tay gửi cả ảnh Canvas,
-ảnh nét chuẩn và thứ tự tọa độ; khóa chỉ tồn tại phía máy chủ.
+chuẩn hóa điểm/nhận xét và lưu trạng thái usage. Tra từ viết tay dùng Gemini OCR;
+chế độ Luyện nét so sánh tọa độ với nét chuẩn hoàn toàn offline và không cần API key.
 
 Có thể bật và kiểm tra kết nối từ thư mục `backend` bằng `python configure_gemini.py`, sau đó `python verify_gemini.py`. Hai lệnh không hiển thị API key; lệnh kiểm tra không lưu kết quả mẫu vào CSDL.
 

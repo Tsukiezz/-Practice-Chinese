@@ -5,6 +5,7 @@ import '../models/reading_exam.dart';
 import '../services/reading_exam_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/hanzi_drawing_canvas.dart';
 
 class PracticeScreen extends StatefulWidget {
   const PracticeScreen({
@@ -24,7 +25,8 @@ class PracticeScreen extends StatefulWidget {
 
 class _PracticeScreenState extends State<PracticeScreen> {
   final TextEditingController _textAnswerController = TextEditingController();
-  final Map<String, String> _answers = {};
+  final Map<String, dynamic> _answers = {};
+  final Map<String, HanziCanvasController> _canvasControllers = {};
 
   int _selectedHsk = 1;
   int _currentQuestion = 0;
@@ -46,6 +48,9 @@ class _PracticeScreenState extends State<PracticeScreen> {
   @override
   void dispose() {
     _textAnswerController.dispose();
+    for (final controller in _canvasControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -167,7 +172,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
   Widget _buildQuestion() {
     final exam = _activeExam!;
     final question = exam.questions[_currentQuestion];
-    final answer = _answers[question.id] ?? '';
+    final answer = _answers[question.id];
     final isLastQuestion = _currentQuestion == exam.questions.length - 1;
 
     return SafeArea(
@@ -229,16 +234,40 @@ class _PracticeScreenState extends State<PracticeScreen> {
                   ],
                   const SizedBox(height: 22),
                   Text(
-                    question.options.isEmpty
-                        ? 'Nhập đáp án'
-                        : 'Chọn một đáp án',
+                    question.questionType == 'hanzi_canvas'
+                        ? 'Viết chữ Hán'
+                        : question.questionType == 'essay'
+                            ? 'Viết đoạn văn'
+                            : question.options.isEmpty
+                                ? 'Nhập đáp án'
+                                : 'Chọn một đáp án',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  if (question.options.isEmpty)
+                  if (question.questionType == 'hanzi_canvas')
+                    _buildCanvasAnswer(question)
+                  else if (question.questionType == 'essay')
+                    TextField(
+                      key: const Key('essay-answer'),
+                      controller: _textAnswerController,
+                      enabled: !_submitting,
+                      maxLength: 500,
+                      minLines: 8,
+                      maxLines: 12,
+                      decoration: const InputDecoration(
+                        hintText:
+                            'Nhập đoạn văn tiếng Trung (tối đa 500 ký tự)',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) => _saveAnswer(
+                        question.id,
+                        {'kind': 'essay', 'text': value},
+                      ),
+                    )
+                  else if (question.options.isEmpty)
                     TextField(
                       key: const Key('text-answer'),
                       controller: _textAnswerController,
@@ -283,7 +312,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                         flex: 2,
                         child: FilledButton(
                           key: const Key('question-action'),
-                          onPressed: answer.trim().isEmpty || _submitting
+                          onPressed: !_hasAnswer(question) || _submitting
                               ? null
                               : () => _handleQuestionAction(isLastQuestion),
                           child: _submitting
@@ -398,6 +427,65 @@ class _PracticeScreenState extends State<PracticeScreen> {
     );
   }
 
+  Widget _buildCanvasAnswer(ReadingQuestion question) {
+    final controller = _canvasControllers.putIfAbsent(
+      question.id,
+      HanziCanvasController.new,
+    );
+    return Column(
+      children: [
+        HanziDrawingCanvas(
+          key: const Key('exam-hanzi-canvas'),
+          controller: controller,
+          enabled: !_submitting,
+          maxWidth: 430,
+          onChanged: () => _saveAnswer(question.id, {
+            'kind': 'hanzi_canvas',
+            'strokes': controller.payload,
+          }),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                key: const Key('undo-exam-stroke'),
+                onPressed: _submitting || controller.isEmpty
+                    ? null
+                    : () {
+                        controller.undo();
+                        _saveAnswer(question.id, {
+                          'kind': 'hanzi_canvas',
+                          'strokes': controller.payload,
+                        });
+                      },
+                icon: const Icon(Icons.undo_rounded),
+                label: const Text('Hoàn tác nét'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                key: const Key('clear-exam-canvas'),
+                onPressed: _submitting || controller.isEmpty
+                    ? null
+                    : () {
+                        controller.clear();
+                        _saveAnswer(question.id, {
+                          'kind': 'hanzi_canvas',
+                          'strokes': controller.payload,
+                        });
+                      },
+                icon: const Icon(Icons.delete_outline_rounded),
+                label: const Text('Viết lại'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Future<void> _loadExams() async {
     final sequence = ++_loadSequence;
     setState(() {
@@ -440,12 +528,13 @@ class _PracticeScreenState extends State<PracticeScreen> {
       _result = null;
       _currentQuestion = 0;
       _answers.clear();
+      _clearCanvasControllers();
       _submitError = null;
       _textAnswerController.clear();
     });
   }
 
-  void _saveAnswer(String questionId, String value) {
+  void _saveAnswer(String questionId, dynamic value) {
     setState(() {
       _answers[questionId] = value;
       _submitError = null;
@@ -467,7 +556,10 @@ class _PracticeScreenState extends State<PracticeScreen> {
       _currentQuestion = index;
       _submitError = null;
       final question = _activeExam!.questions[index];
-      _textAnswerController.text = _answers[question.id] ?? '';
+      final answer = _answers[question.id];
+      _textAnswerController.text = question.questionType == 'essay'
+          ? ((answer as Map?)?['text'] as String? ?? '')
+          : (answer is String ? answer : '');
     });
   }
 
@@ -537,6 +629,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
       _result = null;
       _currentQuestion = 0;
       _answers.clear();
+      _clearCanvasControllers();
       _submitError = null;
       _textAnswerController.clear();
     });
@@ -547,6 +640,27 @@ class _PracticeScreenState extends State<PracticeScreen> {
     return score == score.roundToDouble()
         ? score.toInt().toString()
         : score.toStringAsFixed(1);
+  }
+
+  bool _hasAnswer(ReadingQuestion question) {
+    final answer = _answers[question.id];
+    if (question.questionType == 'hanzi_canvas') {
+      return answer is Map &&
+          answer['strokes'] is List &&
+          (answer['strokes'] as List).isNotEmpty;
+    }
+    if (question.questionType == 'essay') {
+      return answer is Map &&
+          (answer['text'] as String? ?? '').trim().isNotEmpty;
+    }
+    return answer is String && answer.trim().isNotEmpty;
+  }
+
+  void _clearCanvasControllers() {
+    for (final controller in _canvasControllers.values) {
+      controller.dispose();
+    }
+    _canvasControllers.clear();
   }
 }
 
@@ -794,7 +908,7 @@ class _ReviewCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Câu $number · ${item.isCorrect ? 'Đúng' : 'Chưa đúng'}',
+                    'Câu $number · ${item.score != null ? '${_score(item.score!)} điểm' : item.isCorrect ? 'Đúng' : 'Chưa đúng'}',
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
@@ -804,8 +918,15 @@ class _ReviewCard extends StatelessWidget {
             Text(item.prompt,
                 style: const TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
-            Text('Bạn chọn: ${item.submittedAnswer}'),
-            if (!item.isCorrect) Text('Đáp án đúng: ${item.answer}'),
+            Text(item.questionType == 'hanzi_canvas'
+                ? item.submittedAnswer
+                : 'Bạn trả lời: ${item.submittedAnswer}'),
+            if (item.questionType == 'hanzi_canvas')
+              Text('Chữ cần viết: ${item.answer}')
+            else if (item.questionType == 'essay')
+              Text('Rubric: ${item.answer}')
+            else if (!item.isCorrect)
+              Text('Đáp án đúng: ${item.answer}'),
             if (item.explanation.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
@@ -818,6 +939,10 @@ class _ReviewCard extends StatelessWidget {
       ),
     );
   }
+
+  String _score(double score) => score == score.roundToDouble()
+      ? score.toInt().toString()
+      : score.toStringAsFixed(1);
 }
 
 class _InlineError extends StatelessWidget {

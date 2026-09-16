@@ -50,7 +50,7 @@ class _FakeReadingRepository implements ReadingExamRepository {
 
   final ReadingApiException? loadError;
   final ReadingApiException? submitError;
-  Map<String, String>? submittedAnswers;
+  Map<String, dynamic>? submittedAnswers;
 
   @override
   Future<List<ReadingExam>> fetchReadingExams(int hsk) async {
@@ -61,7 +61,7 @@ class _FakeReadingRepository implements ReadingExamRepository {
   @override
   Future<ReadingResult> submitReadingExam(
     ReadingExam exam,
-    Map<String, String> answers,
+    Map<String, dynamic> answers,
   ) async {
     if (submitError != null) throw submitError!;
     submittedAnswers = Map.of(answers);

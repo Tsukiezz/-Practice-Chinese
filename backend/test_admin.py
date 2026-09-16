@@ -36,6 +36,21 @@ class AdminIntegrationTest(unittest.TestCase):
         storage.DB_PATH = self.old_db
         self.temp.cleanup()
 
+    def test_saved_words_are_private_idempotent_and_protect_references(self):
+        word = self.word()
+        path = f"/api/me/saved-words/{word['id']}"
+        self.assertEqual(self.client.put(path).status_code, 401)
+        self.assertEqual(self.client.put(path,headers=self.student_headers).status_code,204)
+        self.assertEqual(self.client.put(path,headers=self.student_headers).status_code,204)
+        self.assertEqual(len(self.client.get('/api/me/saved-words',headers=self.student_headers).json()),1)
+        self.assertEqual(self.client.get('/api/me/saved-words',headers=self.headers).json(),[])
+        self.client.delete(path,headers=self.headers)
+        self.assertEqual(len(self.client.get('/api/me/saved-words',headers=self.student_headers).json()),1)
+        self.assertEqual(self.client.delete(f"/api/admin/vocabulary/{word['id']}?version=1",headers=self.headers).status_code,409)
+        self.assertEqual(self.client.delete(path,headers=self.student_headers).status_code,204)
+        self.assertEqual(self.client.get('/api/me/saved-words',headers=self.student_headers).json(),[])
+        self.assertEqual(self.client.put('/api/me/saved-words/999999',headers=self.student_headers).status_code,404)
+
     def test_registration_normalizes_identity_but_preserves_password(self):
         body = {'name': '  Tuyến  ', 'email': '  TUYEN@example.test  ', 'password': '  password-123  '}
         response = self.client.post('/api/auth/register', json=body)
@@ -60,6 +75,41 @@ class AdminIntegrationTest(unittest.TestCase):
         image = base64.b64decode(encoded)
         self.assertTrue(image.startswith(b"\x89PNG\r\n\x1a\n"))
         self.assertGreater(len(image), 100)
+
+    def test_handwriting_recognition_returns_contract_and_vocabulary(self):
+        self.word()
+        strokes = [[{"x": 100, "y": 500}, {"x": 900, "y": 500}]]
+        with storage.database() as conn:
+            conn.execute("UPDATE ai_config SET enabled=1,model='test-model'")
+        ai_result = {
+            "score": 96,
+            "feedback": "Chữ được nhận dạng rõ ràng.",
+            "candidates": [
+                {"hanzi": "一", "confidence": 96},
+                {"hanzi": "二", "confidence": 31},
+            ],
+        }
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "private-test-secret"}), \
+             patch("main.gemini_handwriting_recognition_provider",
+                   return_value=ai_result):
+            response = self.client.post(
+                "/api/handwriting/recognize",
+                headers=self.student_headers,
+                json={"strokes": strokes},
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        payload = response.json()
+        self.assertEqual(set(payload), {"score", "feedback", "details"})
+        self.assertEqual(payload["score"], 96)
+        self.assertEqual(payload["details"]["recognized_hanzi"], "一")
+        self.assertEqual(payload["details"]["candidates"][0]["words"][0]["meaning"], "một")
+        with storage.database() as conn:
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM results").fetchone()[0], 0)
+            usage = conn.execute(
+                "SELECT module,status FROM ai_usage ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+        self.assertEqual(tuple(usage), ("handwriting_recognition", "success"))
 
     def test_gemini_transient_failure_is_retried(self):
         request = httpx.Request("POST", "https://gemini.example.test")
@@ -461,31 +511,95 @@ class AdminIntegrationTest(unittest.TestCase):
 
     def test_handwriting_canvas_result_enters_and_leaves_review_list(self):
         self.word()
-        strokes = [[{"x": 100, "y": 500}, {"x": 900, "y": 500}]]
-        with storage.database() as conn:
-            conn.execute("UPDATE ai_config SET enabled=1,model='test-model'")
-        with patch.dict(os.environ, {"GEMINI_API_KEY": "private-test-secret"}), \
-             patch('main.gemini_handwriting_provider', side_effect=[
-                 {"score": 55, "feedback": "Nét ngang chưa cân đối."},
-                 {"score": 90, "feedback": "Nét đã cân đối."},
-             ]):
-            original = self.client.post("/api/handwriting/submit", headers=self.student_headers,
-                                        json={"target": "一", "strokes": strokes})
-            self.assertEqual(original.status_code, 201, original.text)
-            weak = self.client.get("/api/me/review-items?kind=handwriting",
-                                   headers=self.student_headers).json()
-            self.assertEqual(len(weak), 1)
-            wrong_target = self.client.post(
-                f"/api/me/review/handwriting/{original.json()['id']}",
-                headers=self.student_headers, json={"target": "二", "strokes": strokes})
-            self.assertEqual(wrong_target.status_code, 422)
-            retry = self.client.post(
-                f"/api/me/review/handwriting/{original.json()['id']}",
-                headers=self.student_headers, json={"target": "一", "strokes": strokes})
-            self.assertEqual(retry.status_code, 201, retry.text)
-            self.assertTrue(retry.json()["review_completed"])
+        correct = [[{"x": 100, "y": 500}, {"x": 900, "y": 500}]]
+        reversed_stroke = [[{"x": 900, "y": 500}, {"x": 100, "y": 500}]]
+
+        original = self.client.post(
+            "/api/handwriting/submit", headers=self.student_headers,
+            json={"target": "一", "strokes": reversed_stroke})
+        self.assertEqual(original.status_code, 201, original.text)
+        self.assertEqual(original.json(), {
+            "score": 70.0,
+            "feedback": "Cần kiểm tra lại nét 1.",
+            "details": {
+                "wrong_strokes": [1],
+                "count_score": 100.0,
+                "order_position_score": 100.0,
+                "direction_score": 0.0,
+            },
+        })
+        results = self.client.get(
+            "/api/me/results", headers=self.student_headers).json()
+        source_result_id = results[0]["id"]
+        self.assertEqual(results[0]["graded_by"], "automatic")
+
+        weak = self.client.get("/api/me/review-items?kind=handwriting",
+                               headers=self.student_headers).json()
+        self.assertEqual(len(weak), 1)
+        wrong_target = self.client.post(
+            f"/api/me/review/handwriting/{source_result_id}",
+            headers=self.student_headers, json={"target": "二", "strokes": correct})
+        self.assertEqual(wrong_target.status_code, 422)
+        retry = self.client.post(
+            f"/api/me/review/handwriting/{source_result_id}",
+            headers=self.student_headers, json={"target": "一", "strokes": correct})
+        self.assertEqual(retry.status_code, 201, retry.text)
+        self.assertEqual(retry.json()["score"], 100)
+        self.assertEqual(retry.json()["details"]["wrong_strokes"], [])
         self.assertEqual(self.client.get("/api/me/review-items?kind=handwriting",
                                          headers=self.student_headers).json(), [])
+
+    def test_handwriting_practice_rejects_words_with_multiple_characters(self):
+        strokes = [[{"x": 100, "y": 500}, {"x": 900, "y": 500}]]
+        response = self.client.post(
+            "/api/handwriting/submit", headers=self.student_headers,
+            json={"target": "你好", "strokes": strokes})
+        self.assertEqual(response.status_code, 422)
+
+    def test_translation_analysis_endpoint_uses_cache(self):
+        output = {
+            "score": 72,
+            "feedback": "Thứ tự trạng từ chưa tự nhiên.",
+            "details": {
+                "errors": [{
+                    "position": "trước 学习",
+                    "original": "学习每天",
+                    "suggestion": "每天学习",
+                    "reason": "Trạng từ thời gian đứng trước động từ.",
+                }],
+                "corrected_sentence": "我每天学习中文。",
+            },
+        }
+        with storage.database() as conn:
+            conn.execute("UPDATE ai_config SET enabled=1,model='test-model'")
+        body = {
+            "sentence": "我学习每天中文。",
+            "context": "Tôi học tiếng Trung mỗi ngày.",
+        }
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "test-secret"}), \
+             patch("main.gemini_grammar_provider",
+                   return_value=output) as provider:
+            first = self.client.post(
+                "/api/translation/analyze",
+                headers=self.student_headers,
+                json=body,
+            )
+            second = self.client.post(
+                "/api/translation/analyze",
+                headers=self.student_headers,
+                json=body,
+            )
+
+        self.assertEqual(first.status_code, 200, first.text)
+        self.assertEqual(first.json(), output)
+        self.assertEqual(second.json(), output)
+        provider.assert_called_once()
+        with storage.database() as conn:
+            calls = conn.execute(
+                """SELECT COUNT(*) FROM ai_usage
+                   WHERE module='grammar_analysis' AND status='success'"""
+            ).fetchone()[0]
+        self.assertEqual(calls, 1)
 
     def test_comprehensive_exam_saves_each_skill_score(self):
         body = {
@@ -573,7 +687,7 @@ class AdminIntegrationTest(unittest.TestCase):
         seed()
         seed()
         data=self.client.get("/api/admin/dashboard",headers=self.headers).json()["totals"]
-        self.assertEqual(data["vocabulary"],8)
+        self.assertEqual(data["vocabulary"], 33)
         self.assertEqual(data["exams"],7)
         self.assertEqual(data["results"],0)
         self.assertEqual(data["ai_success"],0)

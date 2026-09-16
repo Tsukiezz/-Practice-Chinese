@@ -18,12 +18,23 @@ from fastapi.staticfiles import StaticFiles
 from database import audit, database, init_db
 from models import Appeal, AppealReview
 from models import (AIConfig, DictionaryLookup, Exam, ExamUpdate,
+                    EssayGradeRequest, EssayGradeResponse,
+                    ExamCanvasGradeRequest,
+                    GrammarAnalysisRequest, GrammarAnalysisResponse,
+                    HandwritingGradeResponse,
+                    HandwritingRetryItem,
+                    HandwritingRecognition, HandwritingRecognitionResponse,
                     HandwritingSubmission, Login, Override, Register,
                     Submission, UserUpdate, Word, WordUpdate, WritingSubmission)
 from services import (configured_api_key, configured_model, evaluate_with_ai,
+                      compare_handwriting_strokes,
                       gemini_capability_provider, gemini_exam_provider,
-                      gemini_handwriting_provider, gemini_provider, grade_with_ai, ai_settings,
-                      record_ai_usage)
+                      gemini_essay_provider, gemini_grammar_provider,
+                      gemini_handwriting_recognition_provider, gemini_provider,
+                      grade_essay_with_ai, grade_handwriting_offline,
+                      grade_with_ai, ai_settings,
+                      analyze_grammar_with_ai, recognize_handwriting_with_ai,
+                      record_ai_usage, build_handwriting_retry_items)
 
 
 @asynccontextmanager
@@ -300,7 +311,7 @@ def delete_word(word_id: int, version: int = Query(ge=1), admin=Depends(admin_us
             conn.execute("DELETE FROM vocabulary WHERE id=?", (word_id,))
             audit(conn, admin["id"], "delete", "vocabulary", word_id, word_json(before))
     except sqlite3.IntegrityError:
-        raise HTTPException(409, "Từ đang được dùng trong đề thi. Hãy gỡ liên kết trước khi xóa.")
+        raise HTTPException(409, "Từ đang được dùng trong đề thi, lịch sử hoặc sổ tay. Hãy gỡ liên kết trước khi xóa.")
 
 
 def exam_json(row, learner=False):
@@ -336,7 +347,21 @@ def save_exam(body, admin, exam_id=None):
         conn.execute("BEGIN IMMEDIATE")
         for q in questions:
             if q["word_id"] is not None:
-                require_row(conn, "vocabulary", q["word_id"])
+                linked_word = require_row(conn, "vocabulary", q["word_id"])
+                if (q.get("question_type") == "hanzi_canvas"
+                        and linked_word["hanzi"] != q["answer"]):
+                    raise HTTPException(
+                        422, "ID từ liên quan không khớp chữ Hán đáp án Canvas")
+            if q.get("question_type") == "hanzi_canvas":
+                word = conn.execute(
+                    "SELECT id,strokes_json FROM vocabulary WHERE hanzi=?",
+                    (q["answer"],),
+                ).fetchone()
+                if word is None or not json.loads(word["strokes_json"]):
+                    raise HTTPException(
+                        422, "Chữ Hán Canvas chưa có dữ liệu nét chuẩn")
+                # Link automatically so the referenced stroke data cannot be deleted.
+                q["word_id"] = word["id"]
         values = (body.title, body.hsk, body.status, body.duration_minutes, json.dumps(questions, ensure_ascii=False))
         before = None
         if exam_id is not None:
@@ -375,6 +400,153 @@ def delete_exam(exam_id: int, version: int = Query(ge=1), admin=Depends(admin_us
         raise HTTPException(409, "Đề đã có kết quả. Hãy chuyển sang trạng thái ẩn để giữ lịch sử.")
 
 
+def _exam_answer_json(value):
+    return value if isinstance(value, str) else value.model_dump()
+
+
+def _legacy_exam_grade(exam, questions, answers, user_id, grader):
+    sections = {q["section"] for q in questions}
+    ai_kind = next(iter(sections)) if len(sections) == 1 else "exam"
+    grading_content = json.dumps({
+        "exam_title": exam["title"],
+        "questions": [{
+            "id": q["id"], "section": q["section"], "prompt": q["prompt"],
+            "options": q["options"], "answer": q["answer"],
+            "submitted_answer": answers[q["id"]],
+            "transcript": q.get("transcript", ""),
+            "explanation": q.get("explanation", ""),
+        } for q in questions]
+    }, ensure_ascii=False)
+    grade_function = ({"reading": grader, "listening": grade_listening_exam}
+                      .get(ai_kind, grade_comprehensive_exam))
+    return grade_function(user_id, grading_content)
+
+
+def _grade_exam_canvas(target: str, strokes: list[list[dict]]):
+    with database() as conn:
+        word = conn.execute(
+            "SELECT strokes_json FROM vocabulary WHERE hanzi=?", (target,)
+        ).fetchone()
+    if word is None or not json.loads(word["strokes_json"]):
+        raise HTTPException(422, "Chữ Hán chưa có dữ liệu nét chuẩn")
+    return compare_handwriting_strokes(json.loads(word["strokes_json"]), strokes)
+
+
+@app.post("/api/test-writing/grade-canvas",
+          response_model=HandwritingGradeResponse)
+def grade_test_canvas(body: ExamCanvasGradeRequest,
+                      user=Depends(current_user)):
+    strokes = [[point.model_dump() for point in stroke]
+               for stroke in body.strokes]
+    return _grade_exam_canvas(body.target, strokes)
+
+
+@app.post("/api/test-writing/grade-essay",
+          response_model=EssayGradeResponse)
+def grade_test_essay(body: EssayGradeRequest, user=Depends(current_user)):
+    return grade_essay_with_ai(
+        user["id"], body.prompt, body.rubric, body.text,
+        gemini_essay_provider)
+
+
+def _submit_extended_exam(exam_id, exam, questions, body, user, grader):
+    answers = {key: _exam_answer_json(value)
+               for key, value in body.answers.items()}
+    legacy_questions = [q for q in questions if not q.get("question_type")]
+    special_questions = [q for q in questions if q.get("question_type")]
+    question_scores = {}
+    ai_review_items = []
+    feedback_parts = []
+    used_ai = False
+
+    if legacy_questions:
+        if any(not isinstance(answers[q["id"]], str)
+               for q in legacy_questions):
+            raise HTTPException(422, "Câu hỏi cũ cần đáp án dạng văn bản")
+        legacy_grade = _legacy_exam_grade(
+            exam, legacy_questions, answers, user["id"], grader)
+        used_ai = True
+        if legacy_grade.get("feedback"):
+            feedback_parts.append(legacy_grade["feedback"])
+        ai_review_items.extend(legacy_grade.get("review_items", []))
+        for question in legacy_questions:
+            question_scores[question["id"]] = {
+                "score": round(float(legacy_grade["score"]), 2),
+                "feedback": legacy_grade.get("feedback", ""),
+                "graded_by": "ai",
+            }
+
+    for question in special_questions:
+        answer = answers[question["id"]]
+        question_type = question["question_type"]
+        if (not isinstance(answer, dict)
+                or answer.get("kind") != question_type):
+            raise HTTPException(
+                422, f"Câu {question['id']} cần đáp án loại {question_type}")
+        if question_type == "hanzi_canvas":
+            grade = _grade_exam_canvas(question["answer"], answer["strokes"])
+            source = "automatic"
+        elif question_type == "essay":
+            grade = grade_essay_with_ai(
+                user["id"], question["prompt"], question["answer"],
+                answer["text"], gemini_essay_provider)
+            source = "ai"
+            used_ai = True
+        else:
+            raise HTTPException(422, "Loại câu hỏi writing không hỗ trợ")
+        question_scores[question["id"]] = {
+            "score": grade["score"],
+            "feedback": grade["feedback"],
+            "graded_by": source,
+            "details": grade.get("details", {}),
+        }
+        feedback_parts.append(f"Câu {question['id']}: {grade['feedback']}")
+        ai_review_items.append({
+            "id": question["id"], "explanation": grade["feedback"]})
+
+    total_weight = sum(float(q.get("weight", 1)) for q in questions)
+    score = round(sum(
+        question_scores[q["id"]]["score"] * float(q.get("weight", 1))
+        for q in questions) / total_weight, 2)
+    section_totals = {}
+    for question in questions:
+        section = question["section"]
+        weight = float(question.get("weight", 1))
+        weighted, weights = section_totals.get(section, (0.0, 0.0))
+        section_totals[section] = (
+            weighted + question_scores[question["id"]]["score"] * weight,
+            weights + weight,
+        )
+    section_scores = {
+        section: round(weighted / weights, 2)
+        for section, (weighted, weights) in section_totals.items()
+    }
+    feedback = " ".join(feedback_parts)
+    graded_by = "ai" if used_ai else "automatic"
+    snapshot = json.dumps({
+        "exam_title": exam["title"], "exam_version": exam["version"],
+        "questions": questions, "answers": answers,
+        "ai_review_items": ai_review_items,
+        "section_scores": section_scores,
+        "question_scores": question_scores,
+    }, ensure_ascii=False)
+    with database() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        current = require_row(conn, "exams", exam_id)
+        if current["status"] != "published":
+            raise HTTPException(404, "Đề thi chưa được phát hành")
+        check_version(current, body.version)
+        rid = conn.execute(
+            """INSERT INTO results(
+                   user_id,exam_id,kind,content,score,original_score,feedback,
+                   graded_by,created_at
+               ) VALUES(?,?,'exam',?,?,?,?,?,?)""",
+            (user["id"], exam_id, snapshot, score, score, feedback,
+             graded_by, int(time.time())),
+        ).lastrowid
+        return require_row(conn, "results", rid)
+
+
 @app.post("/api/exams/{exam_id}/submit", status_code=201)
 def submit(exam_id: int, body: Submission, user=Depends(current_user), grader=Depends(get_exam_ai_grader)):
     with database() as conn:
@@ -383,6 +555,14 @@ def submit(exam_id: int, body: Submission, user=Depends(current_user), grader=De
             raise HTTPException(404, "Đề thi chưa được phát hành")
         check_version(exam, body.version)
         questions = json.loads(exam["questions_json"])
+        if any(q.get("question_type") for q in questions):
+            if set(body.answers) != {q["id"] for q in questions}:
+                raise HTTPException(
+                    422, "Cần nộp đúng danh sách mã câu hỏi của đề")
+            return _submit_extended_exam(
+                exam_id, exam, questions, body, user, grader)
+        if any(not isinstance(value, str) for value in body.answers.values()):
+            raise HTTPException(422, "Câu hỏi cũ cần đáp án dạng văn bản")
         if set(body.answers) != {q["id"] for q in questions}:
             raise HTTPException(422, "Cần nộp đúng danh sách mã câu hỏi của đề")
 
@@ -484,6 +664,14 @@ def submit_writing(body: WritingSubmission, user=Depends(current_user)):
     return grade_with_ai(user["id"], "writing", payload, gemini_provider)
 
 
+@app.post("/api/translation/analyze", response_model=GrammarAnalysisResponse)
+def analyze_translation(body: GrammarAnalysisRequest,
+                        user=Depends(current_user)):
+    """Correct one Chinese sentence and assess its optional intended context."""
+    return analyze_grammar_with_ai(
+        user["id"], body.sentence, body.context, gemini_grammar_provider)
+
+
 def grade_handwriting_submission(body: HandwritingSubmission, user_id: int):
     with database() as conn:
         word = conn.execute("SELECT * FROM vocabulary WHERE hanzi=?", (body.target,)).fetchone()
@@ -492,17 +680,40 @@ def grade_handwriting_submission(body: HandwritingSubmission, user_id: int):
     standard = json.loads(word["strokes_json"])
     if not standard:
         raise HTTPException(422, "Chữ Hán chưa có dữ liệu nét chuẩn")
-    payload = json.dumps({
-        "target": body.target,
-        "standard_strokes": standard,
-        "submitted_strokes": [[point.model_dump() for point in stroke] for stroke in body.strokes],
-    }, ensure_ascii=False)
-    return grade_with_ai(user_id, "handwriting", payload, gemini_handwriting_provider)
+    submitted = [[point.model_dump() for point in stroke] for stroke in body.strokes]
+    return grade_handwriting_offline(user_id, body.target, standard, submitted)
 
 
-@app.post("/api/handwriting/submit", status_code=201)
+@app.post("/api/handwriting/submit", status_code=201,
+          response_model=HandwritingGradeResponse)
 def submit_handwriting(body: HandwritingSubmission, user=Depends(current_user)):
-    return grade_handwriting_submission(body, user["id"])
+    grade, _ = grade_handwriting_submission(body, user["id"])
+    return grade
+
+
+@app.get("/api/me/handwriting-retry-items",
+         response_model=list[HandwritingRetryItem])
+def handwriting_retry_items(user=Depends(current_user)):
+    """List weak characters by their latest attempt, lowest score first."""
+    with database() as conn:
+        rows = conn.execute(
+            """SELECT id,kind,content,score,created_at FROM results
+               WHERE user_id=? AND kind IN ('handwriting','exam')
+               ORDER BY created_at,id""",
+            (user["id"],),
+        ).fetchall()
+    return build_handwriting_retry_items(rows)
+
+
+@app.post(
+    "/api/handwriting/recognize",
+    response_model=HandwritingRecognitionResponse,
+)
+def recognize_handwriting(body: HandwritingRecognition, user=Depends(current_user)):
+    """Recognize Canvas strokes and return ranked, vocabulary-enriched matches."""
+    strokes = [[point.model_dump() for point in stroke] for stroke in body.strokes]
+    return recognize_handwriting_with_ai(
+        user["id"], strokes, gemini_handwriting_recognition_provider)
 
 
 @app.get("/api/me/review-items")
@@ -574,7 +785,7 @@ def resubmit_handwriting(source_result_id: int, body: HandwritingSubmission,
             raise HTTPException(409, "Bài viết tay cũ không còn đủ dữ liệu để luyện lại") from None
         if body.target != original_target:
             raise HTTPException(422, "Cần viết lại đúng chữ Hán của bài gốc")
-    result = grade_handwriting_submission(body, user["id"])
+    grade, result = grade_handwriting_submission(body, user["id"])
     now = int(time.time())
     with database() as conn:
         conn.execute(
@@ -588,9 +799,7 @@ def resubmit_handwriting(source_result_id: int, body: HandwritingSubmission,
                completed_at=excluded.completed_at,updated_at=excluded.updated_at""",
             (source_result_id, user["id"], result["id"], now if result["score"] >= 80 else None, now),
         )
-    result["review_completed"] = result["score"] >= 80
-    result["source_result_id"] = source_result_id
-    return result
+    return grade
 
 
 @app.get("/api/me/results")
@@ -815,6 +1024,28 @@ def review_appeal(appeal_id: int, body: AppealReview, admin=Depends(admin_user))
         audit(conn, admin["id"], "override", "result", result["id"], {"score": result["score"]},
               {"score": body.score, "reason": body.response, "appeal_id": appeal_id})
         return after
+
+
+@app.get("/api/me/saved-words")
+def saved_words(user=Depends(current_user)):
+    with database() as conn:
+        return [word_json(r) for r in conn.execute(
+            "SELECT v.* FROM saved_words s JOIN vocabulary v ON v.id=s.word_id WHERE s.user_id=? ORDER BY s.created_at DESC,v.id DESC",
+            (user["id"],))]
+
+
+@app.put("/api/me/saved-words/{word_id}", status_code=204)
+def save_personal_word(word_id: int, user=Depends(current_user)):
+    with database() as conn:
+        require_row(conn, "vocabulary", word_id)
+        conn.execute("INSERT OR IGNORE INTO saved_words(user_id,word_id,created_at) VALUES(?,?,?)",
+                     (user["id"], word_id, int(time.time())))
+
+
+@app.delete("/api/me/saved-words/{word_id}", status_code=204)
+def remove_personal_word(word_id: int, user=Depends(current_user)):
+    with database() as conn:
+        conn.execute("DELETE FROM saved_words WHERE user_id=? AND word_id=?", (user["id"], word_id))
 
 
 ADMIN_DIR = Path(__file__).resolve().parent.parent / "admin"

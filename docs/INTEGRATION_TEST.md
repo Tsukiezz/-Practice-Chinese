@@ -1,5 +1,23 @@
 # Tích hợp Nguyên + Kiệt vào test — 09/09/2026
 
+## Cập nhật 17/09/2026: Vy từ main + Trung vào test
+
+Nguồn: `main` tại `02cea54` (Vy cập nhật vocabulary_screen.dart), `trung` tại `49b6c55`, ghép trên `test` tại `c41f35e`. Không ghi ngược lên main/trung. Lịch sử merge giữ nguồn của các thành viên.
+
+Main của Vy chỉ chứa màn hình từ vựng, thiếu các file được import (`vocabulary_service.dart`, `pronunciation_service.dart`, `notebook_screen.dart`, `translation_screen.dart`). Bản ghép triển khai tìm kiếm khi gõ, phát âm, lưu/bỏ lưu và sổ tay bằng `StudentService`/SQLite chung, giữ lịch sử và Flashcard hiện có. Nút ngôn ngữ mở màn hình **Ngữ pháp & ngữ cảnh** của Trung; không quảng cáo đây là dịch đoạn văn khi chưa có dịch vụ dịch tương ứng.
+
+- Sổ tay: `GET /api/me/saved-words`, `PUT/DELETE /api/me/saved-words/{word_id}`; danh tính lấy từ phiên, không nhận user_id từ client. PUT/DELETE lặp lại an toàn; FK bảo vệ từ đang lưu; không lẫn với lịch sử tra từ.
+- Trung: nhận dạng viết tay bằng Gemini, luyện nét offline, danh sách luyện lại, phân tích ngữ pháp/ngữ cảnh có cache, bài viết theo rubric và câu viết Canvas; giữ toàn bộ test đi kèm.
+- Seed chứa 33 từ, gồm 26 chữ đơn có nét mẫu. Không thay tài khoản/điểm/lịch sử cá nhân. Audio `/media/word-*.mp3` là phát âm tổng hợp của đúng Hán tự, không gọi Gemini lúc nghe. Seed chỉ bổ sung URL khi chưa có audio, giữ URL do Admin biên soạn.
+- `grammar_cache`, `essay_cache`, `saved_words` được tạo bằng migration thêm bảng; không reset database. Bộ test dùng DB tạm.
+- Workflow API dùng discovery `test_*.py` để thực sự chạy cả các test mới của Trung, không chỉ test_admin.
+- Khóa mới chỉ nằm trong `.env` cục bộ (Git bỏ qua). Đã xác minh một request ngắn với Gemini trả HTTP 200; đây là xác minh kết nối, không phải chứng nhận chất lượng chấm toàn bộ bài học.
+- Lượt thử provider ngữ pháp thật trả 503 do model quá tải; không kết luận ngữ pháp live đã qua. Các test luồng/schema/cache dùng provider giả lập, giữ nguyên xử lý lỗi/retry của backend để người dùng thử lại khi dịch vụ ổn định.
+
+Sau pull: cài dependency, chạy `python seed.py`, build lại Flutter web, khởi động lại backend với `WEB_APP_DIR` trỏ tới build/web. Máy khác phải tự đặt GEMINI_API_KEY. Các nét chữ/đề trong seed là dữ liệu mẫu để kiểm thử, không phải ngân hàng đề HSK chính thức.
+
+Kết quả local 17/09: **52/52 Python**, **36/36 Flutter**, analyze và build web đạt; smoke Admin/phúc khảo và smoke website chung trên Edge đạt. Smoke website kiểm chứng audio từ vựng trả 200/206, lưu từ qua PUT 204, mở/bỏ lưu sổ tay, đăng nhập Admin/học viên, audio/nộp bài Nghe, reload/logout, đăng ký mobile và lỗi email trùng. Các bài test khác của Trung kiểm chứng Canvas/luyện lại/ngữ pháp/rubric/cache với provider giả lập. Chưa kiểm thử bản cài iOS/Android trên thiết bị thật.
+
 ## Cập nhật 12/09/2026: ghép giao diện Tuyến và xác thực
 
 Nguồn `origin/tuyen` tại `58fb360` (hai màn hình đăng nhập/đăng ký), ghép vào `test` đang ở `b01de59`. Giải quyết xung đột add/add của login bằng thiết kế Tuyến và cơ chế xác thực/phân quyền hiện có của nhánh test. Giữ nguyên các luồng học, chấm bài, Admin và phúc khảo đã tích hợp.

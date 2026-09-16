@@ -115,6 +115,22 @@ def init_db():
             strengths_json TEXT NOT NULL, improvements_json TEXT NOT NULL,
             updated_at INTEGER NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS grammar_cache (
+            input_hash TEXT PRIMARY KEY,
+            response_json TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS saved_words (
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            word_id INTEGER NOT NULL REFERENCES vocabulary(id) ON DELETE RESTRICT,
+            created_at INTEGER NOT NULL,
+            PRIMARY KEY(user_id,word_id)
+        );
+        CREATE TABLE IF NOT EXISTS essay_cache (
+            input_hash TEXT PRIMARY KEY,
+            response_json TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS audit_logs (
             id INTEGER PRIMARY KEY, actor_id INTEGER NOT NULL REFERENCES users(id),
             action TEXT NOT NULL, entity TEXT NOT NULL, entity_id TEXT NOT NULL,

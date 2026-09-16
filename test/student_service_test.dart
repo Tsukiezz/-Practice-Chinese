@@ -32,6 +32,21 @@ Map<String, Object?> _result({
     };
 
 void main() {
+  test('notebook uses authenticated GET PUT DELETE', () async {
+    final methods = <String>[];
+    final service = StudentService(
+        baseUrl: 'http://test/api',
+        tokenProvider: () async => 'student-token',
+        client: MockClient((r) async {
+          expect(r.headers['Authorization'], 'Bearer student-token');
+          methods.add(r.method);
+          return r.method == 'GET' ? _json([]) : http.Response('', 204);
+        }));
+    await service.fetchSavedVocabulary();
+    await service.setWordSaved(1, true);
+    await service.setWordSaved(1, false);
+    expect(methods, ['GET', 'PUT', 'DELETE']);
+  });
   test('đọc Dashboard và báo cáo năng lực Gemini bằng dữ liệu máy chủ',
       () async {
     final client = MockClient((request) async {
@@ -146,7 +161,16 @@ void main() {
       final body = jsonDecode(request.body) as Map<String, dynamic>;
       expect(body['target'], '一');
       expect((body['strokes'] as List).single, hasLength(2));
-      return _json(_result(kind: 'handwriting', score: 88), 201);
+      return _json({
+        'score': 70,
+        'feedback': 'Cần kiểm tra lại nét 1.',
+        'details': {
+          'wrong_strokes': [1],
+          'count_score': 100,
+          'order_position_score': 100,
+          'direction_score': 0,
+        },
+      }, 201);
     });
     final service = StudentService(
       baseUrl: 'http://test/api',
@@ -161,6 +185,99 @@ void main() {
       ]
     ]);
 
-    expect(result.score, 88);
+    expect(result.score, 70);
+    expect(result.wrongStrokes, [1]);
+    expect(result.countScore, 100);
+    expect(result.orderPositionScore, 100);
+    expect(result.directionScore, 0);
+  });
+
+  test('nhận dạng viết tay đọc contract điểm, feedback và từ tương ứng',
+      () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'POST');
+      expect(request.url.path, '/api/handwriting/recognize');
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      expect((body['strokes'] as List).single, hasLength(2));
+      return _json({
+        'score': 96,
+        'feedback': 'Nhận dạng rõ ràng.',
+        'details': {
+          'recognized_hanzi': '一',
+          'candidates': [
+            {
+              'hanzi': '一',
+              'confidence': 96,
+              'words': [
+                {
+                  'id': 7,
+                  'hanzi': '一',
+                  'pinyin': 'yī',
+                  'meaning': 'một',
+                  'hsk': 1,
+                  'example': '一个人',
+                  'audio_url': '',
+                }
+              ],
+            }
+          ],
+        },
+      });
+    });
+    final service = StudentService(
+      baseUrl: 'http://test/api',
+      tokenProvider: () async => 'student-token',
+      client: client,
+    );
+
+    final result = await service.recognizeHandwriting([
+      [
+        {'x': 10, 'y': 20},
+        {'x': 900, 'y': 20},
+      ]
+    ]);
+
+    expect(result.score, 96);
+    expect(result.recognizedHanzi, '一');
+    expect(result.candidates.single.words.single.meaning, 'một');
+  });
+
+  test('phân tích ngữ pháp gửi câu, ngữ cảnh và đọc lỗi có cấu trúc', () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'POST');
+      expect(request.url.path, '/api/translation/analyze');
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      expect(body['sentence'], '我学习每天中文。');
+      expect(body['context'], 'Tôi học tiếng Trung mỗi ngày.');
+      return _json({
+        'score': 72,
+        'feedback': 'Thứ tự trạng từ chưa tự nhiên.',
+        'details': {
+          'errors': [
+            {
+              'position': 'trước 学习',
+              'original': '学习每天',
+              'suggestion': '每天学习',
+              'reason': 'Trạng từ thời gian đứng trước động từ.',
+            }
+          ],
+          'corrected_sentence': '我每天学习中文。',
+        },
+      });
+    });
+    final service = StudentService(
+      baseUrl: 'http://test/api',
+      tokenProvider: () async => 'student-token',
+      client: client,
+    );
+
+    final result = await service.analyzeGrammar(
+      '我学习每天中文。',
+      context: 'Tôi học tiếng Trung mỗi ngày.',
+    );
+
+    expect(result.score, 72);
+    expect(result.correctedSentence, '我每天学习中文。');
+    expect(result.errors.single.suggestion, '每天学习');
   });
 }

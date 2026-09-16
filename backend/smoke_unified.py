@@ -16,6 +16,7 @@ from playwright.sync_api import sync_playwright, expect
 import database as storage
 from main import hash_password
 from listening_demo import seed_listening
+from seed import seed
 
 
 def run():
@@ -24,6 +25,7 @@ def run():
     assert (web_dir / 'index.html').is_file(), 'Build Flutter web first'
     with tempfile.TemporaryDirectory() as temp:
         storage.DB_PATH = Path(temp) / 'unified.db'
+        seed()
         seed_listening(publish=True)
         password = secrets.token_urlsafe(18)
         with storage.database() as conn:
@@ -94,6 +96,21 @@ def run():
                 phase = 'student login'
                 login('student@example.test')
                 expect(page.get_by_role('tab', name='Nghe', exact=True)).to_be_visible()
+                phase = 'Vy vocabulary and notebook'
+                page.get_by_role('tab',name='Từ vựng',exact=True).click()
+                with page.expect_response(lambda r: '/media/word-' in r.url) as pronunciation:
+                    page.get_by_role('button',name='Nghe phát âm',exact=True).first.click()
+                assert pronunciation.value.status in (200,206)
+                with page.expect_response(lambda r: '/me/saved-words/' in r.url and r.request.method == 'PUT') as saved:
+                    page.get_by_role('button',name='Lưu vào sổ tay',exact=True).first.click()
+                assert saved.value.status == 204, saved.value.status
+                page.mouse.move(10,10)
+                expect(page.get_by_role('button',name='Bỏ lưu',exact=True)).to_have_count(1)
+                page.get_by_role('button',name='Sổ tay từ vựng',exact=True).click()
+                page.get_by_role('button',name='Bỏ lưu',exact=True).click()
+                expect(page.get_by_text('Sổ tay chưa có từ vựng',exact=True)).to_be_visible()
+                page.get_by_role('button',name='Back',exact=True).click()
+                print('PASS: Vy pronunciation playback, save/notebook/remove on shared backend',flush=True)
                 page.get_by_role('tab', name='Nghe', exact=True).click()
                 print('PASS: student login on shared website', flush=True)
                 phase = 'listening playback'
@@ -113,13 +130,10 @@ def run():
                 page.locator('flt-semantics-placeholder').evaluate('(el) => el.click()')
                 expect(page.get_by_role('tab', name='Nghe', exact=True)).to_be_visible()
                 page.get_by_role('tab', name='Cá nhân', exact=True).click()
-                logout = page.get_by_text('Đăng xuất', exact=True)
-                for _ in range(10):
-                    if logout.count():
-                        break
-                    page.mouse.move(550, 450)
-                    page.mouse.wheel(0, 600)
-                    page.wait_for_timeout(150)
+                logout = page.get_by_role('button', name='Đăng xuất', exact=True)
+                # The logout action is in the profile header. Wait for Flutter's
+                # next frame instead of scrolling it out of view while it mounts.
+                expect(logout).to_be_visible()
                 logout.click()
                 page.get_by_role('alertdialog').get_by_role('button', name='Đăng xuất', exact=True).click()
                 expect(page.get_by_role('textbox', name=re.compile(r'^Email(?:\s|$)'))).to_be_visible()
@@ -162,6 +176,12 @@ def run():
                 browser.close()
             print('PASS: one-origin login, Admin/student routing, logout, reload, listening audio and submission, role protection.')
         except Exception as error:
+            try:
+                folder=Path(__file__).resolve().parent.parent/'test-results'
+                folder.mkdir(exist_ok=True)
+                page.screenshot(path=str(folder/'integration-failure.png'))
+            except Exception:
+                pass
             message = str(error).replace(password, '[redacted]')
             message = message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
             print(f'::error title=Unified web - {phase}::{message}', flush=True)

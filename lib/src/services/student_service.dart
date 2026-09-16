@@ -147,6 +147,160 @@ class VocabularyEntry {
   }
 }
 
+class HandwritingCandidate {
+  const HandwritingCandidate({
+    required this.hanzi,
+    required this.confidence,
+    required this.words,
+  });
+
+  final String hanzi;
+  final double confidence;
+  final List<VocabularyEntry> words;
+
+  factory HandwritingCandidate.fromJson(Map<String, dynamic> json) =>
+      HandwritingCandidate(
+        hanzi: json['hanzi'] as String,
+        confidence: (json['confidence'] as num).toDouble(),
+        words: (json['words'] as List<dynamic>? ?? const [])
+            .map((word) =>
+                VocabularyEntry.fromJson(word as Map<String, dynamic>))
+            .toList(growable: false),
+      );
+}
+
+class HandwritingRecognitionResult {
+  const HandwritingRecognitionResult({
+    required this.score,
+    required this.feedback,
+    required this.recognizedHanzi,
+    required this.candidates,
+  });
+
+  final double score;
+  final String feedback;
+  final String recognizedHanzi;
+  final List<HandwritingCandidate> candidates;
+
+  factory HandwritingRecognitionResult.fromJson(Map<String, dynamic> json) {
+    final details = json['details'] as Map<String, dynamic>;
+    return HandwritingRecognitionResult(
+      score: (json['score'] as num).toDouble(),
+      feedback: json['feedback'] as String,
+      recognizedHanzi: details['recognized_hanzi'] as String,
+      candidates: (details['candidates'] as List<dynamic>)
+          .map((candidate) =>
+              HandwritingCandidate.fromJson(candidate as Map<String, dynamic>))
+          .toList(growable: false),
+    );
+  }
+}
+
+class HandwritingGradeResult {
+  const HandwritingGradeResult({
+    required this.score,
+    required this.feedback,
+    required this.wrongStrokes,
+    this.countScore = 0,
+    this.orderPositionScore = 0,
+    this.directionScore = 0,
+  });
+
+  final double score;
+  final String feedback;
+  final List<int> wrongStrokes;
+  final double countScore;
+  final double orderPositionScore;
+  final double directionScore;
+
+  factory HandwritingGradeResult.fromJson(Map<String, dynamic> json) {
+    final details = json['details'] as Map<String, dynamic>;
+    return HandwritingGradeResult(
+      score: (json['score'] as num).toDouble(),
+      feedback: json['feedback'] as String,
+      wrongStrokes: (details['wrong_strokes'] as List<dynamic>)
+          .map((index) => index as int)
+          .toList(growable: false),
+      countScore: (details['count_score'] as num?)?.toDouble() ?? 0,
+      orderPositionScore:
+          (details['order_position_score'] as num?)?.toDouble() ?? 0,
+      directionScore: (details['direction_score'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
+class HandwritingRetryItem {
+  const HandwritingRetryItem({
+    required this.hanzi,
+    required this.latestScore,
+    required this.attempts,
+    required this.lastPracticedAt,
+  });
+
+  final String hanzi;
+  final double latestScore;
+  final int attempts;
+  final int lastPracticedAt;
+
+  factory HandwritingRetryItem.fromJson(Map<String, dynamic> json) =>
+      HandwritingRetryItem(
+        hanzi: json['hanzi'] as String,
+        latestScore: (json['latest_score'] as num).toDouble(),
+        attempts: json['attempts'] as int,
+        lastPracticedAt: json['last_practiced_at'] as int,
+      );
+}
+
+class GrammarCorrectionError {
+  const GrammarCorrectionError({
+    required this.position,
+    required this.original,
+    required this.suggestion,
+    required this.reason,
+  });
+
+  final String position;
+  final String original;
+  final String suggestion;
+  final String reason;
+
+  factory GrammarCorrectionError.fromJson(Map<String, dynamic> json) =>
+      GrammarCorrectionError(
+        position: json['position'] as String,
+        original: json['original'] as String,
+        suggestion: json['suggestion'] as String,
+        reason: json['reason'] as String,
+      );
+}
+
+class GrammarAnalysisResult {
+  const GrammarAnalysisResult({
+    required this.score,
+    required this.feedback,
+    required this.errors,
+    required this.correctedSentence,
+  });
+
+  final double score;
+  final String feedback;
+  final List<GrammarCorrectionError> errors;
+  final String correctedSentence;
+
+  factory GrammarAnalysisResult.fromJson(Map<String, dynamic> json) {
+    final details = json['details'] as Map<String, dynamic>;
+    return GrammarAnalysisResult(
+      score: (json['score'] as num).toDouble(),
+      feedback: json['feedback'] as String,
+      errors: (details['errors'] as List<dynamic>)
+          .map((error) => GrammarCorrectionError.fromJson(
+                error as Map<String, dynamic>,
+              ))
+          .toList(growable: false),
+      correctedSentence: details['corrected_sentence'] as String,
+    );
+  }
+}
+
 class CapabilityReport {
   const CapabilityReport({
     required this.skillScores,
@@ -246,6 +400,17 @@ class StudentService {
     return _decodeVocabularyList(response.body);
   }
 
+  Future<List<VocabularyEntry>> fetchSavedVocabulary() async {
+    final response =
+        await _request('GET', Uri.parse('$baseUrl/me/saved-words'));
+    return _decodeVocabularyList(response.body);
+  }
+
+  Future<void> setWordSaved(int wordId, bool saved) async {
+    await _request(
+        saved ? 'PUT' : 'DELETE', Uri.parse('$baseUrl/me/saved-words/$wordId'));
+  }
+
   Future<VocabularyEntry> recordDictionaryLookup(
     VocabularyEntry word,
     String query,
@@ -271,6 +436,25 @@ class StudentService {
         .toList(growable: false);
   }
 
+  Future<List<HandwritingRetryItem>> fetchHandwritingRetryItems() async {
+    final response = await _request(
+      'GET',
+      Uri.parse('$baseUrl/me/handwriting-retry-items'),
+    );
+    try {
+      return (jsonDecode(response.body) as List<dynamic>)
+          .map((row) => HandwritingRetryItem.fromJson(
+                row as Map<String, dynamic>,
+              ))
+          .toList(growable: false);
+    } on Object {
+      throw const StudentApiException(
+        null,
+        'Danh sách chữ cần luyện lại không đúng định dạng.',
+      );
+    }
+  }
+
   Future<StudentResult> resubmitWriting(
       int sourceResultId, String content) async {
     final response = await _request(
@@ -294,7 +478,29 @@ class StudentService {
     );
   }
 
-  Future<StudentResult> submitHandwriting(
+  Future<GrammarAnalysisResult> analyzeGrammar(
+    String sentence, {
+    String context = '',
+  }) async {
+    final response = await _request(
+      'POST',
+      Uri.parse('$baseUrl/translation/analyze'),
+      body: jsonEncode({'sentence': sentence, 'context': context}),
+      timeout: const Duration(seconds: 30),
+    );
+    try {
+      return GrammarAnalysisResult.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
+    } on Object {
+      throw const StudentApiException(
+        null,
+        'Kết quả sửa câu từ máy chủ không đúng định dạng.',
+      );
+    }
+  }
+
+  Future<HandwritingGradeResult> submitHandwriting(
     String target,
     List<List<Map<String, double>>> strokes, {
     int? sourceResultId,
@@ -307,9 +513,37 @@ class StudentService {
       Uri.parse('$baseUrl$path'),
       body: jsonEncode({'target': target, 'strokes': strokes}),
     );
-    return StudentResult.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
+    try {
+      return HandwritingGradeResult.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
+    } on Object {
+      throw const StudentApiException(
+        null,
+        'Kết quả chấm nét từ máy chủ không đúng định dạng.',
+      );
+    }
+  }
+
+  Future<HandwritingRecognitionResult> recognizeHandwriting(
+    List<List<Map<String, double>>> strokes,
+  ) async {
+    final response = await _request(
+      'POST',
+      Uri.parse('$baseUrl/handwriting/recognize'),
+      body: jsonEncode({'strokes': strokes}),
+      timeout: const Duration(seconds: 30),
     );
+    try {
+      return HandwritingRecognitionResult.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
+    } on Object {
+      throw const StudentApiException(
+        null,
+        'Kết quả nhận dạng chữ viết tay không đúng định dạng.',
+      );
+    }
   }
 
   List<VocabularyEntry> _decodeVocabularyList(String body) {
@@ -323,7 +557,12 @@ class StudentService {
     }
   }
 
-  Future<http.Response> _request(String method, Uri uri, {String? body}) async {
+  Future<http.Response> _request(
+    String method,
+    Uri uri, {
+    String? body,
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
     final token = (await tokenProvider())?.trim() ?? '';
     if (token.isEmpty) {
       throw const StudentApiException(
@@ -337,13 +576,13 @@ class StudentService {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       };
-      final response = method == 'POST'
-          ? await _client
-              .post(uri, headers: headers, body: body)
-              .timeout(const Duration(seconds: 15))
-          : await _client
-              .get(uri, headers: headers)
-              .timeout(const Duration(seconds: 15));
+      final response = await (switch (method) {
+        'POST' => _client.post(uri, headers: headers, body: body),
+        'PUT' => _client.put(uri, headers: headers, body: body),
+        'DELETE' => _client.delete(uri, headers: headers),
+        _ => _client.get(uri, headers: headers),
+      })
+          .timeout(timeout);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return response;
       }
