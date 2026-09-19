@@ -1,5 +1,8 @@
+import 'guest_dictionary_screen.dart';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import '../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -100,17 +103,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final auth = widget.authService ?? await AuthService.load(_client);
       await auth.register(
-          baseUrl: widget.baseUrl,
-          name: nameController.text.trim(),
-          email: email,
-          password: passwordController.text);
+        baseUrl: widget.baseUrl,
+        name: nameController.text.trim(),
+        email: email,
+        password: passwordController.text,
+      );
       if (mounted) Navigator.pop(context, true);
     } on AuthException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } on Exception {
       if (mounted) {
         setState(
-            () => _error = 'Không kết nối được máy chủ. Vui lòng thử lại.');
+          () => _error = 'Không kết nối được máy chủ. Vui lòng thử lại.',
+        );
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -328,15 +333,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 12),
                   if (_error != null)
                     Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Semantics(
-                            liveRegion: true,
-                            child: Text(_error!,
-                                style: const TextStyle(color: Colors.red)))),
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Semantics(
+                        liveRegion: true,
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ),
                   if (_submitting)
                     const Padding(
-                        padding: EdgeInsets.only(bottom: 12),
-                        child: LinearProgressIndicator()),
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: LinearProgressIndicator(),
+                    ),
                   SizedBox(
                     height: 54,
                     child: ElevatedButton(
@@ -388,15 +398,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               SizedBox(height: 4),
                               Text(
                                 'Khởi động thói quen học tiếng Trung mỗi ngày.',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: outline,
-                                ),
+                                style: TextStyle(fontSize: 13, color: outline),
                               ),
                             ],
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: OutlinedButton.icon(
+                      onPressed: _submitting
+                          ? null
+                          : () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => GuestDictionaryScreen(
+                                  baseUrl: widget.baseUrl,
+                                ),
+                              ),
+                            ),
+                      icon: const Icon(Icons.travel_explore_rounded),
+                      label: const Text('Tiếp tục với tư cách khách'),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -409,8 +432,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         style: TextStyle(color: outline),
                       ),
                       TextButton(
-                        onPressed:
-                            _submitting ? null : () => Navigator.pop(context),
+                        onPressed: _submitting
+                            ? null
+                            : () => Navigator.pop(context),
                         child: const Text(
                           'Đăng nhập',
                           style: TextStyle(

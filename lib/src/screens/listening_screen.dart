@@ -1,3 +1,5 @@
+import '../services/exam_draft_store.dart';
+
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 
@@ -7,9 +9,10 @@ import '../services/listening_exam_service.dart';
 import '../models/reading_exam.dart';
 
 class ListeningScreen extends StatefulWidget {
-  const ListeningScreen({super.key, required this.repository});
+  const ListeningScreen({super.key, required this.repository, this.draftOwner});
 
   final ListeningExamRepository repository;
+  final int? draftOwner;
 
   @override
   State<ListeningScreen> createState() => _ListeningScreenState();
@@ -54,10 +57,7 @@ class _ListeningScreenState extends State<ListeningScreen> {
           const ScreenHeader(
             eyebrow: 'Bài luyện · Kỹ năng nghe',
             title: 'Test Nghe',
-            trailing: Icon(
-              Icons.headphones_rounded,
-              color: AppTheme.jade,
-            ),
+            trailing: Icon(Icons.headphones_rounded, color: AppTheme.jade),
           ),
           SizedBox(
             height: 48,
@@ -268,7 +268,8 @@ class _ListeningScreenState extends State<ListeningScreen> {
                                   ),
                                 )
                               : Text(
-                                  isLastQuestion ? 'Nộp bài' : 'Câu tiếp theo'),
+                                  isLastQuestion ? 'Nộp bài' : 'Câu tiếp theo',
+                                ),
                         ),
                       ),
                     ],
@@ -319,8 +320,10 @@ class _ListeningScreenState extends State<ListeningScreen> {
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const Text('ĐIỂM',
-                          style: TextStyle(fontWeight: FontWeight.w800)),
+                      const Text(
+                        'ĐIỂM',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
                       const SizedBox(height: 8),
                       Text(
                         passed
@@ -352,11 +355,9 @@ class _ListeningScreenState extends State<ListeningScreen> {
                   ),
                 ),
                 ...result.reviewItems.asMap().entries.map(
-                      (entry) => _ReviewCard(
-                        number: entry.key + 1,
-                        item: entry.value,
-                      ),
-                    ),
+                  (entry) =>
+                      _ReviewCard(number: entry.key + 1, item: entry.value),
+                ),
                 const SizedBox(height: 10),
                 FilledButton(
                   key: const Key('finish-listening-exam'),
@@ -407,14 +408,24 @@ class _ListeningScreenState extends State<ListeningScreen> {
     _loadExams();
   }
 
-  void _startExam(ReadingExam exam) {
+  void _startExam(ReadingExam exam) async {
+    final restored = await ExamDraftStore.read(
+      widget.draftOwner,
+      'listening',
+      exam.id,
+      exam.version,
+    );
+    if (!mounted) return;
     setState(() {
       _activeExam = exam;
       _result = null;
       _currentQuestion = 0;
       _answers.clear();
+      _answers.addAll(restored.map((k, v) => MapEntry(k, v.toString())));
       _submitError = null;
-      _textAnswerController.clear();
+      final first = exam.questions.first;
+      final answer = _answers[first.id];
+      _textAnswerController.text = answer ?? '';
     });
   }
 
@@ -428,6 +439,16 @@ class _ListeningScreenState extends State<ListeningScreen> {
         _activeExam!,
         Map.unmodifiable(_answers),
       );
+      try {
+        await ExamDraftStore.clear(
+          widget.draftOwner,
+          'listening',
+          _activeExam!.id,
+          _activeExam!.version,
+        );
+      } on Exception {
+        /* The server has already saved the submitted result. */
+      }
       if (!mounted) return;
       setState(() {
         _result = result;
@@ -505,6 +526,22 @@ class _ListeningScreenState extends State<ListeningScreen> {
   void _saveAnswer(String questionId, String value) {
     setState(() {
       _answers[questionId] = value;
+      final exam = _activeExam;
+      if (exam != null) {
+        ExamDraftStore.save(
+          widget.draftOwner,
+          'listening',
+          exam.id,
+          exam.version,
+          Map<String, dynamic>.from(_answers),
+        ).catchError((Object error) {
+          if (mounted) {
+            setState(
+              () => _submitError = 'Không lưu được bản nháp trên thiết bị. Đừng đóng trang trước khi nộp bài.',
+            );
+          }
+        });
+      }
       _submitError = null;
     });
   }
@@ -611,10 +648,7 @@ class _ExamCard extends StatelessWidget {
 }
 
 class _AudioPlayer extends StatefulWidget {
-  const _AudioPlayer({
-    required this.url,
-    required this.audioPlayer,
-  });
+  const _AudioPlayer({required this.url, required this.audioPlayer});
 
   final String url;
   final AudioPlayer audioPlayer;
@@ -683,7 +717,9 @@ class _AudioPlayerState extends State<_AudioPlayer> {
                 ? const SizedBox.square(
                     dimension: 24,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: AppTheme.jade),
+                      strokeWidth: 2,
+                      color: AppTheme.jade,
+                    ),
                   )
                 : Icon(
                     _playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
@@ -798,8 +834,10 @@ class _ReviewCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            Text(item.prompt,
-                style: const TextStyle(fontWeight: FontWeight.w700)),
+            Text(
+              item.prompt,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 8),
             Text('Bạn chọn: ${item.submittedAnswer}'),
             if (!item.isCorrect) Text('Đáp án đúng: ${item.answer}'),

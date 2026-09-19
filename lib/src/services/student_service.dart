@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 
 class StudentResult {
@@ -163,8 +164,9 @@ class HandwritingCandidate {
         hanzi: json['hanzi'] as String,
         confidence: (json['confidence'] as num).toDouble(),
         words: (json['words'] as List<dynamic>? ?? const [])
-            .map((word) =>
-                VocabularyEntry.fromJson(word as Map<String, dynamic>))
+            .map(
+              (word) => VocabularyEntry.fromJson(word as Map<String, dynamic>),
+            )
             .toList(growable: false),
       );
 }
@@ -189,8 +191,11 @@ class HandwritingRecognitionResult {
       feedback: json['feedback'] as String,
       recognizedHanzi: details['recognized_hanzi'] as String,
       candidates: (details['candidates'] as List<dynamic>)
-          .map((candidate) =>
-              HandwritingCandidate.fromJson(candidate as Map<String, dynamic>))
+          .map(
+            (candidate) => HandwritingCandidate.fromJson(
+              candidate as Map<String, dynamic>,
+            ),
+          )
           .toList(growable: false),
     );
   }
@@ -292,9 +297,10 @@ class GrammarAnalysisResult {
       score: (json['score'] as num).toDouble(),
       feedback: json['feedback'] as String,
       errors: (details['errors'] as List<dynamic>)
-          .map((error) => GrammarCorrectionError.fromJson(
-                error as Map<String, dynamic>,
-              ))
+          .map(
+            (error) =>
+                GrammarCorrectionError.fromJson(error as Map<String, dynamic>),
+          )
           .toList(growable: false),
       correctedSentence: details['corrected_sentence'] as String,
     );
@@ -363,7 +369,8 @@ class StudentService {
     final response = await _request('GET', Uri.parse('$baseUrl/me/dashboard'));
     try {
       return StudentDashboard.fromJson(
-          jsonDecode(response.body) as Map<String, dynamic>);
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
     } on Object {
       throw const StudentApiException(
         null,
@@ -380,7 +387,9 @@ class StudentService {
       );
     } on Object {
       throw const StudentApiException(
-          null, 'Báo cáo năng lực không đúng định dạng.');
+        null,
+        'Báo cáo năng lực không đúng định dạng.',
+      );
     }
   }
 
@@ -388,7 +397,7 @@ class StudentService {
     final uri = Uri.parse('$baseUrl/vocabulary').replace(
       queryParameters: search.trim().isEmpty ? null : {'search': search.trim()},
     );
-    final response = await _request('GET', uri);
+    final response = await _request('GET', uri, requiresAuth: false);
     return _decodeVocabularyList(response.body);
   }
 
@@ -401,14 +410,18 @@ class StudentService {
   }
 
   Future<List<VocabularyEntry>> fetchSavedVocabulary() async {
-    final response =
-        await _request('GET', Uri.parse('$baseUrl/me/saved-words'));
+    final response = await _request(
+      'GET',
+      Uri.parse('$baseUrl/me/saved-words'),
+    );
     return _decodeVocabularyList(response.body);
   }
 
   Future<void> setWordSaved(int wordId, bool saved) async {
     await _request(
-        saved ? 'PUT' : 'DELETE', Uri.parse('$baseUrl/me/saved-words/$wordId'));
+      saved ? 'PUT' : 'DELETE',
+      Uri.parse('$baseUrl/me/saved-words/$wordId'),
+    );
   }
 
   Future<VocabularyEntry> recordDictionaryLookup(
@@ -443,9 +456,9 @@ class StudentService {
     );
     try {
       return (jsonDecode(response.body) as List<dynamic>)
-          .map((row) => HandwritingRetryItem.fromJson(
-                row as Map<String, dynamic>,
-              ))
+          .map(
+            (row) => HandwritingRetryItem.fromJson(row as Map<String, dynamic>),
+          )
           .toList(growable: false);
     } on Object {
       throw const StudentApiException(
@@ -456,7 +469,9 @@ class StudentService {
   }
 
   Future<StudentResult> resubmitWriting(
-      int sourceResultId, String content) async {
+    int sourceResultId,
+    String content,
+  ) async {
     final response = await _request(
       'POST',
       Uri.parse('$baseUrl/me/review/writing/$sourceResultId'),
@@ -478,13 +493,66 @@ class StudentService {
     );
   }
 
+  Future<String> translateText(
+    String text,
+    String source,
+    String target,
+  ) async {
+    final response = await _request(
+      'POST',
+      Uri.parse('$baseUrl/translation/text'),
+      requiresAuth: false,
+      body: jsonEncode({'text': text, 'source': source, 'target': target}),
+      timeout: const Duration(seconds: 45),
+    );
+    return (jsonDecode(response.body) as Map<String, dynamic>)['translation']
+        as String;
+  }
+
+  Future<Map<String, dynamic>> fetchStudyGoals() async {
+    final response = await _request('GET', Uri.parse('$baseUrl/me/goals'));
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  Future<String> fetchAvatar() async {
+    final response = await _request('GET', Uri.parse('$baseUrl/account'));
+    return (jsonDecode(response.body) as Map<String, dynamic>)['avatar'] as String? ?? '';
+  }
+
+  Future<Map<String, dynamic>> generatePersonalizedPractice() async {
+    final response = await _request(
+      'POST',
+      Uri.parse('$baseUrl/me/personalized-practice'),
+      timeout: const Duration(seconds: 60),
+    );
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> submitPersonalizedPractice(
+    int plan,
+    int index,
+    String text,
+  ) async {
+    final response = await _request(
+      'POST',
+      Uri.parse('$baseUrl/me/personalized-practice/$plan/$index'),
+      body: jsonEncode({'text': text}),
+      timeout: const Duration(seconds: 60),
+    );
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
   Future<GrammarAnalysisResult> analyzeGrammar(
     String sentence, {
     String context = '',
+    bool guest = false,
   }) async {
     final response = await _request(
       'POST',
-      Uri.parse('$baseUrl/translation/analyze'),
+      Uri.parse(
+        guest ? '$baseUrl/guest/grammar' : '$baseUrl/translation/analyze',
+      ),
+      requiresAuth: !guest,
       body: jsonEncode({'sentence': sentence, 'context': context}),
       timeout: const Duration(seconds: 30),
     );
@@ -526,11 +594,15 @@ class StudentService {
   }
 
   Future<HandwritingRecognitionResult> recognizeHandwriting(
-    List<List<Map<String, double>>> strokes,
-  ) async {
+    List<List<Map<String, double>>> strokes, {
+    bool guest = false,
+  }) async {
     final response = await _request(
       'POST',
-      Uri.parse('$baseUrl/handwriting/recognize'),
+      Uri.parse(
+        guest ? '$baseUrl/guest/handwriting' : '$baseUrl/handwriting/recognize',
+      ),
+      requiresAuth: !guest,
       body: jsonEncode({'strokes': strokes}),
       timeout: const Duration(seconds: 30),
     );
@@ -553,7 +625,9 @@ class StudentService {
           .toList(growable: false);
     } on Object {
       throw const StudentApiException(
-          null, 'Dữ liệu từ vựng không đúng định dạng.');
+        null,
+        'Dữ liệu từ vựng không đúng định dạng.',
+      );
     }
   }
 
@@ -561,10 +635,11 @@ class StudentService {
     String method,
     Uri uri, {
     String? body,
+    bool requiresAuth = true,
     Duration timeout = const Duration(seconds: 15),
   }) async {
     final token = (await tokenProvider())?.trim() ?? '';
-    if (token.isEmpty) {
+    if (requiresAuth && token.isEmpty) {
       throw const StudentApiException(
         401,
         'Bạn cần đăng nhập bằng tài khoản học viên.',
@@ -573,7 +648,7 @@ class StudentService {
 
     try {
       final headers = {
-        'Authorization': 'Bearer $token',
+        if (token.isNotEmpty) 'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       };
       final response = await (switch (method) {
@@ -581,8 +656,7 @@ class StudentService {
         'PUT' => _client.put(uri, headers: headers, body: body),
         'DELETE' => _client.delete(uri, headers: headers),
         _ => _client.get(uri, headers: headers),
-      })
-          .timeout(timeout);
+      }).timeout(timeout);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return response;
       }

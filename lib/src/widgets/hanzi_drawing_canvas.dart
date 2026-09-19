@@ -7,11 +7,29 @@ class HanziCanvasController extends ChangeNotifier {
 
   bool get isEmpty => _strokes.isEmpty;
   int get strokeCount => _strokes.length;
+  void restore(List<dynamic> strokes) {
+    _strokes.clear();
+    for (final stroke in strokes) {
+      _strokes.add(
+        (stroke as List)
+            .map(
+              (point) => Offset(
+                (point['x'] as num).toDouble(),
+                (point['y'] as num).toDouble(),
+              ),
+            )
+            .toList(),
+      );
+    }
+    notifyListeners();
+  }
 
   List<List<Map<String, double>>> get payload => _strokes
-      .map((stroke) => stroke
-          .map((point) => {'x': point.dx, 'y': point.dy})
-          .toList(growable: false))
+      .map(
+        (stroke) => stroke
+            .map((point) => {'x': point.dx, 'y': point.dy})
+            .toList(growable: false),
+      )
       .toList(growable: false);
 
   void start(Offset point, Size size) {
@@ -50,10 +68,8 @@ class HanziCanvasController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Offset _normalize(Offset point, Size size) => Offset(
-        point.dx / size.width * 1024,
-        point.dy / size.height * 1024,
-      );
+  Offset _normalize(Offset point, Size size) =>
+      Offset(point.dx / size.width * 1024, point.dy / size.height * 1024);
 }
 
 class HanziDrawingCanvas extends StatelessWidget {
@@ -76,50 +92,48 @@ class HanziDrawingCanvas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxWidth),
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: LayoutBuilder(
-              builder: (_, box) => MouseRegion(
-                cursor: enabled
-                    ? SystemMouseCursors.precise
-                    : SystemMouseCursors.forbidden,
-                child: GestureDetector(
-                  key: canvasKey,
-                  behavior: HitTestBehavior.opaque,
-                  onPanStart: enabled
-                      ? (details) {
-                          controller.start(details.localPosition, box.biggest);
-                          onChanged?.call();
-                        }
-                      : null,
-                  onPanUpdate: enabled
-                      ? (details) {
-                          controller.update(details.localPosition, box.biggest);
-                          onChanged?.call();
-                        }
-                      : null,
-                  onPanEnd: enabled
-                      ? (_) {
-                          controller.end();
-                          onChanged?.call();
-                        }
-                      : null,
-                  child: AnimatedBuilder(
-                    animation: controller,
-                    builder: (_, __) => CustomPaint(
-                      foregroundPainter: _HanziPainter(
-                        controller._strokes,
-                        wrongStrokes: wrongStrokes,
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: AppTheme.jade, width: 2),
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                      ),
+    child: ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: LayoutBuilder(
+          builder: (_, box) => MouseRegion(
+            cursor: enabled
+                ? SystemMouseCursors.precise
+                : SystemMouseCursors.forbidden,
+            child: GestureDetector(
+              key: canvasKey,
+              behavior: HitTestBehavior.opaque,
+              onPanStart: enabled
+                  ? (details) {
+                      controller.start(details.localPosition, box.biggest);
+                      onChanged?.call();
+                    }
+                  : null,
+              onPanUpdate: enabled
+                  ? (details) {
+                      controller.update(details.localPosition, box.biggest);
+                      onChanged?.call();
+                    }
+                  : null,
+              onPanEnd: enabled
+                  ? (_) {
+                      controller.end();
+                      onChanged?.call();
+                    }
+                  : null,
+              child: AnimatedBuilder(
+                animation: controller,
+                builder: (_, __) => CustomPaint(
+                  foregroundPainter: _HanziPainter(
+                    controller._strokes,
+                    wrongStrokes: wrongStrokes,
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: AppTheme.jade, width: 2),
+                      borderRadius: BorderRadius.circular(18),
                     ),
                   ),
                 ),
@@ -127,7 +141,9 @@ class HanziDrawingCanvas extends StatelessWidget {
             ),
           ),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _HanziPainter extends CustomPainter {
@@ -159,8 +175,9 @@ class _HanziPainter extends CustomPainter {
     for (var index = 0; index < strokes.length; index++) {
       final stroke = strokes[index];
       if (stroke.length < 2) continue;
-      ink.color =
-          wrongStrokes.contains(index + 1) ? AppTheme.red : AppTheme.ink;
+      ink.color = wrongStrokes.contains(index + 1)
+          ? AppTheme.red
+          : AppTheme.ink;
       final path = Path()
         ..moveTo(
           stroke.first.dx / 1024 * size.width,

@@ -1,3 +1,5 @@
+import '../services/exam_draft_store.dart';
+
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 
@@ -11,12 +13,14 @@ class PracticeScreen extends StatefulWidget {
   const PracticeScreen({
     super.key,
     required this.repository,
+    this.draftOwner,
     this.title = 'Test Đọc',
     this.eyebrow = 'Bài luyện · Kỹ năng đọc',
     this.skillLabel = 'ĐỌC',
   });
 
   final ReadingExamRepository repository;
+  final int? draftOwner;
   final String title, eyebrow, skillLabel;
 
   @override
@@ -237,10 +241,10 @@ class _PracticeScreenState extends State<PracticeScreen> {
                     question.questionType == 'hanzi_canvas'
                         ? 'Viết chữ Hán'
                         : question.questionType == 'essay'
-                            ? 'Viết đoạn văn'
-                            : question.options.isEmpty
-                                ? 'Nhập đáp án'
-                                : 'Chọn một đáp án',
+                        ? 'Viết đoạn văn'
+                        : question.options.isEmpty
+                        ? 'Nhập đáp án'
+                        : 'Chọn một đáp án',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -262,11 +266,13 @@ class _PracticeScreenState extends State<PracticeScreen> {
                             'Nhập đoạn văn tiếng Trung (tối đa 500 ký tự)',
                         border: OutlineInputBorder(),
                       ),
-                      onChanged: (value) => _saveAnswer(
-                        question.id,
-                        {'kind': 'essay', 'text': value},
-                      ),
+                      onChanged: (value) => _saveAnswer(question.id, {
+                        'kind': 'essay',
+                        'text': value,
+                      }),
                     )
+                  else if (question.questionType == 'sentence_order')
+                    _buildSentenceOrder(question)
                   else if (question.options.isEmpty)
                     TextField(
                       key: const Key('text-answer'),
@@ -324,7 +330,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
                                   ),
                                 )
                               : Text(
-                                  isLastQuestion ? 'Nộp bài' : 'Câu tiếp theo'),
+                                  isLastQuestion ? 'Nộp bài' : 'Câu tiếp theo',
+                                ),
                         ),
                       ),
                     ],
@@ -375,8 +382,10 @@ class _PracticeScreenState extends State<PracticeScreen> {
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const Text('ĐIỂM',
-                          style: TextStyle(fontWeight: FontWeight.w800)),
+                      const Text(
+                        'ĐIỂM',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
                       const SizedBox(height: 8),
                       Text(
                         passed
@@ -408,11 +417,9 @@ class _PracticeScreenState extends State<PracticeScreen> {
                   ),
                 ),
                 ...result.reviewItems.asMap().entries.map(
-                      (entry) => _ReviewCard(
-                        number: entry.key + 1,
-                        item: entry.value,
-                      ),
-                    ),
+                  (entry) =>
+                      _ReviewCard(number: entry.key + 1, item: entry.value),
+                ),
                 const SizedBox(height: 10),
                 FilledButton(
                   key: const Key('finish-exam'),
@@ -428,10 +435,14 @@ class _PracticeScreenState extends State<PracticeScreen> {
   }
 
   Widget _buildCanvasAnswer(ReadingQuestion question) {
-    final controller = _canvasControllers.putIfAbsent(
-      question.id,
-      HanziCanvasController.new,
-    );
+    final controller = _canvasControllers.putIfAbsent(question.id, () {
+      final restored = HanziCanvasController();
+      final saved = _answers[question.id];
+      if (saved is Map && saved['strokes'] is List) {
+        restored.restore(saved['strokes'] as List);
+      }
+      return restored;
+    });
     return Column(
       children: [
         HanziDrawingCanvas(
@@ -486,6 +497,56 @@ class _PracticeScreenState extends State<PracticeScreen> {
     );
   }
 
+  Widget _buildSentenceOrder(ReadingQuestion question) {
+    final answer = _answers[question.id];
+    final selected = answer is String && answer.isNotEmpty
+        ? answer.split(' ')
+        : <String>[];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Chạm các cụm từ theo đúng thứ tự. Chạm từ đã chọn để bỏ.'),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: selected
+              .map(
+                (word) => InputChip(
+                  label: Text(word),
+                  onDeleted: _submitting
+                      ? null
+                      : () {
+                          selected.remove(word);
+                          _saveAnswer(question.id, selected.join(' '));
+                        },
+                ),
+              )
+              .toList(),
+        ),
+        const Divider(height: 32),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: question.options
+              .where((word) => !selected.contains(word))
+              .map(
+                (word) => ActionChip(
+                  label: Text(word),
+                  onPressed: _submitting
+                      ? null
+                      : () {
+                          selected.add(word);
+                          _saveAnswer(question.id, selected.join(' '));
+                        },
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+  }
+
   Future<void> _loadExams() async {
     final sequence = ++_loadSequence;
     setState(() {
@@ -522,21 +583,49 @@ class _PracticeScreenState extends State<PracticeScreen> {
     _loadExams();
   }
 
-  void _startExam(ReadingExam exam) {
+  void _startExam(ReadingExam exam) async {
+    final restored = await ExamDraftStore.read(
+      widget.draftOwner,
+      'reading',
+      exam.id,
+      exam.version,
+    );
+    if (!mounted) return;
     setState(() {
       _activeExam = exam;
       _result = null;
       _currentQuestion = 0;
       _answers.clear();
+      _answers.addAll(restored);
       _clearCanvasControllers();
       _submitError = null;
-      _textAnswerController.clear();
+      final first = exam.questions.first;
+      final answer = _answers[first.id];
+      _textAnswerController.text = answer is String
+          ? answer
+          : (answer is Map ? (answer['text'] as String? ?? '') : '');
     });
   }
 
   void _saveAnswer(String questionId, dynamic value) {
     setState(() {
       _answers[questionId] = value;
+      final exam = _activeExam;
+      if (exam != null) {
+        ExamDraftStore.save(
+          widget.draftOwner,
+          'reading',
+          exam.id,
+          exam.version,
+          Map<String, dynamic>.from(_answers),
+        ).catchError((Object error) {
+          if (mounted) {
+            setState(
+              () => _submitError = 'Không lưu được bản nháp trên thiết bị. Đừng đóng trang trước khi nộp bài.',
+            );
+          }
+        });
+      }
       _submitError = null;
     });
   }
@@ -573,6 +662,16 @@ class _PracticeScreenState extends State<PracticeScreen> {
         _activeExam!,
         Map.unmodifiable(_answers),
       );
+      try {
+        await ExamDraftStore.clear(
+          widget.draftOwner,
+          'reading',
+          _activeExam!.id,
+          _activeExam!.version,
+        );
+      } on Exception {
+        /* The server has already saved the submitted result. */
+      }
       if (!mounted) return;
       setState(() {
         _result = result;
@@ -644,6 +743,10 @@ class _PracticeScreenState extends State<PracticeScreen> {
 
   bool _hasAnswer(ReadingQuestion question) {
     final answer = _answers[question.id];
+    if (question.questionType == 'sentence_order') {
+      return answer is String &&
+          answer.split(' ').length == question.options.length;
+    }
     if (question.questionType == 'hanzi_canvas') {
       return answer is Map &&
           answer['strokes'] is List &&
@@ -716,39 +819,39 @@ class _ExamAudioPlayerState extends State<_ExamAudioPlayer> {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF1E8),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: const Color(0xFFFFF1E8),
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Column(
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                IconButton.filled(
-                  key: const Key('comprehensive-audio'),
-                  onPressed: _busy ? null : _toggle,
-                  icon: _busy
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(_playing ? Icons.pause : Icons.play_arrow),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    _playing ? 'Đang phát hội thoại...' : 'Nghe hội thoại',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ],
+            IconButton.filled(
+              key: const Key('comprehensive-audio'),
+              onPressed: _busy ? null : _toggle,
+              icon: _busy
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(_playing ? Icons.pause : Icons.play_arrow),
             ),
-            if (_error != null)
-              Text(_error!, style: const TextStyle(color: AppTheme.red)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _playing ? 'Đang phát hội thoại...' : 'Nghe hội thoại',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
           ],
         ),
-      );
+        if (_error != null)
+          Text(_error!, style: const TextStyle(color: AppTheme.red)),
+      ],
+    ),
+  );
 }
 
 class _ExamCard extends StatelessWidget {
@@ -908,19 +1011,27 @@ class _ReviewCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Câu $number · ${item.score != null ? '${_score(item.score!)} điểm' : item.isCorrect ? 'Đúng' : 'Chưa đúng'}',
+                    'Câu $number · ${item.score != null
+                        ? '${_score(item.score!)} điểm'
+                        : item.isCorrect
+                        ? 'Đúng'
+                        : 'Chưa đúng'}',
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 10),
-            Text(item.prompt,
-                style: const TextStyle(fontWeight: FontWeight.w700)),
+            Text(
+              item.prompt,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 8),
-            Text(item.questionType == 'hanzi_canvas'
-                ? item.submittedAnswer
-                : 'Bạn trả lời: ${item.submittedAnswer}'),
+            Text(
+              item.questionType == 'hanzi_canvas'
+                  ? item.submittedAnswer
+                  : 'Bạn trả lời: ${item.submittedAnswer}',
+            ),
             if (item.questionType == 'hanzi_canvas')
               Text('Chữ cần viết: ${item.answer}')
             else if (item.questionType == 'essay')

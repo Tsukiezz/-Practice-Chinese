@@ -5,7 +5,7 @@ import 'package:hanzi_go/src/services/student_service.dart';
 
 class _GrammarService extends StudentService {
   _GrammarService()
-      : super(baseUrl: 'http://test/api', tokenProvider: () async => 'token');
+    : super(baseUrl: 'http://test/api', tokenProvider: () async => 'token');
 
   String? sentence;
   String? intendedContext;
@@ -14,6 +14,7 @@ class _GrammarService extends StudentService {
   Future<GrammarAnalysisResult> analyzeGrammar(
     String sentence, {
     String context = '',
+    bool guest = false,
   }) async {
     this.sentence = sentence;
     intendedContext = context;
@@ -40,6 +41,11 @@ void main() {
       MaterialApp(home: TranslationScreen(service: service)),
     );
 
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('grammar-sentence')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.enterText(
       find.byKey(const Key('grammar-sentence')),
       '我学习每天中文。',
@@ -48,8 +54,18 @@ void main() {
       find.byKey(const Key('grammar-context')),
       'Tôi học tiếng Trung mỗi ngày.',
     );
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('submit-grammar')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.byKey(const Key('submit-grammar')));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('grammar-result')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
 
     expect(service.sentence, '我学习每天中文。');
     expect(service.intendedContext, 'Tôi học tiếng Trung mỗi ngày.');
@@ -65,6 +81,11 @@ void main() {
       MaterialApp(home: TranslationScreen(service: service)),
     );
 
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('submit-grammar')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.byKey(const Key('submit-grammar')));
     await tester.pump();
 

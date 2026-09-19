@@ -1,14 +1,20 @@
+import 'guest_dictionary_screen.dart';
+import '../services/web_navigation.dart';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import '../services/auth_service.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen(
-      {super.key,
-      required this.baseUrl,
-      this.authService,
-      required this.onLoginSuccess});
+  const LoginScreen({
+    super.key,
+    required this.baseUrl,
+    this.authService,
+    required this.onLoginSuccess,
+  });
   final String baseUrl;
   final AuthService? authService;
   final VoidCallback onLoginSuccess;
@@ -79,10 +85,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _openRegister() async {
     final success = await Navigator.push<bool>(
-        context,
-        MaterialPageRoute(
-            builder: (_) => RegisterScreen(
-                baseUrl: widget.baseUrl, authService: widget.authService)));
+      context,
+      MaterialPageRoute(
+        builder: (_) => RegisterScreen(
+          baseUrl: widget.baseUrl,
+          authService: widget.authService,
+        ),
+      ),
+    );
     if (success == true && mounted) widget.onLoginSuccess();
   }
 
@@ -101,17 +111,19 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final auth = widget.authService ?? await AuthService.load(_client);
       await auth.login(
-          baseUrl: widget.baseUrl,
-          email: email,
-          password: passwordController.text,
-          remember: rememberLogin);
+        baseUrl: widget.baseUrl,
+        email: email,
+        password: passwordController.text,
+        remember: rememberLogin,
+      );
       if (mounted) widget.onLoginSuccess();
     } on AuthException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } on Exception {
       if (mounted) {
         setState(
-            () => _error = 'Không kết nối được máy chủ. Vui lòng thử lại.');
+          () => _error = 'Không kết nối được máy chủ. Vui lòng thử lại.',
+        );
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -252,6 +264,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
+                  if (kIsWeb)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _submitting ? null : openRecovery,
+                        child: const Text('Quên mật khẩu?'),
+                      ),
+                    ),
                   CheckboxListTile(
                     value: rememberLogin,
                     activeColor: primary,
@@ -267,15 +287,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 12),
                   if (_error != null)
                     Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Semantics(
-                            liveRegion: true,
-                            child: Text(_error!,
-                                style: const TextStyle(color: Colors.red)))),
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Semantics(
+                        liveRegion: true,
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    ),
                   if (_submitting)
                     const Padding(
-                        padding: EdgeInsets.only(bottom: 12),
-                        child: LinearProgressIndicator()),
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: LinearProgressIndicator(),
+                    ),
                   SizedBox(
                     height: 54,
                     child: ElevatedButton(
@@ -295,6 +320,22 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontWeight: FontWeight.w800,
                         ),
                       ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: OutlinedButton.icon(
+                      onPressed: _submitting
+                          ? null
+                          : () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => GuestDictionaryScreen(
+                                  baseUrl: widget.baseUrl,
+                                ),
+                              ),
+                            ),
+                      icon: const Icon(Icons.travel_explore_rounded),
+                      label: const Text('Tiếp tục với tư cách khách'),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -326,10 +367,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               SizedBox(height: 4),
                               Text(
                                 'Bắt đầu hành trình học tiếng Trung ngay hôm nay.',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: outline,
-                                ),
+                                style: TextStyle(fontSize: 13, color: outline),
                               ),
                             ],
                           ),
@@ -341,11 +379,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Text(
                     'Đăng nhập bằng email đã đăng ký. Tài khoản quản trị được cấp riêng bởi quản trị viên.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      height: 1.5,
-                      color: outline,
-                    ),
+                    style: TextStyle(fontSize: 12, height: 1.5, color: outline),
                   ),
                 ],
               ),

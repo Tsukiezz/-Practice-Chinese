@@ -40,6 +40,8 @@ from services import (configured_api_key, configured_model, evaluate_with_ai,
 @asynccontextmanager
 async def lifespan(app):
     init_db()
+    from usecase_features import init_features
+    init_features()
     yield
 
 
@@ -452,8 +454,8 @@ def grade_test_essay(body: EssayGradeRequest, user=Depends(current_user)):
 def _submit_extended_exam(exam_id, exam, questions, body, user, grader):
     answers = {key: _exam_answer_json(value)
                for key, value in body.answers.items()}
-    legacy_questions = [q for q in questions if not q.get("question_type")]
-    special_questions = [q for q in questions if q.get("question_type")]
+    legacy_questions = [q for q in questions if q.get("question_type") not in ("hanzi_canvas", "essay")]
+    special_questions = [q for q in questions if q.get("question_type") in ("hanzi_canvas", "essay")]
     question_scores = {}
     ai_review_items = []
     feedback_parts = []
@@ -872,6 +874,8 @@ def my_dashboard(user=Depends(current_user)):
         cursor -= 86400
     averages = {key: round(sum(values) / len(values), 1) if values else 0
                 for key, values in skill_scores.items()}
+    written_attempts = skill_scores["writing"] + skill_scores["handwriting"]
+    averages["writing"] = round(sum(written_attempts) / len(written_attempts), 1) if written_attempts else 0
     return {
         "results": len(results),
         "average_score": round(sum(r["score"] for r in current_results) / len(current_results), 1) if current_results else 0,
@@ -1048,6 +1052,9 @@ def remove_personal_word(word_id: int, user=Depends(current_user)):
         conn.execute("DELETE FROM saved_words WHERE user_id=? AND word_id=?", (user["id"], word_id))
 
 
+from usecase_features import register_features
+register_features(app, current_user, hash_password)
+
 ADMIN_DIR = Path(__file__).resolve().parent.parent / "admin"
 WEB_DIR = Path(os.environ["WEB_APP_DIR"]).resolve() if os.getenv("WEB_APP_DIR") else None
 app.mount("/admin/assets", StaticFiles(directory=ADMIN_DIR), name="admin-assets")
@@ -1069,5 +1076,80 @@ def learner_review_page():
     return FileResponse(ADMIN_DIR / "review.html")
 
 
+@app.middleware("http")
+async def fresh_web_assets(request, call_next):
+    response = await call_next(request)
+    if not request.url.path.startswith(("/api/", "/media/")):
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+    return response
+
+
+@app.get("/flutter_service_worker.js", include_in_schema=False)
+def retire_flutter_worker():
+    # Replace legacy cache-first workers, including on already installed clients.
+    return HTMLResponse("""
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', event => event.waitUntil((async () => {
+  for (const key of await caches.keys()) {
+    if (['flutter-app-cache', 'flutter-temp-cache', 'flutter-app-manifest'].includes(key)) await caches.delete(key);
+  }
+  await self.registration.unregister();
+  for (const client of await self.clients.matchAll({type: 'window'})) client.navigate(client.url);
+})()));
+""", media_type="application/javascript")
+
+
+@app.get("/update-app", include_in_schema=False)
+def update_app():
+    return HTMLResponse("""<!doctype html><html lang="vi"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cập nhật HanziGo</title><body style="font:18px sans-serif;padding:32px;background:#f5f7f4">
+<p id="status">Đang cập nhật giao diện HanziGo…</p>
+<script>
+(async () => {
+  try {
+    if ('serviceWorker' in navigator) {
+      for (const r of await navigator.serviceWorker.getRegistrations()) {
+        const worker = r.active || r.waiting || r.installing;
+        if (worker && new URL(worker.scriptURL).pathname === '/flutter_service_worker.js') await r.unregister();
+      }
+    }
+    if ('caches' in window) {
+      for (const key of await caches.keys()) {
+        if (['flutter-app-cache', 'flutter-temp-cache', 'flutter-app-manifest'].includes(key)) await caches.delete(key);
+      }
+    }
+    location.replace('/?updated=' + Date.now());
+  } catch (error) {
+    document.getElementById('status').textContent = 'Chưa cập nhật được. Hãy tải lại trang để thử lại.';
+  }
+})();
+</script></body></html>""")
+
+
 if WEB_DIR is not None:
+    WEB_VERSION = hashlib.sha256((WEB_DIR / "main.dart.js").read_bytes()).hexdigest()[:16]
+
+    @app.get("/", include_in_schema=False)
+    @app.get("/index.html", include_in_schema=False)
+    def versioned_web_index():
+        html = (WEB_DIR / "index.html").read_text(encoding="utf-8")
+        return HTMLResponse(html.replace('src="flutter_bootstrap.js"',
+            f'src="/_app/{WEB_VERSION}/flutter_bootstrap.js"'))
+
+    @app.get("/_app/{version}/flutter_bootstrap.js", include_in_schema=False)
+    def versioned_bootstrap(version: str):
+        if version != WEB_VERSION:
+            raise HTTPException(404, "Build no longer available")
+        script = (WEB_DIR / "flutter_bootstrap.js").read_text(encoding="utf-8")
+        script = script.replace('"mainJsPath":"main.dart.js"',
+            f'"mainJsPath":"/_app/{WEB_VERSION}/main.dart.js"')
+        return HTMLResponse(script, media_type="application/javascript")
+
+    @app.get("/_app/{version}/main.dart.js", include_in_schema=False)
+    def versioned_main_js(version: str):
+        if version != WEB_VERSION:
+            raise HTTPException(404, "Build no longer available")
+        return FileResponse(WEB_DIR / "main.dart.js", media_type="application/javascript")
+
     app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="learner-web")

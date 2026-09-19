@@ -155,3 +155,9 @@ PR cần nêu chức năng, API và kết quả test. Nguyên review quyền, d�
 ## Cập nhật theo Excel của Nguyên
 
 Xem [đối chiếu 23 đầu việc](docs/NGUYEN_ACCEPTANCE.md). Bổ sung chống ghi đè tài khoản, adapter Gemini có timeout/retry, kiểm tra kết nối AI và phúc khảo. Học viên mở `/review`; Admin xử lý trong **Duyệt kết quả → Yêu cầu phúc khảo**. Khởi động lại backend để tự nâng cấp DB cũ. Có 19 bài kiểm thử API và kiểm thử phúc khảo trên trình duyệt mobile. Gemini thật cần AI_API_KEY và model hợp lệ trên máy chủ.
+
+## Đối chiếu Usecase.xlsx và chạy bản cập nhật
+
+Xem [bảng đối chiếu 35 chức năng](docs/usecase-audit/ACCEPTANCE.md), bao gồm các điểm chưa thể xác nhận hoàn tất do thiếu SMTP/nội dung thực tế. Chạy ./Start-HanziGo.ps1 trên Windows khi đã có build/web; script sử dụng backend/.venv, giữ dữ liệu tại backend/hanzi_go.db và mở website chung trên cổng 8010.
+
+Học viên vào Cá nhân → Hồ sơ, ảnh đại diện và mật khẩu; Admin dùng Thông tin cá nhân. Quên mật khẩu nằm ở màn hình đăng nhập. Khách được tra từ, OCR và dùng thử dịch/sửa câu, không lưu dữ liệu cá nhân. Mục Bài ôn cá nhân hóa tạo bài luyện câu từ lỗi sai; các bài Nghe/Đọc/tổng hợp lưu nháp theo tài khoản và phiên bản đề trên thiết bị.

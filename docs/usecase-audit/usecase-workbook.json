@@ -1,0 +1,719 @@
+[
+  {
+    "sheet": "UC tổng quan",
+    "rows": [
+      {
+        "L1": "BẢNG TỔNG HỢP PHÂN CHIA CÁC TÁC NHÂN"
+      },
+      {
+        "L2": "Mã Use Case",
+        "M2": "Tên Use Case",
+        "N2": "Khách",
+        "O2": "Học viên ",
+        "P2": "AI",
+        "Q2": "Quản trị viên ",
+        "R2": "Quyền hạn chi tiết của Khách"
+      },
+      {
+        "L3": "UC-01",
+        "M3": "Đăng ký / Đăng nhập",
+        "N3": "Chỉ Đăng ký",
+        "O3": "Toàn quyền",
+        "P3": "➖",
+        "Q3": "Toàn quyền",
+        "R3": "Khách chỉ dùng để tạo tài khoản mới để trở thành Học viên."
+      },
+      {
+        "L4": "UC-02",
+        "M4": "Tra từ điển & Viết tay OCR",
+        "N4": "Trải nghiệm",
+        "O4": "Toàn quyền",
+        "P4": "OCR & Chấm nét",
+        "Q4": "➖",
+        "R4": "Được tra từ bằng phím và viết tay Canvas (nhưng không lưu được vào Sổ tay cá nhân)."
+      },
+      {
+        "L5": "UC-03",
+        "M5": "Dịch đoạn văn & Sửa câu AI",
+        "N5": "Trải nghiệm",
+        "O5": "Toàn quyền",
+        "P5": "Phát hiện & Sửa lỗi",
+        "Q5": "➖",
+        "R5": "Được dịch văn bản và xem gợi ý sửa câu của AI."
+      },
+      {
+        "L6": "UC-04",
+        "M6": "Làm bài test (Nghe - Đọc - Viết)",
+        "N6": "Bị khóa",
+        "O6": "Làm bài",
+        "P6": "Chấm điểm Rubric",
+        "Q6": "Duyệt/Sửa điểm",
+        "R6": "Yêu cầu đăng nhập học viên."
+      },
+      {
+        "L7": "UC-05",
+        "M7": "Lịch sử & Ôn tập (< 80%)",
+        "N7": "Bị khóa",
+        "O7": "Ôn tập",
+        "P7": "Lọc < 80% & Tạo bài",
+        "Q7": "➖",
+        "R7": "Yêu cầu đăng nhập học viên."
+      },
+      {
+        "L8": "UC-06",
+        "M8": "Xem Dashboard & Năng lực",
+        "N8": "Bị khóa",
+        "O8": "Xem tiến độ",
+        "P8": "Vẽ Radar năng lực",
+        "Q8": "Xem toàn hệ thống",
+        "R8": "Yêu cầu đăng nhập học viên/Admin."
+      },
+      {
+        "L9": "UC-07",
+        "M9": "Quản lý thông tin cá nhân",
+        "N9": "Bị khóa",
+        "O9": "Quản lý",
+        "P9": "➖",
+        "Q9": "Quản lý",
+        "R9": "Yêu cầu đăng nhập."
+      },
+      {
+        "L10": "UC-08",
+        "M10": "Quản trị hệ thống & AI",
+        "N10": "Bị khóa",
+        "O10": "Bị khóa",
+        "P10": "Nhận cấu hình",
+        "Q10": "Toàn quyền"
+      },
+      {
+        "A34": "Use Case tổng quan"
+      }
+    ]
+  },
+  {
+    "sheet": "UC phân rã",
+    "rows": [
+      {
+        "A1": "Khách",
+        "L1": "Học Viên"
+      },
+      {
+        "A28": "AI",
+        "L28": "Quản Trị Viên"
+      }
+    ]
+  },
+  {
+    "sheet": "Đặc tả UC",
+    "rows": [
+      {
+        "A1": "STT",
+        "B1": "Mã Use Case",
+        "C1": "Tên Use Case",
+        "D1": "Tác nhân",
+        "E1": "Quan hệ",
+        "F1": "Mô tả",
+        "G1": "Tiền điều kiện",
+        "H1": "Hậu điều kiện",
+        "I1": "Luồng sự kiện chính",
+        "J1": "Luồng ngoại lệ"
+      },
+      {
+        "A2": "1",
+        "B2": "UC-01",
+        "C2": "Đăng ký / Đăng nhập",
+        "D2": "Khách, Học viên, Admin",
+        "E2": "-",
+        "F2": "Đăng ký tài khoản mới hoặc đăng nhập để xác thực người dùng vào hệ thống.",
+        "G2": "Đã mở ứng dụng.",
+        "H2": "Cấp phiên làm việc (Session/Token) và chuyển hướng vào trang chính.",
+        "I2": "1. Chọn Đăng ký hoặc Đăng nhập.",
+        "J2": "E1: Trùng email khi đăng ký."
+      },
+      {
+        "I3": "2. Nhập thông tin tài khoản (Email, Mật khẩu).",
+        "J3": "E2: Sai mật khẩu/tài khoản."
+      },
+      {
+        "I4": "3. Hệ thống kiểm tra dữ liệu trong CSDL.",
+        "J4": "E3: Quên mật khẩu -> Gửi OTP qua email/sdt."
+      },
+      {
+        "I5": "4. Đăng nhập thành công: Chuyển hướng tới Dashboard hoặc Trang Quản trị."
+      },
+      {
+        "A6": "2",
+        "B6": "UC-02",
+        "C6": "Tra từ điển & Viết tay",
+        "D6": "Khách, Học viên, Hệ thống AI",
+        "E6": "-",
+        "F6": "Tra cứu từ vựng bằng bàn phím hoặc viết tay trên Canvas; AI nhận dạng OCR và chấm điểm nét chữ.",
+        "G6": "Đã mở giao diện Tra từ điển.",
+        "H6": "Hiển thị thông tin từ (nghĩa, pinyin, audio); lưu từ vào sổ tay cá nhân.",
+        "I6": "1. Nhập từ khóa qua phím HOẶC vẽ nét chữ Hán trên Canvas.",
+        "J6": "E1: Không nhận dạng được nét chữ -> Yêu cầu vẽ lại rõ hơn."
+      },
+      {
+        "I7": "2. AI nhận dạng nét vẽ (OCR) và hiển thị từ tương ứng.",
+        "J7": "E2: Từ không tồn tại -> Gợi ý chuyển sang Dịch đoạn văn."
+      },
+      {
+        "I8": "3. AI chấm điểm quy tắc bút thuận và độ cân đối nét chữ."
+      },
+      {
+        "I9": "4. Xem chi tiết (nghĩa, phát âm, ví dụ) và nhấn \"Lưu từ vựng\"."
+      },
+      {
+        "A10": "3",
+        "B10": "UC-03",
+        "C10": "Dịch đoạn văn & Sửa câu",
+        "D10": "Khách, Học viên, Hệ thống AI",
+        "E10": "-",
+        "F10": "Dịch văn bản đa ngôn ngữ và AI phát hiện lỗi ngữ pháp, gợi ý câu viết chuẩn.",
+        "G10": "Đã mở giao diện Dịch thuật.",
+        "H10": "Bản dịch hiển thị đầy đủ; câu sửa lỗi được highlight rõ ràng.",
+        "I10": "1. Chọn ngôn ngữ nguồn và đích.",
+        "J10": "E1: Vượt quá 5000 ký tự."
+      },
+      {
+        "I11": "2. Nhập/dán đoạn văn cần dịch/sửa lỗi.",
+        "J11": "E2: Mất kết nối đến API máy chủ dịch thuật."
+      },
+      {
+        "I12": "3. Nhấn nút Dịch / Phân tích ngữ pháp."
+      },
+      {
+        "I13": "4. AI trả về bản dịch, chỉ ra lỗi sai ngữ pháp và gợi ý câu chuẩn."
+      },
+      {
+        "A14": "4",
+        "B14": "UC-04",
+        "C14": "Làm bài (Nghe - Đọc - Viết)",
+        "D14": "Học viên, Hệ thống AI, Admin",
+        "E14": "<<include>> UC-01",
+        "F14": "Tham gia bài kiểm tra 3 kỹ năng: Nghe, Đọc, Viết (viết tay Canvas + bài văn); AI chấm điểm & giải thích.",
+        "G14": "Học viên đã đăng nhập vào hệ thống.",
+        "H14": "Điểm số tổng hợp 3 kỹ năng và lịch sử thi được lưu vào CSDL.",
+        "I14": "1. Chọn đề test (theo cấp độ HSK 1 - HSK 6).",
+        "J14": "E1: Mất mạng -> Tự lưu bài vào LocalStorage để tiếp tục sau."
+      },
+      {
+        "I15": "2. Làm phần Nghe (audio), phần Đọc (điền từ, đọc hiểu).",
+        "J15": "E2: Khiếu nại điểm -> Admin duyệt và chấm lại điểm bài viết."
+      },
+      {
+        "I16": "3. Làm phần Viết (viết chữ tay trên Canvas, viết đoạn văn)."
+      },
+      {
+        "I17": "4. Nhấn Nộp bài -> AI chấm điểm trắc nghiệm, nét vẽ và bài văn."
+      },
+      {
+        "I18": "5. Hệ thống hiển thị điểm tổng, lời giải chi tiết và nhận xét."
+      },
+      {
+        "A19": "5",
+        "B19": "UC-05",
+        "C19": "Lịch sử & Ôn tập (< 80%)",
+        "D19": "Học viên, Hệ thống AI",
+        "E19": "<<include>> UC-01",
+        "F19": "Quản lý lịch sử học; tự động lọc các từ đã tra, chữ viết tay < 80% và bài văn < 80% để ôn tập.",
+        "G19": "Học viên đã đăng nhập vào hệ thống.",
+        "H19": "Dữ liệu ghi nhớ và điểm số chữ viết yếu được cập nhật khi đạt ≥80%≥80%.",
+        "I19": "1. Vào mục Lịch sử & Ôn tập.",
+        "J19": "E1: Chưa có dữ liệu học tập -> Gợi ý học viên tra từ hoặc làm bài test trước."
+      },
+      {
+        "I20": "2. Xem danh sách từ đã tra (học qua Flashcard)."
+      },
+      {
+        "I21": "3. Chọn danh sách \"Chữ viết tay yếu < 80%\" -> Viết lại trên Canvas cho đến khi AI chấm đạt ≥80%≥80%."
+      },
+      {
+        "I22": "4. Chọn danh sách \"Đoạn văn yếu < 80%\" -> Sửa lại bài văn theo góp ý của AI."
+      },
+      {
+        "I23": "5. Hệ thống cập nhật xóa khỏi danh sách yếu khi hoàn thành."
+      },
+      {
+        "A24": "6",
+        "B24": "UC-06",
+        "C24": "Xem Dashboard & Năng lực",
+        "D24": "Học viên, Admin, Hệ thống AI",
+        "E24": "<<include>> UC-01",
+        "F24": "Hiển thị thống kê tổng quan: streak, tiến độ học, biểu đồ radar 3 kỹ năng do AI đánh giá.",
+        "G24": "Đã đăng nhập vào hệ thống.",
+        "H24": "Dữ liệu thống kê được hiển thị trực quan.",
+        "I24": "1. Vào trang Dashboard.",
+        "J24": "Hiển thị trạng thái mặc định 0% nếu tài khoản mới chưa có dữ liệu."
+      },
+      {
+        "I25": "2. Hệ thống tổng hợp dữ liệu học tập và kết quả bài test."
+      },
+      {
+        "I26": "3. AI vẽ biểu đồ radar đánh giá điểm mạnh/yếu (Nghe - Đọc - Viết)."
+      },
+      {
+        "I27": "4. Xem mục tiêu học tập ngày/tuần."
+      },
+      {
+        "A28": "7",
+        "B28": "UC-07",
+        "C28": "Quản lý TT cá nhân",
+        "D28": "Học viên, Admin",
+        "E28": "<<include>> UC-01",
+        "F28": "Xem và cập nhật thông tin cá nhân, ảnh đại diện, đổi mật khẩu tài khoản.",
+        "G28": "Đã đăng nhập vào hệ thống.",
+        "H28": "Thông tin hồ sơ mới được cập nhật vào CSDL.",
+        "I28": "1. Vào mục Thông tin cá nhân.",
+        "J28": "E1: File ảnh vượt quá dung lượng (> 5MB)."
+      },
+      {
+        "I29": "2. Chỉnh sửa họ tên, ngày sinh, đổi ảnh đại diện.",
+        "J29": "E2: Mật khẩu cũ nhập không chính xác."
+      },
+      {
+        "I30": "3. Nhập mật khẩu cũ/mới nếu muốn đổi mật khẩu."
+      },
+      {
+        "I31": "4. Nhấn \"Lưu thay đổi\" -> Hệ thống báo thành công."
+      },
+      {
+        "A32": "8",
+        "B32": "UC-08",
+        "C32": "Quản trị HT & Cấu hình AI",
+        "D32": "Quản trị viên (Admin), Hệ thống AI",
+        "E32": "<<include>> UC-01",
+        "F32": "Quản lý người dùng, từ điển, nét chữ HSK, ngân hàng đề thi, cấu hình API AI và ghi đè điểm.",
+        "G32": "Đăng nhập bằng tài khoản có quyền Admin.",
+        "H32": "CSDL và cấu hình hệ thống được cập nhật an toàn.",
+        "I32": "1. Đăng nhập vào trang Quản trị (/admin).",
+        "J32": "E1: Không đủ quyền Admin -> Chặn truy cập (403 Forbidden)."
+      },
+      {
+        "I33": "2. Quản lý User (Khóa/Mở, phân quyền).",
+        "J33": "E2: Xóa dữ liệu đang có liên kết ràng buộc."
+      },
+      {
+        "I34": "3. Quản lý kho Từ điển, Nét chữ bút thuận HSK, Đề thi."
+      },
+      {
+        "I35": "4. Cấu hình Prompt AI, API Key và duyệt/sửa lại điểm thi học viên khiếu nại."
+      },
+      {
+        "I36": "5. Hệ thống ghi nhận log hoạt động."
+      }
+    ]
+  },
+  {
+    "sheet": "Ma trận phân quyền",
+    "rows": [
+      {
+        "A1": "STT",
+        "B1": "Phân hệ (Module)",
+        "C1": "Chức năng chi tiết",
+        "D1": "Khách",
+        "E1": "Học viên",
+        "F1": "Hệ thống AI",
+        "G1": "Admin",
+        "H1": "Mô tả hoạt động"
+      },
+      {
+        "A2": "I",
+        "B2": "XÁC THỰC & TÀI KHOẢN"
+      },
+      {
+        "A3": "1",
+        "B3": "Dùng thử",
+        "C3": "Trải nghiệm trước khi đăng ký",
+        "D3": "✔",
+        "E3": "❌",
+        "F3": "❌",
+        "G3": "❌",
+        "H3": "Dùng các chức năng tra từ điển và dịch đoạn văn"
+      },
+      {
+        "A4": "2",
+        "B4": "Đăng ký tài khoản",
+        "C4": "Tạo tài khoản học viên mới",
+        "D4": "❌",
+        "E4": "➖",
+        "F4": "➖",
+        "G4": "➖",
+        "H4": "Đăng ký bằng Email"
+      },
+      {
+        "A5": "3",
+        "B5": "Đăng nhập hệ thống",
+        "C5": "Xác thực tài khoản",
+        "D5": "❌",
+        "E5": "✔",
+        "F5": "➖",
+        "G5": "✔",
+        "H5": "Phân quyền theo Role"
+      },
+      {
+        "A6": "4",
+        "B6": "Quên & Khôi phục MK",
+        "C6": "Nhận mã OTP qua Email/SDT",
+        "D6": "❌",
+        "E6": "✔",
+        "F6": "➖",
+        "G6": "✔",
+        "H6": "Đặt lại mật khẩu"
+      },
+      {
+        "A7": "5",
+        "B7": "Đăng xuất",
+        "C7": "Kết thúc phiên làm việc",
+        "D7": "❌",
+        "E7": "✔",
+        "F7": "➖",
+        "G7": "✔",
+        "H7": "Xóa Session / Token"
+      },
+      {
+        "A8": "II",
+        "B8": "TRA TỪ ĐIỂN & VIẾT TAY"
+      },
+      {
+        "A9": "6",
+        "B9": "Tra cứu phím bấm",
+        "C9": "Nhập Pinyin, Chữ Hán, Tiếng Việt",
+        "D9": "✔",
+        "E9": "✔",
+        "F9": "➖",
+        "G9": "✔",
+        "H9": "Tra cứu kho từ vựng"
+      },
+      {
+        "A10": "7",
+        "B10": "Tra từ bằng viết tay",
+        "C10": "Vẽ chữ trực tiếp trên Canvas",
+        "D10": "✔",
+        "E10": "✔",
+        "F10": "  OCR nhận dạng",
+        "G10": "➖",
+        "H10": "Nhận dạng nét chữ viết tay"
+      },
+      {
+        "A11": "8",
+        "B11": "AI Chấm thứ tự nét",
+        "C11": "Kiểm tra quy tắc bút thuận",
+        "D11": "❌",
+        "E11": "Viết nét",
+        "F11": "  Chấm đúng/sai",
+        "G11": "➖",
+        "H11": "Đánh giá quy tắc viết chữ"
+      },
+      {
+        "A12": "9",
+        "B12": "AI Chấm dáng và tỉ lệ nét",
+        "C12": "So khớp với chuẩn font chữ",
+        "D12": "❌",
+        "E12": "Nhận điểm",
+        "F12": "  Chấm điểm",
+        "G12": "➖",
+        "H12": "Chấm điểm (0-100) & chỉ ra nét lệch"
+      },
+      {
+        "A13": "10",
+        "B13": "Nghe phát âm mẫu",
+        "C13": "Nghe giọng đọc bản xứ",
+        "D13": "✔",
+        "E13": "✔",
+        "F13": "➖",
+        "G13": "✔",
+        "H13": "Audio chuẩn"
+      },
+      {
+        "A14": "11",
+        "B14": "Sổ tay từ vựng",
+        "C14": "Lưu từ vào kho cá nhân",
+        "D14": "❌",
+        "E14": "✔",
+        "F14": "➖",
+        "G14": "➖",
+        "H14": "Bắt buộc đăng nhập"
+      },
+      {
+        "A15": "III",
+        "B15": "DỊCH THUẬT & SỬA LỖI AI"
+      },
+      {
+        "A16": "12",
+        "B16": "Dịch đoạn văn",
+        "C16": "Dịch hai chiều đa ngôn ngữ",
+        "D16": "✔",
+        "E16": "✔",
+        "F16": "  Dịch tự động",
+        "G16": "✔",
+        "H16": "Dịch thuật ngữ cảnh"
+      },
+      {
+        "A17": "13",
+        "B17": "AI Sửa lỗi ngữ pháp",
+        "C17": "Phát hiện lỗi & gợi ý câu chuẩn",
+        "D17": "Dùng thử",
+        "E17": "Gửi yêu cầu",
+        "F17": "  Sửa lỗi & Gợi ý",
+        "G17": "➖",
+        "H17": "Highlight từ sai & đề xuất câu đúng"
+      },
+      {
+        "A18": "14",
+        "B18": "AI Phân tích ngữ cảnh",
+        "C18": "Giải thích sắc thái biểu cảm",
+        "D18": "❌",
+        "E18": "Xem giải thích",
+        "F18": "  Phân tích cú pháp",
+        "G18": "➖",
+        "H18": "Phân tích cách dùng từ chuyên sâu"
+      },
+      {
+        "A19": "IV",
+        "B19": "BÀI LUYỆN (3 KỸ NĂNG)"
+      },
+      {
+        "A20": "15",
+        "B20": "Test NGHE (Listening)",
+        "C20": "Nghe hội thoại, điền từ",
+        "D20": "❌",
+        "E20": "Làm bài",
+        "F20": "  Phát audio & Chấm",
+        "G20": "Tạo đề / Xem",
+        "H20": "Tự động chấm điểm trắc nghiệm"
+      },
+      {
+        "A21": "16",
+        "B21": "AI Giải thích bẫy nghe",
+        "C21": "Phân tích transcript & bẫy từ",
+        "D21": "❌",
+        "E21": "Xem giải thích",
+        "F21": "  Sinh giải thích",
+        "G21": "Chỉnh sửa",
+        "H21": "Giải thích vì sao đáp án đúng"
+      },
+      {
+        "A22": "17",
+        "B22": "Test ĐỌC (Reading)",
+        "C22": "Điền từ, đọc hiểu, sắp xếp câu",
+        "D22": "❌",
+        "E22": "Làm bài",
+        "F22": "  Tự động chấm",
+        "G22": "Tạo đề / Xem",
+        "H22": "Kiểm tra đọc hiểu & ngữ pháp"
+      },
+      {
+        "A23": "18",
+        "B23": "Test VIẾT - Sắp xếp câu",
+        "C23": "Xếp từ xáo trộn thành câu",
+        "D23": "❌",
+        "E23": "Làm bài",
+        "F23": "  Kiểm tra cú pháp",
+        "G23": "Tạo đề / Xem",
+        "H23": "Kiểm tra trật tự câu"
+      },
+      {
+        "A24": "19",
+        "B24": "Test VIẾT - Chữ Hán Canvas",
+        "C24": "Viết chữ Hán theo Pinyin",
+        "D24": "❌",
+        "E24": "Viết tay",
+        "F24": "  Chấm nét & Bút thuận",
+        "G24": "Xem lại & Sửa",
+        "H24": "Chấm điểm nét vẽ"
+      },
+      {
+        "A25": "20",
+        "B25": "Test VIẾT - Đoạn văn",
+        "C25": "Viết bài văn ngắn 80-100 chữ",
+        "D25": "❌",
+        "E25": "Nộp bài văn",
+        "F25": "  Chấm điểm",
+        "G25": "Duyệt / Sửa điểm",
+        "H25": "AI chấm ngữ pháp/vốn từ; Admin sửa điểm"
+      },
+      {
+        "A26": "VI",
+        "B26": "ÔN TẬP"
+      },
+      {
+        "A27": "21",
+        "B27": "Lịch sử tra từ điển",
+        "C27": "Xem lại toàn bộ từ đã tra",
+        "D27": "❌",
+        "E27": "Xem lịch sử",
+        "F27": "➖",
+        "G27": "➖",
+        "H27": "Tự động đồng bộ vào Flashcard"
+      },
+      {
+        "A28": "22",
+        "B28": "Bộ lọc chữ viết tay < 80%",
+        "C28": "Trích xuất chữ Hán viết < 80đ",
+        "D28": "❌",
+        "E28": "Xem danh sách",
+        "F28": "  Tự động lọc < 80%",
+        "G28": "➖",
+        "H28": "Tự động đưa vào danh sách luyện lại"
+      },
+      {
+        "A29": "23",
+        "B29": "Bộ lọc đoạn văn < 80%",
+        "C29": "Trích xuất bài văn viết < 80đ",
+        "D29": "❌",
+        "E29": "Xem danh sách",
+        "F29": "  Tự động lọc < 80%",
+        "G29": "➖",
+        "H29": "Tự động đưa vào danh sách sửa lại"
+      },
+      {
+        "A30": "24",
+        "B30": "Luyện viết lại chữ < 80%",
+        "C30": "Viết lại nét chữ đến khi ≥80",
+        "D30": "❌",
+        "E30": "Luyện viết lại",
+        "F30": "  Chấm lại nét chữ",
+        "G30": "➖",
+        "H30": "Đạt >80% tự động hoàn thành"
+      },
+      {
+        "A31": "25",
+        "B31": "Viết lại đoạn văn < 80%",
+        "C31": "Sửa bài văn theo góp ý của AI",
+        "D31": "❌",
+        "E31": "Sửa & Nộp lại",
+        "F31": "  Chấm lại bài văn(theo ngữ pháp)",
+        "G31": "Hiệu chỉnh",
+        "H31": "Đạt ≥80%tự động hoàn thành"
+      },
+      {
+        "A32": "VII",
+        "B32": "DASHBOARD & NĂNG LỰC"
+      },
+      {
+        "A33": "26",
+        "B33": "Thống kê học tập cá nhân",
+        "C33": "Xem streak, điểm test, từ vựng",
+        "D33": "❌",
+        "E33": "Xem dữ liệu mình",
+        "F33": "➖",
+        "G33": "➖",
+        "H33": "Bảng theo dõi tiến độ học"
+      },
+      {
+        "A34": "27",
+        "B34": "AI Đánh giá năng lực tổng thể",
+        "C34": "Phân tích điểm mạnh/yếu 3 kỹ năng",
+        "D34": "❌",
+        "E34": "Xem báo cáo AI",
+        "F34": "  Vẽ biểu đồ Radar",
+        "G34": "Xem báo cáo",
+        "H34": "Nhận xét chi tiết trình độ"
+      },
+      {
+        "A35": "28",
+        "B35": "Báo cáo toàn hệ thống",
+        "C35": "Xem lượng User, bài thi, API AI",
+        "D35": "❌",
+        "E35": "❌",
+        "F35": "➖",
+        "G35": "Toàn quyền xem",
+        "H35": "Dashboard quản trị"
+      },
+      {
+        "A36": "VIII",
+        "B36": "THÔNG TIN CÁ NHÂN"
+      },
+      {
+        "A37": "29",
+        "B37": "Quản lý hồ sơ",
+        "C37": "Sửa họ tên, SĐT, ngày sinh",
+        "D37": "❌",
+        "E37": "✔",
+        "F37": "➖",
+        "G37": "✔",
+        "H37": "Quản lý thông tin chính mình"
+      },
+      {
+        "A38": "30",
+        "B38": "Đổi Avatar & Mật khẩu",
+        "C38": "Thay ảnh đại diện, đổi mật khẩu",
+        "D38": "❌",
+        "E38": "✔",
+        "F38": "➖",
+        "G38": "✔",
+        "H38": "Xác thực mật khẩu cũ"
+      },
+      {
+        "A39": "IX",
+        "B39": "QUẢN TRỊ HỆ THỐNG & CẤU HÌNH AI"
+      },
+      {
+        "A40": "31",
+        "B40": "Quản lý người dùng",
+        "C40": "Khóa/Mở tài khoản, phân quyền",
+        "D40": "❌",
+        "E40": "❌",
+        "F40": "➖",
+        "G40": "Toàn quyền",
+        "H40": "Quản lý tài khoản"
+      },
+      {
+        "A41": "32",
+        "B41": "Quản lý Kho từ & Nét bút thuận",
+        "C41": "Cập nhật dữ liệu nét chữ HSK",
+        "D41": "❌",
+        "E41": "❌",
+        "F41": "➖",
+        "G41": "Toàn quyền",
+        "H41": "Kho dữ liệu nét vẽ chuẩn"
+      },
+      {
+        "A42": "33",
+        "B42": "Quản lý Ngân hàng đề thi",
+        "C42": "Soạn đề Nghe - Đọc - Viết",
+        "D42": "❌",
+        "E42": "❌",
+        "F42": "➖",
+        "G42": "Toàn quyền",
+        "H42": "Kho đề kiểm tra"
+      },
+      {
+        "A43": "34",
+        "B43": "Cấu hình Model & API AI",
+        "C43": "Cài đặt Prompt mẫu, API Key",
+        "D43": "❌",
+        "E43": "❌",
+        "F43": "➖",
+        "G43": "Toàn quyền",
+        "H43": "Quản lý OpenAI / Gemini API"
+      },
+      {
+        "A44": "35",
+        "B44": "Ghi đè điểm AI (Manual Override)",
+        "C44": "Sửa điểm bài thi của AI đã chấm",
+        "D44": "❌",
+        "E44": "❌",
+        "F44": "➖",
+        "G44": "Toàn quyền",
+        "H44": "Xử lý khiếu nại chấm điểm"
+      },
+      {
+        "B46": "Ghi chú"
+      },
+      {
+        "B47": "✔",
+        "C47": "Được phép thực hiện"
+      },
+      {
+        "B48": "❌",
+        "C48": "Bị hệ thống chặn"
+      },
+      {
+        "B49": "➖",
+        "C49": "Không liên quan/ không cần thiết"
+      }
+    ]
+  }
+]

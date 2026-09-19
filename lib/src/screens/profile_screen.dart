@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+
+import 'personalized_practice_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import '../services/student_service.dart';
@@ -22,12 +25,14 @@ class ProfileScreen extends StatelessWidget {
     this.studentService,
     this.comprehensiveRepository,
     this.user,
+    this.onEditProfile,
   });
 
   final VoidCallback? onLogout;
   final StudentService? studentService;
   final ReadingExamRepository? comprehensiveRepository;
   final AuthUser? user;
+  final VoidCallback? onEditProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -70,20 +75,46 @@ class ProfileScreen extends StatelessWidget {
             name: user?.name ?? 'Học viên',
             email: user?.email ?? '',
           ),
+          if (onEditProfile != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: OutlinedButton.icon(
+                onPressed: onEditProfile,
+                icon: const Icon(Icons.manage_accounts_outlined),
+                label: const Text('Hồ sơ, ảnh đại diện và mật khẩu'),
+              ),
+            ),
           const _SectionTitle('Kết quả học tập'),
+          if (studentService != null)
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.auto_awesome),
+                title: const Text('Bài ôn cá nhân hóa'),
+                subtitle: const Text('Tạo bài luyện mới từ lỗi sai của bạn'),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        PersonalizedPracticeScreen(service: studentService!),
+                  ),
+                ),
+              ),
+            ),
           if (comprehensiveRepository != null)
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               child: ListTile(
                 leading: const Icon(Icons.fact_check, color: AppTheme.jade),
-                title: const Text('Bài test tổng hợp',
-                    style: TextStyle(fontWeight: FontWeight.w800)),
+                title: const Text(
+                  'Bài test tổng hợp',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
                 subtitle: const Text('Nghe · Đọc · Viết trong cùng một đề'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => PracticeScreen(
                       repository: comprehensiveRepository!,
+                      draftOwner: user?.id,
                       title: 'Test Tổng hợp',
                       eyebrow: 'Bài luyện · Ba kỹ năng',
                       skillLabel: 'NGHE · ĐỌC · VIẾT',
@@ -97,10 +128,13 @@ class ProfileScreen extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 20),
               child: ListTile(
                 leading: const Icon(Icons.gesture, color: AppTheme.red),
-                title: const Text('Viết tay chữ Hán',
-                    style: TextStyle(fontWeight: FontWeight.w800)),
-                subtitle:
-                    const Text('Tra từ viết tay hoặc chấm thứ tự nét offline'),
+                title: const Text(
+                  'Viết tay chữ Hán',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: const Text(
+                  'Tra từ viết tay hoặc chấm thứ tự nét offline',
+                ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
@@ -113,12 +147,17 @@ class ProfileScreen extends StatelessWidget {
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               child: ListTile(
-                leading:
-                    const Icon(Icons.auto_fix_high, color: AppTheme.orange),
-                title: const Text('Sửa câu tiếng Trung',
-                    style: TextStyle(fontWeight: FontWeight.w800)),
+                leading: const Icon(
+                  Icons.auto_fix_high,
+                  color: AppTheme.orange,
+                ),
+                title: const Text(
+                  'Sửa câu tiếng Trung',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
                 subtitle: const Text(
-                    'Kiểm tra ngữ pháp và phân tích ngữ cảnh bằng AI'),
+                  'Kiểm tra ngữ pháp và phân tích ngữ cảnh bằng AI',
+                ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
@@ -133,10 +172,13 @@ class ProfileScreen extends StatelessWidget {
               child: ListTile(
                 key: const Key('open-handwriting-retry'),
                 leading: const Icon(Icons.history_edu, color: AppTheme.orange),
-                title: const Text('Luyện lại chữ dưới 80',
-                    style: TextStyle(fontWeight: FontWeight.w800)),
+                title: const Text(
+                  'Luyện lại chữ dưới 80',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
                 subtitle: const Text(
-                    'Chọn một hoặc nhiều chữ và luyện bằng Canvas offline'),
+                  'Chọn một hoặc nhiều chữ và luyện bằng Canvas offline',
+                ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
@@ -151,14 +193,16 @@ class ProfileScreen extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 20),
               child: ListTile(
                 leading: const Icon(Icons.radar_rounded, color: AppTheme.jade),
-                title: const Text('Dashboard & năng lực',
-                    style: TextStyle(fontWeight: FontWeight.w800)),
+                title: const Text(
+                  'Dashboard & năng lực',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
                 subtitle: const Text('Streak, tiến độ và đánh giá AI'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                      builder: (_) =>
-                          DashboardScreen(service: studentService!)),
+                    builder: (_) => DashboardScreen(service: studentService!),
+                  ),
                 ),
               ),
             ),
@@ -166,15 +210,20 @@ class ProfileScreen extends StatelessWidget {
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               child: ListTile(
-                leading: const Icon(Icons.replay_circle_filled,
-                    color: AppTheme.orange),
-                title: const Text('Ôn tập dưới 80',
-                    style: TextStyle(fontWeight: FontWeight.w800)),
+                leading: const Icon(
+                  Icons.replay_circle_filled,
+                  color: AppTheme.orange,
+                ),
+                title: const Text(
+                  'Ôn tập dưới 80',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
                 subtitle: const Text('Viết tay và đoạn văn cần luyện lại'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                      builder: (_) => ReviewScreen(service: studentService!)),
+                    builder: (_) => ReviewScreen(service: studentService!),
+                  ),
                 ),
               ),
             ),
@@ -201,11 +250,17 @@ class ProfileScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Lịch sử bài làm',
-                                style: TextStyle(fontWeight: FontWeight.w800)),
-                            Text('Xem lại điểm và nhận xét',
-                                style: TextStyle(
-                                    color: Colors.grey, fontSize: 11)),
+                            Text(
+                              'Lịch sử bài làm',
+                              style: TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                            Text(
+                              'Xem lại điểm và nhận xét',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 11,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -223,7 +278,8 @@ class ProfileScreen extends StatelessWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => CustomExamScreen(
-                          service: CustomExamService.instance!),
+                        service: CustomExamService.instance!,
+                      ),
                     ),
                   );
                 },
@@ -238,11 +294,17 @@ class ProfileScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Tạo đề thi tùy chỉnh',
-                                style: TextStyle(fontWeight: FontWeight.w800)),
-                            Text('Tạo đề Nghe hoặc Đọc',
-                                style: TextStyle(
-                                    color: Colors.grey, fontSize: 11)),
+                            Text(
+                              'Tạo đề thi tùy chỉnh',
+                              style: TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                            Text(
+                              'Tạo đề Nghe hoặc Đọc',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 11,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -260,7 +322,8 @@ class ProfileScreen extends StatelessWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => CustomExamHistoryScreen(
-                          service: CustomExamService.instance!),
+                        service: CustomExamService.instance!,
+                      ),
                     ),
                   );
                 },
@@ -275,11 +338,17 @@ class ProfileScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Lịch sử đề tùy chỉnh',
-                                style: TextStyle(fontWeight: FontWeight.w800)),
-                            Text('Theo điểm, loại đề, năng lực',
-                                style: TextStyle(
-                                    color: Colors.grey, fontSize: 11)),
+                            Text(
+                              'Lịch sử đề tùy chỉnh',
+                              style: TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                            Text(
+                              'Theo điểm, loại đề, năng lực',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 11,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -291,17 +360,20 @@ class ProfileScreen extends StatelessWidget {
             ),
           const _SectionTitle('Cài đặt học tập'),
           const _Setting(
-              icon: Icons.track_changes_rounded,
-              title: 'Mục tiêu mỗi ngày',
-              value: '15 phút'),
+            icon: Icons.track_changes_rounded,
+            title: 'Mục tiêu mỗi ngày',
+            value: '15 phút',
+          ),
           const _Setting(
-              icon: Icons.notifications_none_rounded,
-              title: 'Nhắc nhở học tập',
-              value: '20:00'),
+            icon: Icons.notifications_none_rounded,
+            title: 'Nhắc nhở học tập',
+            value: '20:00',
+          ),
           const _Setting(
-              icon: Icons.translate_rounded,
-              title: 'Trình độ hiện tại',
-              value: 'HSK 2'),
+            icon: Icons.translate_rounded,
+            title: 'Trình độ hiện tại',
+            value: 'HSK 2',
+          ),
         ],
       ),
     );
@@ -317,11 +389,14 @@ class _ProfileStat extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.jade)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.jade,
+            ),
+          ),
           Text(label, style: const TextStyle(color: Colors.grey, fontSize: 9)),
         ],
       ),
@@ -346,16 +421,18 @@ class _ProfileOverview extends StatefulWidget {
 
 class _ProfileOverviewState extends State<_ProfileOverview> {
   Future<StudentDashboard>? _future;
+  Future<String>? _avatar;
 
   @override
   void initState() {
     super.initState();
     _future = widget.service?.fetchMyDashboard();
+    _avatar = widget.service?.fetchAvatar();
   }
 
   void _retry() => setState(() {
-        _future = widget.service?.fetchMyDashboard();
-      });
+    _future = widget.service?.fetchMyDashboard();
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -364,10 +441,18 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
         : widget.name.trim().characters.first.toUpperCase();
     return Column(
       children: [
-        CircleAvatar(
+        FutureBuilder<String>(future: _avatar, builder: (context, snapshot) {
+          final avatar = snapshot.data ?? '';
+          ImageProvider? image;
+          if (avatar.startsWith('data:image/')) {
+            try { image = MemoryImage(base64Decode(avatar.split(',').last)); }
+            on FormatException { image = null; }
+          }
+          return CircleAvatar(
           radius: 46,
           backgroundColor: const Color(0xFFFFE6DA),
-          child: Text(
+          backgroundImage: image,
+          child: image != null ? null : Text(
             initial,
             style: const TextStyle(
               color: AppTheme.red,
@@ -375,7 +460,7 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
               fontWeight: FontWeight.w800,
             ),
           ),
-        ),
+        ); }),
         const SizedBox(height: 12),
         Text(
           widget.name,
@@ -434,15 +519,20 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
-      child: Text(text,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+      ),
     );
   }
 }
 
 class _Setting extends StatelessWidget {
-  const _Setting(
-      {required this.icon, required this.title, required this.value});
+  const _Setting({
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
   final IconData icon;
   final String title;
   final String value;
@@ -453,13 +543,17 @@ class _Setting extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 9),
       child: ListTile(
         leading: Icon(icon, color: AppTheme.jade),
-        title: Text(title,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+        title: Text(
+          title,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(value,
-                style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            Text(
+              value,
+              style: const TextStyle(color: Colors.grey, fontSize: 11),
+            ),
             const Icon(Icons.chevron_right_rounded, color: Colors.grey),
           ],
         ),

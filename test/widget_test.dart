@@ -130,10 +130,10 @@ void main() {
       ),
     );
     expect(
-      find.text('Mỗi ngày một chút,\ntiến bộ thật nhiều.'),
+      find.text('Một chút mỗi ngày.\nTự tin hơn mỗi bước.'),
       findsOneWidget,
     );
-    expect(find.text('Từ vựng hôm nay'), findsOneWidget);
+    expect(find.text('Hôm nay bạn muốn học gì?'), findsOneWidget);
   });
 
   testWidgets('tải và lọc đề đọc theo cấp độ HSK', (tester) async {
@@ -187,8 +187,9 @@ void main() {
 
     await tester.tap(find.byKey(const Key('listening-answer-một')));
     await tester.pump();
-    await tester
-        .ensureVisible(find.byKey(const Key('listening-question-action')));
+    await tester.ensureVisible(
+      find.byKey(const Key('listening-question-action')),
+    );
     await tester.tap(find.byKey(const Key('listening-question-action')));
     await tester.pumpAndSettle();
 

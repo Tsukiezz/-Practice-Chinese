@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import '../services/student_service.dart';
@@ -13,7 +14,7 @@ class ResultsScreen extends StatefulWidget {
 }
 
 class _ResultsScreenState extends State<ResultsScreen> {
-  late final Future<List<StudentResult>> _resultsFuture;
+  late Future<List<StudentResult>> _resultsFuture;
   String? _error;
 
   @override
@@ -114,7 +115,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           Text(
                             'Chấm bởi: ${_gradedByLabel(result.gradedBy)}',
                             style: TextStyle(
-                                color: Colors.grey.shade600, fontSize: 12),
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),

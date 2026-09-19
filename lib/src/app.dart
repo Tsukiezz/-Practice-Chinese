@@ -66,8 +66,8 @@ class _AppShellState extends State<AppShell> {
     return configured.isNotEmpty
         ? configured
         : (kIsWeb
-            ? Uri.base.resolve('/api').toString()
-            : 'http://localhost:8010/api');
+              ? Uri.base.resolve('/api').toString()
+              : 'http://localhost:8010/api');
   }
 
   http.Client? _httpClient;
@@ -98,7 +98,8 @@ class _AppShellState extends State<AppShell> {
         baseUrl: _apiBaseUrl,
         tokenProvider: () async => _authService.token,
       );
-      _listeningRepository = widget.listeningRepository ??
+      _listeningRepository =
+          widget.listeningRepository ??
           ListeningExamService(
             baseUrl: _apiBaseUrl,
             tokenProvider: () async => _authService.token,
@@ -181,9 +182,7 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (!_authenticated) {
@@ -194,7 +193,8 @@ class _AppShellState extends State<AppShell> {
       );
     }
 
-    _readingRepository ??= widget.readingRepository ??
+    _readingRepository ??=
+        widget.readingRepository ??
         ReadingExamService(
           baseUrl: _apiBaseUrl,
           tokenProvider: () async => _authService.token,
@@ -205,16 +205,32 @@ class _AppShellState extends State<AppShell> {
       body: IndexedStack(
         index: _index,
         children: [
-          HomeScreen(onOpenLessons: () => setState(() => _index = 1)),
+          HomeScreen(
+            userName: _authService.currentUser?.name ?? '',
+            onOpenLessons: () => setState(() => _index = 1),
+            onOpenListening: () => setState(() => _index = 2),
+            onOpenReading: () => setState(() => _index = 3),
+            onOpenDictionary: () => setState(() => _index = 4),
+            onOpenProfile: () => setState(() => _index = 5),
+          ),
           const LessonsScreen(),
-          ListeningScreen(repository: _listeningRepository!),
-          PracticeScreen(repository: _readingRepository!),
+          ListeningScreen(
+            repository: _listeningRepository!,
+            draftOwner: _authService.currentUser?.id,
+          ),
+          PracticeScreen(
+            repository: _readingRepository!,
+            draftOwner: _authService.currentUser?.id,
+          ),
           VocabularyScreen(service: _studentService),
           ProfileScreen(
             onLogout: _logout,
             studentService: _studentService,
             comprehensiveRepository: _comprehensiveRepository,
             user: _authService.currentUser,
+            onEditProfile: kIsWeb
+                ? () => openAccount(_authService.token!)
+                : null,
           ),
         ],
       ),
@@ -223,29 +239,35 @@ class _AppShellState extends State<AppShell> {
         onDestinationSelected: (value) => setState(() => _index = value),
         destinations: const [
           NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home_rounded),
-              label: 'Trang chủ'),
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home_rounded),
+            label: 'Trang chủ',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.menu_book_outlined),
-              selectedIcon: Icon(Icons.menu_book_rounded),
-              label: 'Bài học'),
+            icon: Icon(Icons.menu_book_outlined),
+            selectedIcon: Icon(Icons.menu_book_rounded),
+            label: 'Bài học',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.headphones_outlined),
-              selectedIcon: Icon(Icons.headphones_rounded),
-              label: 'Nghe'),
+            icon: Icon(Icons.headphones_outlined),
+            selectedIcon: Icon(Icons.headphones_rounded),
+            label: 'Nghe',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.psychology_outlined),
-              selectedIcon: Icon(Icons.psychology_rounded),
-              label: 'Đọc'),
+            icon: Icon(Icons.psychology_outlined),
+            selectedIcon: Icon(Icons.psychology_rounded),
+            label: 'Đọc',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.style_outlined),
-              selectedIcon: Icon(Icons.style_rounded),
-              label: 'Từ vựng'),
+            icon: Icon(Icons.style_outlined),
+            selectedIcon: Icon(Icons.style_rounded),
+            label: 'Từ vựng',
+          ),
           NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded),
-              label: 'Cá nhân'),
+            icon: Icon(Icons.person_outline_rounded),
+            selectedIcon: Icon(Icons.person_rounded),
+            label: 'Cá nhân',
+          ),
         ],
       ),
     );

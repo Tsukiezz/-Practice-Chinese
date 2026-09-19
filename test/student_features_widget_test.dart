@@ -15,26 +15,25 @@ StudentResult _studentResult({
   String feedback = 'Cần luyện lại.',
   double? latestScore,
   String? latestFeedback,
-}) =>
-    StudentResult(
-      id: id,
-      examId: null,
-      kind: kind,
-      content: jsonEncode({'content': '我学习中文。', 'target': '一'}),
-      score: score,
-      originalScore: score,
-      feedback: feedback,
-      gradedBy: 'ai',
-      version: 1,
-      createdAt: 1,
-      overrides: const [],
-      latestScore: latestScore,
-      latestFeedback: latestFeedback,
-    );
+}) => StudentResult(
+  id: id,
+  examId: null,
+  kind: kind,
+  content: jsonEncode({'content': '我学习中文。', 'target': '一'}),
+  score: score,
+  originalScore: score,
+  feedback: feedback,
+  gradedBy: 'ai',
+  version: 1,
+  createdAt: 1,
+  overrides: const [],
+  latestScore: latestScore,
+  latestFeedback: latestFeedback,
+);
 
 class _FakeStudentService extends StudentService {
   _FakeStudentService()
-      : super(baseUrl: 'http://test/api', tokenProvider: () async => 'token');
+    : super(baseUrl: 'http://test/api', tokenProvider: () async => 'token');
 
   String? handwritingTarget;
   bool handwritingRecognitionRequested = false;
@@ -61,19 +60,19 @@ class _FakeStudentService extends StudentService {
 
   @override
   Future<StudentDashboard> fetchMyDashboard() async => const StudentDashboard(
-        results: 4,
-        averageScore: 82,
-        needsReview: 1,
-        vocabularyCount: 6,
-        streak: 3,
-        progressPercent: 82,
-        skillScores: {
-          'listening': 90,
-          'reading': 80,
-          'writing': 70,
-          'handwriting': 88,
-        },
-      );
+    results: 4,
+    averageScore: 82,
+    needsReview: 1,
+    vocabularyCount: 6,
+    streak: 3,
+    progressPercent: 82,
+    skillScores: {
+      'listening': 90,
+      'reading': 80,
+      'writing': 70,
+      'handwriting': 88,
+    },
+  );
 
   @override
   Future<CapabilityReport> fetchCapabilityReport() async =>
@@ -107,12 +106,12 @@ class _FakeStudentService extends StudentService {
 
   @override
   Future<List<StudentResult>> fetchReviewItems(String kind) async => [
-        _studentResult(
-          kind: kind,
-          latestScore: 72,
-          latestFeedback: 'Lần gần nhất đã tiến bộ.',
-        ),
-      ];
+    _studentResult(
+      kind: kind,
+      latestScore: 72,
+      latestFeedback: 'Lần gần nhất đã tiến bộ.',
+    ),
+  ];
 
   @override
   Future<HandwritingGradeResult> submitHandwriting(
@@ -133,8 +132,9 @@ class _FakeStudentService extends StudentService {
 
   @override
   Future<HandwritingRecognitionResult> recognizeHandwriting(
-    List<List<Map<String, double>>> strokes,
-  ) async {
+    List<List<Map<String, double>>> strokes, {
+    bool guest = false,
+  }) async {
     handwritingRecognitionRequested = true;
     return const HandwritingRecognitionResult(
       score: 96,
@@ -165,7 +165,10 @@ void main() {
   testWidgets('Vy notebook saves, opens and removes words', (tester) async {
     final service = _FakeStudentService();
     await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: VocabularyScreen(service: service))));
+      MaterialApp(
+        home: Scaffold(body: VocabularyScreen(service: service)),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Lưu vào sổ tay'));
     await tester.pumpAndSettle();
@@ -179,26 +182,31 @@ void main() {
     expect(service.saved, isEmpty);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('Dashboard hiển thị dữ liệu thật và nhận xét Gemini',
-      (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: DashboardScreen(service: _FakeStudentService()),
-    ));
+  testWidgets('Dashboard hiển thị dữ liệu thật và nhận xét Gemini', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(home: DashboardScreen(service: _FakeStudentService())),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('3'), findsOneWidget);
     expect(find.text('4'), findsOneWidget);
     expect(find.text('6'), findsOneWidget);
     expect(find.byKey(const Key('skill-radar')), findsOneWidget);
-    expect(find.text('Gemini nhận thấy kỹ năng nghe là điểm mạnh.'),
-        findsOneWidget);
+    expect(
+      find.text('Gemini nhận thấy kỹ năng nghe là điểm mạnh.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('mở từ sẽ ghi lịch sử và tạo Flashcard', (tester) async {
     final service = _FakeStudentService();
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: VocabularyScreen(service: service)),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: VocabularyScreen(service: service)),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('1 từ vựng'), findsOneWidget);
@@ -213,11 +221,13 @@ void main() {
     expect(find.text('Ôn Flashcard (1 từ)'), findsOneWidget);
   });
 
-  testWidgets('Canvas gửi nét thật và hiện kết quả tra từ viết tay',
-      (tester) async {
+  testWidgets('Canvas gửi nét thật và hiện kết quả tra từ viết tay', (
+    tester,
+  ) async {
     final service = _FakeStudentService();
-    await tester
-        .pumpWidget(MaterialApp(home: HandwritingScreen(service: service)));
+    await tester.pumpWidget(
+      MaterialApp(home: HandwritingScreen(service: service)),
+    );
     final canvas = find.byKey(const Key('handwriting-canvas'));
     final paint = tester.widget<CustomPaint>(
       find.descendant(of: canvas, matching: find.byType(CustomPaint)),
@@ -246,8 +256,9 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(800, 1400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final service = _FakeStudentService();
-    await tester
-        .pumpWidget(MaterialApp(home: HandwritingScreen(service: service)));
+    await tester.pumpWidget(
+      MaterialApp(home: HandwritingScreen(service: service)),
+    );
     await tester.tap(find.text('Luyện nét'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('handwriting-target')), '一');
@@ -267,9 +278,9 @@ void main() {
   });
 
   testWidgets('danh sách ôn tập hiện kết quả nộp lại gần nhất', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: ReviewScreen(service: _FakeStudentService()),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(home: ReviewScreen(service: _FakeStudentService())),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('72'), findsOneWidget);

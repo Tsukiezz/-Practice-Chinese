@@ -105,7 +105,7 @@ class WordUpdate(Word):
 class Question(Body):
     id: str = Field(min_length=1, max_length=40)
     section: Literal["listening", "reading", "writing"]
-    question_type: Literal["hanzi_canvas", "essay"] | None = None
+    question_type: Literal["hanzi_canvas", "essay", "sentence_order"] | None = None
     weight: float = Field(default=1, gt=0, le=100)
     prompt: str = Field(min_length=1, max_length=5000)
     options: list[str] = Field(default_factory=list, max_length=10)
@@ -118,9 +118,9 @@ class Question(Body):
     @model_validator(mode="after")
     def validate_question(self):
         Word.valid_url(self.audio_url)
-        if self.question_type is not None and self.section != "writing":
+        if self.question_type in ("hanzi_canvas", "essay") and self.section != "writing":
             raise ValueError("Loại Canvas/đoạn văn chỉ dùng cho kỹ năng writing")
-        if self.question_type is not None and self.options:
+        if self.question_type in ("hanzi_canvas", "essay") and self.options:
             raise ValueError("Câu Canvas/đoạn văn không dùng lựa chọn trắc nghiệm")
         if self.question_type == "hanzi_canvas":
             if len(self.answer) != 1 or not self._is_han(self.answer):
@@ -131,6 +131,12 @@ class Question(Body):
                     "Đề đoạn văn tối đa 1000 ký tự và rubric tối đa 2000 ký tự")
         if self.section == "listening" and not self.audio_url:
             raise ValueError("Câu nghe cần audio HTTPS")
+        if self.question_type == "sentence_order":
+            if self.section == "listening" or not 2 <= len(self.options) <= 10 or len(set(self.options)) != len(self.options):
+                raise ValueError("Câu sắp xếp cần 2–10 cụm từ khác nhau trong phần Đọc hoặc Viết")
+            if sorted(self.answer.split(" ")) != sorted(self.options):
+                raise ValueError("Đáp án phải chứa đủ các cụm từ, phân cách bằng một dấu cách")
+            return self
         if self.options and (len(self.options) < 2 or len(set(self.options)) != len(self.options)
                              or any(not option.strip() for option in self.options) or self.answer not in self.options):
             raise ValueError("Lựa chọn phải khác nhau, không rỗng và chứa đáp án")

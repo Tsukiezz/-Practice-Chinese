@@ -1,0 +1,85 @@
+﻿<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tài khoản · HanziGo</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f7f4;color:#24332e;font:16px system-ui,sans-serif}main{max-width:650px;margin:auto;padding:24px 18px}section{background:white;border-radius:22px;padding:24px;margin:20px 0}h1{font-size:28px}label{display:block;margin:15px 0}input{display:block;width:100%;padding:12px;border:1px solid #cbd7ce;border-radius:10px;font:inherit;margin-top:6px}button,a{font:inherit}button{padding:13px 20px;border:0;border-radius:12px;background:#235546;color:white;cursor:pointer}button:disabled{opacity:.5}a{color:#235546}#message{white-space:pre-wrap}img{width:80px;height:80px;object-fit:cover;border-radius:50%}.hint{color:#60736a;line-height:1.5}[hidden]{display:none!important}
+</style></head><body><main>
+<a id="back" href="/">← Trở về HanziGo</a><h1 id="title">Thông tin cá nhân</h1>
+<p id="message" role="status" aria-live="polite"></p>
+<section id="profile-section" hidden><form id="profile">
+<img id="preview" alt="Ảnh đại diện" hidden>
+<label>Họ tên<input name="name" required maxlength="120"></label>
+<label>Email<input name="email" type="email" disabled></label>
+<label>Số điện thoại<input name="phone" maxlength="25" type="tel"></label>
+<label>Ngày sinh<input name="birth_date" type="date"></label>
+<label>Ảnh đại diện (PNG, JPEG, WebP; tối đa 5MB)<input id="avatar" type="file" accept="image/png,image/jpeg,image/webp"></label>
+<button id="remove-avatar" type="button">Xóa ảnh</button>
+<label>Mục tiêu số bài mỗi ngày<input name="daily_goal" type="number" min="1" max="50" required></label>
+<label>Mục tiêu số bài mỗi tuần<input name="weekly_goal" type="number" min="1" max="350" required></label>
+<button>Lưu thay đổi</button></form></section>
+<section id="password-section" hidden><h2>Đổi mật khẩu</h2><form id="password">
+<label>Mật khẩu cũ<input name="old_password" type="password" autocomplete="current-password" required maxlength="128"></label>
+<label>Mật khẩu mới<input name="new_password" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>
+<label>Nhập lại mật khẩu mới<input name="confirm" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>
+<p class="hint">Sau khi đổi mật khẩu, bạn cần đăng nhập lại trên các thiết bị.</p>
+<button>Đổi mật khẩu</button></form></section>
+<section id="recovery-section" hidden><h2>Khôi phục mật khẩu qua email</h2>
+<p class="hint">Nhập email đã đăng ký. Mã xác nhận có hiệu lực 10 phút.</p>
+<form id="request-code"><label>Email<input name="email" type="email" required maxlength="120" autocomplete="email"></label><button>Gửi mã xác nhận</button></form>
+<form id="reset"><label>Email<input name="email" type="email" required maxlength="120"></label>
+<label>Mã xác nhận<input name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code"></label>
+<label>Mật khẩu mới<input name="password" type="password" minlength="8" maxlength="128" required autocomplete="new-password"></label>
+<button>Đặt lại mật khẩu</button></form></section>
+</main><script>
+'use strict';
+const $=id=>document.getElementById(id);
+const token=sessionStorage.getItem('hanzigo_account_token')||sessionStorage.getItem('hanzigo_admin_token')||'';
+let avatar='';
+function message(text){$('message').textContent=text;}
+async function api(path,method='GET',body){
+ const r=await fetch('/api'+path,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},...(body?{body:JSON.stringify(body)}:{})});
+ if(!r.ok){const data=await r.json().catch(()=>({}));throw Error(typeof data.detail==='string'?data.detail:'Dữ liệu không hợp lệ. Hãy kiểm tra các trường và thử lại.');}
+ return r.status===204?null:r.json();
+}
+function busy(form,value){for(const el of form.querySelectorAll('button'))el.disabled=value;}
+async function submit(form,work){busy(form,true);message('Đang xử lý…');try{await work();}catch(e){message(e.message);}finally{busy(form,false);}}
+function preview(){ $('preview').hidden=!avatar; $('preview').src=avatar; }
+$('remove-avatar').onclick=()=>{avatar='';$('avatar').value='';preview();};
+$('avatar').onchange=async()=>{
+ const file=$('avatar').files[0];if(!file)return;
+ if(file.size>5*1024*1024||!['image/png','image/jpeg','image/webp'].includes(file.type)){message('Chọn ảnh PNG, JPEG hoặc WebP không quá 5MB.');$('avatar').value='';return;}
+ const reader=new FileReader();reader.onload=()=>{avatar=reader.result;preview();};reader.readAsDataURL(file);
+};
+$('profile').onsubmit=e=>{e.preventDefault();submit(e.target,async()=>{
+ const body=Object.fromEntries(new FormData(e.target));body.avatar=avatar;
+ body.daily_goal=Number(body.daily_goal);body.weekly_goal=Number(body.weekly_goal);
+ await api('/account','PUT',body);message('Đã lưu thông tin cá nhân. Trở về trang chủ để xem lời chào mới.');
+});};
+$('password').onsubmit=e=>{e.preventDefault();submit(e.target,async()=>{
+ const body=Object.fromEntries(new FormData(e.target));
+ if(body.new_password!==body.confirm)throw Error('Mật khẩu xác nhận không khớp.');
+ delete body.confirm;await api('/account/password','POST',body);
+ sessionStorage.removeItem('hanzigo_account_token');sessionStorage.removeItem('hanzigo_admin_token');
+ message('Đã đổi mật khẩu. Bạn có thể trở về HanziGo để đăng nhập lại.');e.target.reset();
+});};
+$('request-code').onsubmit=e=>{e.preventDefault();submit(e.target,async()=>{
+ const body=Object.fromEntries(new FormData(e.target));const result=await api('/auth/recovery','POST',body);
+ $('reset').elements.email.value=body.email;message(result.message);
+});};
+$('reset').onsubmit=e=>{e.preventDefault();submit(e.target,async()=>{
+ await api('/auth/recovery/confirm','POST',Object.fromEntries(new FormData(e.target)));
+ message('Đã đặt lại mật khẩu. Trở về HanziGo để đăng nhập.');e.target.reset();
+});};
+(async()=>{
+ if(location.pathname==='/recover'){
+  $('title').textContent='Quên mật khẩu';$('recovery-section').hidden=false;
+  const status=await api('/auth/recovery-status');
+  if(!status.configured){message('Dịch vụ email chưa được cấu hình. Vui lòng liên hệ quản trị viên.');busy($('request-code'),true);}
+ }else{
+  const data=await api('/account');
+  for(const key of ['name','email','phone','birth_date','daily_goal','weekly_goal'])$('profile').elements[key].value=data[key]??'';
+  avatar=data.avatar;preview();
+  if(data.role==='admin')$('back').href='/admin';
+  $('profile-section').hidden=false;$('password-section').hidden=false;
+ }
+})().catch(e=>message(e.message));
+</script></body></html>
