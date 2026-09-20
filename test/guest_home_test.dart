@@ -44,17 +44,23 @@ void main() {
         expect(request.headers.containsKey('Authorization'), isFalse);
         return http.Response.bytes(
           utf8.encode(
-            jsonEncode([
-              {
-                'id': 1,
-                'hanzi': '你好',
-                'pinyin': 'ni hao',
-                'meaning': 'Xin chào',
-                'hsk': 1,
-                'example': '你好！',
-                'audio_url': '',
-              },
-            ]),
+            jsonEncode({
+              'total': 1,
+              'offset': 0,
+              'limit': 40,
+              'topics': [],
+              'items': [
+                {
+                  'id': 1,
+                  'hanzi': '你好',
+                  'pinyin': 'ni hao',
+                  'meaning': 'Xin chào',
+                  'hsk': 1,
+                  'example': '你好！',
+                  'audio_url': '',
+                },
+              ]
+            }),
           ),
           200,
           headers: {'content-type': 'application/json; charset=utf-8'},
@@ -67,10 +73,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Xin chào'));
+    await tester.tap(find.text('你好'));
     await tester.pumpAndSettle();
     expect(find.text('你好！'), findsOneWidget);
-    expect(requests, ['/api/vocabulary']);
+    expect(requests, ['/api/vocabulary/page']);
     expect(find.text('Lịch sử'), findsNothing);
     await expectLater(
       service.fetchSavedVocabulary(),

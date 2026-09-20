@@ -29,7 +29,12 @@ class VocabularyScreen extends StatefulWidget {
 class _VocabularyScreenState extends State<VocabularyScreen> {
   final _searchController = TextEditingController();
   bool _historyMode = false;
-  late Future<List<VocabularyEntry>> _future;
+  late Future<VocabularyPage> _future;
+  int? _hsk;
+  String? _topic;
+  int _offset = 0;
+  List<Map<String, dynamic>> _topics = const [];
+  final _listController = ScrollController();
   final _audio = AudioPlayer();
   Timer? _debounce;
   final Set<int> _saved = {};
@@ -87,9 +92,8 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
     }
     setState(() => _playing = word.id);
     try {
-      final url = Uri.parse(widget.service.baseUrl)
-          .resolve(word.audioUrl)
-          .toString();
+      final url =
+          Uri.parse(widget.service.baseUrl).resolve(word.audioUrl).toString();
       await _audio.stop();
       await _audio.play(UrlSource(url)).timeout(const Duration(seconds: 15));
     } on Exception {
@@ -107,236 +111,387 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
 
   @override
   void dispose() {
+    _listController.dispose();
     _searchController.dispose();
     _debounce?.cancel();
     _audio.dispose();
     super.dispose();
   }
 
-  void _load() {
-    _future = widget.notebook
-        ? widget.service.fetchSavedVocabulary()
-        : _historyMode
-        ? widget.service.fetchDictionaryHistory()
-        : widget.service.fetchVocabulary(search: _searchController.text);
+  void _load({bool reset = true}) {
+    if (reset) _offset = 0;
+    if (_listController.hasClients) _listController.jumpTo(0);
+    if (widget.notebook || _historyMode) {
+      final request = widget.notebook
+          ? widget.service.fetchSavedVocabulary()
+          : widget.service.fetchDictionaryHistory();
+      _future = request
+          .then((words) => VocabularyPage(items: words, total: words.length));
+    } else {
+      _future = widget.service.fetchVocabularyPage(
+          search: _searchController.text,
+          hsk: _hsk,
+          topic: _topic,
+          offset: _offset);
+    }
   }
 
-  void _reload() => setState(_load);
+  void _reload() => setState(() => _load());
+
+  Future<void> _chooseFilters() async {
+    var hsk = _hsk;
+    var topic = _topic;
+    final applied = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (context) => StatefulBuilder(
+          builder: (context, update) => SafeArea(
+                top: false,
+                child: SingleChildScrollView(
+                    child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text('Học từ theo nội dung',
+                            style: TextStyle(
+                                fontSize: 22, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 8),
+                        const Text('Bộ HSK 1–6 · HSK 2.0'),
+                        const SizedBox(height: 20),
+                        DropdownButtonFormField<int>(
+                          key: ValueKey('hsk-filter-$hsk'),
+                          initialValue: hsk ?? 0,
+                          isExpanded: true,
+                          decoration:
+                              const InputDecoration(labelText: 'Cấp độ'),
+                          items: [
+                            const DropdownMenuItem(
+                                value: 0, child: Text('Tất cả cấp độ')),
+                            for (var i = 1; i <= 6; i++)
+                              DropdownMenuItem(value: i, child: Text('HSK $i'))
+                          ],
+                          onChanged: (v) =>
+                              update(() => hsk = v == 0 ? null : v),
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          key: ValueKey('topic-filter-$topic'),
+                          initialValue: topic ?? '',
+                          isExpanded: true,
+                          decoration:
+                              const InputDecoration(labelText: 'Chủ đề'),
+                          items: [
+                            const DropdownMenuItem(
+                                value: '', child: Text('Tất cả chủ đề')),
+                            for (final t in _topics)
+                              DropdownMenuItem(
+                                  value: t['id'] as String,
+                                  child: Text(t['label'] as String,
+                                      overflow: TextOverflow.ellipsis))
+                          ],
+                          onChanged: (v) =>
+                              update(() => topic = v == '' ? null : v),
+                        ),
+                        const SizedBox(height: 20),
+                        FilledButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Áp dụng')),
+                        TextButton(
+                            onPressed: () => update(() {
+                                  hsk = null;
+                                  topic = null;
+                                }),
+                            child: const Text('Xóa bộ lọc')),
+                      ]),
+                )),
+              )),
+    );
+    if (applied == true && mounted) {
+      setState(() {
+        _hsk = hsk;
+        _topic = topic;
+        _load();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        children: [
-          ScreenHeader(
-            eyebrow: 'Tra cứu và ghi nhớ',
-            title: widget.notebook ? 'Sổ tay' : 'Từ điển',
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (!widget.notebook && !widget.guest)
-                  IconButton(
-                    tooltip: 'Sổ tay từ vựng',
-                    icon: const Icon(Icons.bookmark_rounded),
-                    onPressed: () async {
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => Scaffold(
-                            appBar: AppBar(title: const Text('Sổ tay từ vựng')),
-                            body: VocabularyScreen(
-                              service: widget.service,
-                              notebook: true,
-                            ),
-                          ),
-                        ),
-                      );
-                      if (mounted) _loadSaved();
-                    },
-                  ),
-                IconButton(
-                  tooltip: 'Dịch & sửa câu',
-                  icon: const Icon(Icons.translate_rounded),
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => TranslationScreen(
-                        service: widget.service,
-                        guest: widget.guest,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (!widget.notebook && !widget.guest)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(
-                    value: false,
-                    label: Text('Tra từ'),
-                    icon: Icon(Icons.search),
-                  ),
-                  ButtonSegment(
-                    value: true,
-                    label: Text('Lịch sử'),
-                    icon: Icon(Icons.history),
-                  ),
-                ],
-                selected: {_historyMode},
-                onSelectionChanged: (value) {
-                  setState(() {
-                    _historyMode = value.first;
-                    _load();
-                  });
-                },
-              ),
-            ),
-          if (!_historyMode && !widget.notebook)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
-              child: TextField(
-                key: const Key('dictionary-search'),
-                controller: _searchController,
-                textInputAction: TextInputAction.search,
-                onSubmitted: (_) => _reload(),
-                onChanged: (_) {
-                  _debounce?.cancel();
-                  _debounce = Timer(const Duration(milliseconds: 300), () {
-                    if (mounted) _reload();
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: 'Hán tự, pinyin hoặc nghĩa tiếng Việt',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: IconButton(
-                    onPressed: _reload,
-                    icon: const Icon(Icons.arrow_forward),
-                  ),
-                ),
-              ),
-            ),
-          Expanded(
-            child: FutureBuilder<List<VocabularyEntry>>(
-              future: _future,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return _StateMessage(
-                    icon: Icons.cloud_off,
-                    title: 'Không tải được từ vựng',
-                    message: snapshot.error.toString(),
-                    onRetry: _reload,
-                  );
-                }
-                final words = snapshot.data ?? const [];
-                if (words.isEmpty) {
-                  return _StateMessage(
-                    icon: _historyMode
-                        ? Icons.history_toggle_off
-                        : Icons.search_off,
-                    title: widget.notebook
-                        ? 'Sổ tay chưa có từ vựng'
-                        : _historyMode
-                        ? 'Chưa có lịch sử tra từ'
-                        : 'Không tìm thấy từ phù hợp',
-                    message: widget.notebook
-                        ? 'Bấm biểu tượng lưu bên cạnh từ để thêm vào sổ tay.'
-                        : _historyMode
-                        ? 'Hãy mở một từ trong mục Tra từ để lưu vào lịch sử.'
-                        : 'Thử từ khóa khác hoặc mở mục Dịch & sửa câu để dịch cả đoạn văn.',
-                  );
-                }
-                return Column(
+    return LayoutBuilder(builder: (context, constraints) {
+      final compact = constraints.maxHeight < 520;
+      return SafeArea(
+        child: Column(
+          children: [
+            if (!compact)
+              ScreenHeader(
+                eyebrow: 'Tra cứu và ghi nhớ',
+                title: widget.notebook ? 'Sổ tay' : 'Từ điển',
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (!_historyMode && !widget.notebook)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
-                        child: Row(
-                          children: [
-                            Text(
-                              '${words.length} từ vựng',
-                              key: const Key('vocabulary-count'),
-                              style: const TextStyle(
-                                color: AppTheme.jade,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const Spacer(),
-                            IconButton(
-                              tooltip: 'Tải lại từ vựng',
-                              onPressed: _reload,
-                              icon: const Icon(Icons.refresh),
-                            ),
-                            OutlinedButton.icon(
-                              key: const Key('open-handwriting'),
-                              onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => HandwritingScreen(
-                                    service: widget.service,
-                                    guest: widget.guest,
-                                  ),
+                    if (!widget.notebook && !widget.guest)
+                      IconButton(
+                        tooltip: 'Sổ tay từ vựng',
+                        icon: const Icon(Icons.bookmark_rounded),
+                        onPressed: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => Scaffold(
+                                appBar:
+                                    AppBar(title: const Text('Sổ tay từ vựng')),
+                                body: VocabularyScreen(
+                                  service: widget.service,
+                                  notebook: true,
                                 ),
                               ),
-                              icon: const Icon(Icons.draw_outlined),
-                              label: const Text('Viết tay'),
                             ),
-                          ],
-                        ),
+                          );
+                          if (mounted) _loadSaved();
+                        },
                       ),
-                    if (_historyMode || widget.notebook)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            onPressed: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => FlashcardScreen(words: words),
-                              ),
-                            ),
-                            icon: const Icon(Icons.style_rounded),
-                            label: Text('Ôn Flashcard (${words.length} từ)'),
-                          ),
-                        ),
-                      ),
-                    Expanded(
-                      child: RefreshIndicator(
-                        onRefresh: () async => _reload(),
-                        child: ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                          itemCount: words.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 10),
-                          itemBuilder: (_, index) => _WordCard(
-                            word: words[index],
-                            onTap: () => _openWord(words[index]),
-                            saved:
-                                widget.notebook ||
-                                _saved.contains(words[index].id),
-                            onSave:
-                                widget.guest ||
-                                    _saving.contains(words[index].id)
-                                ? null
-                                : () => _toggleSave(words[index]),
-                            onPlay: _playing == words[index].id
-                                ? null
-                                : () => _playAudio(words[index]),
+                    IconButton(
+                      tooltip: 'Dịch & sửa câu',
+                      icon: const Icon(Icons.translate_rounded),
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => TranslationScreen(
+                            service: widget.service,
+                            guest: widget.guest,
                           ),
                         ),
                       ),
                     ),
                   ],
-                );
-              },
+                ),
+              ),
+            if (!widget.notebook && !widget.guest && !compact)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(
+                      value: false,
+                      label: Text('Tra từ'),
+                      icon: Icon(Icons.search),
+                    ),
+                    ButtonSegment(
+                      value: true,
+                      label: Text('Lịch sử'),
+                      icon: Icon(Icons.history),
+                    ),
+                  ],
+                  selected: {_historyMode},
+                  onSelectionChanged: (value) {
+                    setState(() {
+                      _historyMode = value.first;
+                      _load();
+                    });
+                  },
+                ),
+              ),
+            if (!_historyMode && !widget.notebook)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+                child: TextField(
+                  key: const Key('dictionary-search'),
+                  controller: _searchController,
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: (_) => _reload(),
+                  onChanged: (_) {
+                    _debounce?.cancel();
+                    _debounce = Timer(const Duration(milliseconds: 300), () {
+                      if (mounted) _reload();
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Hán tự, pinyin hoặc nghĩa tiếng Việt',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: IconButton(
+                      onPressed: _reload,
+                      icon: const Icon(Icons.arrow_forward),
+                    ),
+                  ),
+                ),
+              ),
+            if (!_historyMode && !widget.notebook && !compact)
+              Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      key: const Key('vocabulary-filters'),
+                      onPressed: _chooseFilters,
+                      icon: const Icon(Icons.tune),
+                      label: Text([
+                        _hsk == null ? 'HSK 1–6' : 'HSK $_hsk',
+                        _topic == null
+                            ? 'Chọn chủ đề'
+                            : _topics.firstWhere((t) => t['id'] == _topic,
+                                    orElse: () => {'label': _topic})['label']
+                                as String,
+                      ].join(' · ')),
+                    ),
+                  )),
+            Expanded(
+              child: FutureBuilder<VocabularyPage>(
+                future: _future,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return _StateMessage(
+                      icon: Icons.cloud_off,
+                      title: 'Không tải được từ vựng',
+                      message: snapshot.error.toString(),
+                      onRetry: _reload,
+                    );
+                  }
+                  final page = snapshot.data!;
+                  final words = page.items;
+                  if (!_historyMode && !widget.notebook) _topics = page.topics;
+                  if (words.isEmpty) {
+                    return _StateMessage(
+                      icon: _historyMode
+                          ? Icons.history_toggle_off
+                          : Icons.search_off,
+                      title: widget.notebook
+                          ? 'Sổ tay chưa có từ vựng'
+                          : _historyMode
+                              ? 'Chưa có lịch sử tra từ'
+                              : 'Không tìm thấy từ phù hợp',
+                      message: widget.notebook
+                          ? 'Bấm biểu tượng lưu bên cạnh từ để thêm vào sổ tay.'
+                          : _historyMode
+                              ? 'Hãy mở một từ trong mục Tra từ để lưu vào lịch sử.'
+                              : 'Thử từ khóa khác hoặc mở mục Dịch & sửa câu để dịch cả đoạn văn.',
+                    );
+                  }
+                  return Column(
+                    children: [
+                      if (!_historyMode && !widget.notebook)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${page.total} từ vựng',
+                                  key: const Key('vocabulary-count'),
+                                  style: const TextStyle(
+                                    color: AppTheme.jade,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: 'Tải lại từ vựng',
+                                onPressed: _reload,
+                                icon: const Icon(Icons.refresh),
+                              ),
+                              OutlinedButton.icon(
+                                key: const Key('open-handwriting'),
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => HandwritingScreen(
+                                      service: widget.service,
+                                      guest: widget.guest,
+                                    ),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.draw_outlined),
+                                label: const Text('Viết tay'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (_historyMode || widget.notebook)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => FlashcardScreen(words: words),
+                                ),
+                              ),
+                              icon: const Icon(Icons.style_rounded),
+                              label: Text('Ôn Flashcard (${words.length} từ)'),
+                            ),
+                          ),
+                        ),
+                      Expanded(
+                        child: RefreshIndicator(
+                          onRefresh: () async => _reload(),
+                          child: ListView.separated(
+                            controller: _listController,
+                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                            itemCount: words.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (_, index) => _WordCard(
+                              word: words[index],
+                              onTap: () => _openWord(words[index]),
+                              saved: widget.notebook ||
+                                  _saved.contains(words[index].id),
+                              onSave: widget.guest ||
+                                      _saving.contains(words[index].id)
+                                  ? null
+                                  : () => _toggleSave(words[index]),
+                              onPlay: _playing == words[index].id
+                                  ? null
+                                  : () => _playAudio(words[index]),
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (!_historyMode &&
+                          !widget.notebook &&
+                          page.total > page.limit)
+                        SafeArea(
+                            top: false,
+                            child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 12),
+                                child: Row(children: [
+                                  IconButton(
+                                      tooltip: 'Trang trước',
+                                      onPressed: _offset == 0
+                                          ? null
+                                          : () => setState(() {
+                                                _offset -= page.limit;
+                                                _load(reset: false);
+                                              }),
+                                      icon: const Icon(Icons.chevron_left)),
+                                  Expanded(
+                                      child: Text(
+                                          '${page.offset + 1}–${page.offset + words.length} / ${page.total}',
+                                          textAlign: TextAlign.center)),
+                                  IconButton(
+                                      tooltip: 'Trang sau',
+                                      onPressed: page.offset + words.length >=
+                                              page.total
+                                          ? null
+                                          : () => setState(() {
+                                                _offset += page.limit;
+                                                _load(reset: false);
+                                              }),
+                                      icon: const Icon(Icons.chevron_right)),
+                                ]))),
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 
   Future<void> _openWord(VocabularyEntry word) async {
@@ -352,6 +507,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
         context: context,
         builder: (_) => AlertDialog(
           title: Text('${word.hanzi}  ${word.pinyin}'),
+          scrollable: true,
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -363,6 +519,10 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
+              for (final sense in word.senses)
+                Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text('${sense['pinyin']}: ${sense['meaning']}')),
               const SizedBox(height: 12),
               Text(word.example.isEmpty ? 'Chưa có câu ví dụ.' : word.example),
               const SizedBox(height: 8),
@@ -405,48 +565,55 @@ class _WordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-    child: Column(
-      children: [
-        ListTile(
-          onTap: onTap,
-          leading: HanziAvatar(
-            word.hanzi,
-            size: 54,
-            color: const Color(0xFFFFEDE4),
-          ),
-          title: Text(
-            word.pinyin,
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-          subtitle: Text(word.meaning),
-          trailing: word.lookupCount > 0
-              ? Text(
-                  '${word.lookupCount} lần',
-                  style: const TextStyle(color: AppTheme.jade),
-                )
-              : const Icon(Icons.chevron_right),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+        child: Column(
           children: [
-            IconButton(
-              tooltip: 'Nghe phát âm',
-              onPressed: onPlay,
-              icon: const Icon(Icons.volume_up_rounded, color: AppTheme.orange),
-            ),
-            IconButton(
-              tooltip: saved ? 'Bỏ lưu' : 'Lưu vào sổ tay',
-              onPressed: onSave,
-              icon: Icon(
-                saved ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded,
-                color: AppTheme.jade,
+            ListTile(
+              onTap: onTap,
+              leading: HanziAvatar(
+                word.hanzi.characters.first,
+                size: 54,
+                color: const Color(0xFFFFEDE4),
               ),
+              title: Text(
+                word.hanzi,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: Text('${word.pinyin}\n${word.meaning}'),
+              trailing: word.lookupCount > 0
+                  ? Text(
+                      '${word.lookupCount} lần',
+                      style: const TextStyle(color: AppTheme.jade),
+                    )
+                  : const Icon(Icons.chevron_right),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  tooltip: word.audioUrl.isEmpty
+                      ? 'Chưa có bản thu âm'
+                      : 'Nghe phát âm',
+                  onPressed: word.audioUrl.isEmpty ? null : onPlay,
+                  icon: Icon(Icons.volume_up_rounded,
+                      color: word.audioUrl.isEmpty
+                          ? Colors.grey
+                          : AppTheme.orange),
+                ),
+                IconButton(
+                  tooltip: saved ? 'Bỏ lưu' : 'Lưu vào sổ tay',
+                  onPressed: onSave,
+                  icon: Icon(
+                    saved
+                        ? Icons.bookmark_rounded
+                        : Icons.bookmark_outline_rounded,
+                    color: AppTheme.jade,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-      ],
-    ),
-  );
+      );
 }
 
 class FlashcardScreen extends StatefulWidget {
@@ -530,9 +697,9 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
                     onPressed: _index == 0
                         ? null
                         : () => setState(() {
-                            _index--;
-                            _revealed = false;
-                          }),
+                              _index--;
+                              _revealed = false;
+                            }),
                     child: const Text('Trước'),
                   ),
                 ),
@@ -542,9 +709,9 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
                     onPressed: _index == widget.words.length - 1
                         ? null
                         : () => setState(() {
-                            _index++;
-                            _revealed = false;
-                          }),
+                              _index++;
+                              _revealed = false;
+                            }),
                     child: const Text('Tiếp'),
                   ),
                 ),
@@ -570,22 +737,22 @@ class _StateMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 52, color: AppTheme.jade),
-          const SizedBox(height: 12),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
-          Text(message, textAlign: TextAlign.center),
-          if (onRetry != null) ...[
-            const SizedBox(height: 14),
-            FilledButton(onPressed: onRetry, child: const Text('Thử lại')),
-          ],
-        ],
-      ),
-    ),
-  );
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 52, color: AppTheme.jade),
+              const SizedBox(height: 12),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              Text(message, textAlign: TextAlign.center),
+              if (onRetry != null) ...[
+                const SizedBox(height: 14),
+                FilledButton(onPressed: onRetry, child: const Text('Thử lại')),
+              ],
+            ],
+          ),
+        ),
+      );
 }

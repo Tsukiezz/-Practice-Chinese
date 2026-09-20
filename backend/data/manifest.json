@@ -1,0 +1,25 @@
+{
+  "edition": "HSK 2.0",
+  "source": "https://github.com/clem109/hsk-vocabulary",
+  "revision": "f3dc9d12ae00d04fa3676b0bd4c43cd58de2c264",
+  "license": "MIT",
+  "source_entries": 5000,
+  "unique_headwords": 4993,
+  "source_entries_by_level": {
+    "1": 150,
+    "2": 150,
+    "3": 299,
+    "4": 601,
+    "5": 1300,
+    "6": 2500
+  },
+  "localized_entries": 5000,
+  "topic_count": 22,
+  "localization": "AI-assisted Vietnamese glosses and editorial topics; sampled review, not a certified translation",
+  "models": [
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite"
+  ],
+  "source_sha256": "1476fc78b526470d6559f53e93083cc21de8cd1200dbcc53d611e0c2203eb38a",
+  "vi_sha256": "0b8d17ca14a116f7cf331dd949d310fff50784ae226111aca25ebf6dd58ed85a"
+}

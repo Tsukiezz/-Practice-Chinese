@@ -3,7 +3,7 @@ on:
   push:
     branches: [nguyen, test]
   pull_request:
-    paths: ['backend/**', 'admin/**', 'lib/**', 'test/**', 'web/**', 'pubspec.*', '.github/workflows/admin-tests.yml']
+    paths: ['backend/**', 'admin/**', 'lib/**', 'test/**', 'web/**', 'assets/**', 'pubspec.*', '.github/workflows/admin-tests.yml']
 permissions:
   contents: read
 jobs:

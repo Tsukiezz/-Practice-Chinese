@@ -15,26 +15,32 @@ StudentResult _studentResult({
   String feedback = 'Cần luyện lại.',
   double? latestScore,
   String? latestFeedback,
-}) => StudentResult(
-  id: id,
-  examId: null,
-  kind: kind,
-  content: jsonEncode({'content': '我学习中文。', 'target': '一'}),
-  score: score,
-  originalScore: score,
-  feedback: feedback,
-  gradedBy: 'ai',
-  version: 1,
-  createdAt: 1,
-  overrides: const [],
-  latestScore: latestScore,
-  latestFeedback: latestFeedback,
-);
+}) =>
+    StudentResult(
+      id: id,
+      examId: null,
+      kind: kind,
+      content: jsonEncode({'content': '我学习中文。', 'target': '一'}),
+      score: score,
+      originalScore: score,
+      feedback: feedback,
+      gradedBy: 'ai',
+      version: 1,
+      createdAt: 1,
+      overrides: const [],
+      latestScore: latestScore,
+      latestFeedback: latestFeedback,
+    );
 
 class _FakeStudentService extends StudentService {
   _FakeStudentService()
-    : super(baseUrl: 'http://test/api', tokenProvider: () async => 'token');
+      : super(baseUrl: 'http://test/api', tokenProvider: () async => 'token');
 
+  bool paged = false;
+  int? lastHsk;
+  String? lastTopic;
+  int lastOffset = 0;
+  String lastSearch = '';
   String? handwritingTarget;
   bool handwritingRecognitionRequested = false;
   List<VocabularyEntry> history = const [];
@@ -60,19 +66,19 @@ class _FakeStudentService extends StudentService {
 
   @override
   Future<StudentDashboard> fetchMyDashboard() async => const StudentDashboard(
-    results: 4,
-    averageScore: 82,
-    needsReview: 1,
-    vocabularyCount: 6,
-    streak: 3,
-    progressPercent: 82,
-    skillScores: {
-      'listening': 90,
-      'reading': 80,
-      'writing': 70,
-      'handwriting': 88,
-    },
-  );
+        results: 4,
+        averageScore: 82,
+        needsReview: 1,
+        vocabularyCount: 6,
+        streak: 3,
+        progressPercent: 82,
+        skillScores: {
+          'listening': 90,
+          'reading': 80,
+          'writing': 70,
+          'handwriting': 88,
+        },
+      );
 
   @override
   Future<CapabilityReport> fetchCapabilityReport() async =>
@@ -87,6 +93,24 @@ class _FakeStudentService extends StudentService {
         strengths: ['Nghe tốt'],
         improvements: ['Luyện viết câu dài hơn'],
       );
+
+  @override
+  Future<VocabularyPage> fetchVocabularyPage(
+      {String search = '', int? hsk, String? topic, int offset = 0}) async {
+    lastHsk = hsk;
+    lastTopic = topic;
+    lastOffset = offset;
+    lastSearch = search;
+    return VocabularyPage(
+        items: paged
+            ? List.generate(offset >= 80 ? 1 : 40, (_) => word)
+            : const [word],
+        total: paged ? 81 : 1,
+        offset: offset,
+        topics: const [
+          {'id': 'communication', 'label': 'Giao tiếp & quan hệ', 'count': 81}
+        ]);
+  }
 
   @override
   Future<List<VocabularyEntry>> fetchVocabulary({String search = ''}) async =>
@@ -106,12 +130,12 @@ class _FakeStudentService extends StudentService {
 
   @override
   Future<List<StudentResult>> fetchReviewItems(String kind) async => [
-    _studentResult(
-      kind: kind,
-      latestScore: 72,
-      latestFeedback: 'Lần gần nhất đã tiến bộ.',
-    ),
-  ];
+        _studentResult(
+          kind: kind,
+          latestScore: 72,
+          latestFeedback: 'Lần gần nhất đã tiến bộ.',
+        ),
+      ];
 
   @override
   Future<HandwritingGradeResult> submitHandwriting(
@@ -162,6 +186,51 @@ class _FakeStudentService extends StudentService {
 }
 
 void main() {
+  testWidgets('mobile combines HSK/topics, pages and resets page after search',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 740);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final service = _FakeStudentService()..paged = true;
+    await tester.pumpWidget(
+        MaterialApp(home: Scaffold(body: VocabularyScreen(service: service))));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byTooltip('Trang sau'));
+    await tester.pumpAndSettle();
+    expect(service.lastOffset, 40);
+    await tester.tap(find.byKey(const Key('vocabulary-filters')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tất cả cấp độ'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('HSK 2').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tất cả chủ đề'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Giao tiếp & quan hệ').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Áp dụng'));
+    await tester.pumpAndSettle();
+    expect(service.lastHsk, 2);
+    expect(service.lastTopic, 'communication');
+    expect(service.lastOffset, 0);
+    await tester.tap(find.byTooltip('Trang sau'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+        find.byKey(const Key('dictionary-search')), 'xin chao');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+    expect(service.lastOffset, 0);
+    expect(service.lastSearch, 'xin chao');
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    tester.view.resetViewInsets();
+  });
+
   testWidgets('Vy notebook saves, opens and removes words', (tester) async {
     final service = _FakeStudentService();
     await tester.pumpWidget(
@@ -211,7 +280,7 @@ void main() {
 
     expect(find.text('1 từ vựng'), findsOneWidget);
     expect(find.byKey(const Key('open-handwriting')), findsOneWidget);
-    await tester.tap(find.text('nǐ hǎo'));
+    await tester.tap(find.text('你好'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Đóng'));
     await tester.pumpAndSettle();

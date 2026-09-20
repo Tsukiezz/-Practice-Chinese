@@ -32,6 +32,48 @@ Map<String, Object?> _result({
     };
 
 void main() {
+  test('catalog sends combined filters and decodes page and senses', () async {
+    final service = StudentService(
+        baseUrl: 'http://test/api',
+        tokenProvider: () async => null,
+        client: MockClient((request) async {
+          expect(request.url.path, '/api/vocabulary/page');
+          expect(request.url.queryParameters, {
+            'search': 'tao',
+            'hsk': '1',
+            'topic': 'food',
+            'offset': '40',
+            'limit': '40'
+          });
+          return _json({
+            'items': [
+              {
+                'id': 7,
+                'hanzi': '苹果',
+                'pinyin': 'píng guǒ',
+                'meaning': 'Táo',
+                'hsk': 1,
+                'topics': ['food'],
+                'senses': [
+                  {'pinyin': 'píng guǒ', 'meaning': 'Táo', 'topic': 'food'}
+                ]
+              }
+            ],
+            'total': 41,
+            'offset': 40,
+            'limit': 40,
+            'topics': [
+              {'id': 'food', 'label': 'Ăn uống', 'count': 41}
+            ]
+          });
+        }));
+    final page = await service.fetchVocabularyPage(
+        search: ' tao ', hsk: 1, topic: 'food', offset: 40);
+    expect(page.total, 41);
+    expect(page.items.single.topics, ['food']);
+    expect(page.items.single.senses.single['meaning'], 'Táo');
+  });
+
   test('notebook uses authenticated GET PUT DELETE', () async {
     final methods = <String>[];
     final service = StudentService(

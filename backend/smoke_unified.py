@@ -17,6 +17,7 @@ import database as storage
 from main import hash_password
 from listening_demo import seed_listening
 from seed import seed
+from vocabulary_catalog import import_corpus
 
 
 def run():
@@ -26,6 +27,7 @@ def run():
     with tempfile.TemporaryDirectory() as temp:
         storage.DB_PATH = Path(temp) / 'unified.db'
         seed()
+        import_corpus()
         seed_listening(publish=True)
         password = secrets.token_urlsafe(18)
         with storage.database() as conn:
@@ -58,6 +60,9 @@ def run():
                 channel = os.getenv('PLAYWRIGHT_CHANNEL')
                 browser = p.chromium.launch(headless=True, **({'channel': channel} if channel else {}))
                 page = browser.new_page(viewport={'width': 1100, 'height': 900})
+                font_responses = []
+                page.on('response', lambda r: font_responses.append(r.status) if '/fonts/HanziGoHSK-Regular.ttf' in r.url else None)
+                page.route('https://fonts.gstatic.com/**', lambda route: route.abort())
                 page.set_default_timeout(30000)
                 errors = []
                 page.on('pageerror', lambda e: errors.append(str(e)))
@@ -98,6 +103,34 @@ def run():
                 expect(page.get_by_role('tab', name='Nghe', exact=True)).to_be_visible()
                 phase = 'Vy vocabulary and notebook'
                 page.get_by_role('tab',name='Từ vựng',exact=True).click()
+                page.set_viewport_size({'width': 390, 'height': 844})
+                phase = 'HSK topic filters and pagination'
+                page.get_by_role('button', name=re.compile('HSK 1–6.*Chọn chủ đề')).click()
+                expect(page.get_by_text('Học từ theo nội dung', exact=True)).to_be_visible()
+                page.get_by_role('button', name='Cấp độ Tất cả cấp độ', exact=True).click()
+                page.get_by_role('menuitem', name='HSK 1', exact=True).click()
+                page.get_by_role('button', name='Chủ đề Tất cả chủ đề', exact=True).click()
+                page.get_by_role('menuitem', name='Ăn uống', exact=True).click()
+                with page.expect_response(lambda r: '/vocabulary/page?' in r.url and 'topic=food' in r.url) as filtered:
+                    page.get_by_role('button', name='Áp dụng', exact=True).click()
+                data = filtered.value.json()
+                assert data['total'] > 0 and all(w['hsk']==1 and 'food' in w['topics'] for w in data['items'])
+                expect(page.get_by_role('button', name='Áp dụng', exact=True)).not_to_be_visible()
+                assert 200 in font_responses, 'Bundled HSK font must load without Google Fonts'
+                Path('test-results').mkdir(exist_ok=True)
+                page.screenshot(path=str(Path('test-results')/'hsk-food-mobile.png'))
+                page.get_by_role('button', name=re.compile('HSK 1.*Ăn uống')).click()
+                page.get_by_role('button', name='Xóa bộ lọc', exact=True).click()
+                with page.expect_response(lambda r: '/vocabulary/page?' in r.url and 'topic=' not in r.url) as unfiltered:
+                    page.get_by_role('button', name='Áp dụng', exact=True).click()
+                assert unfiltered.value.json()['total'] >= 4993
+                with page.expect_response(lambda r: '/vocabulary/page?' in r.url and 'offset=40' in r.url) as next_page:
+                    page.get_by_role('button', name='Trang sau', exact=True).click()
+                assert next_page.value.json()['offset'] == 40
+                with page.expect_response(lambda r: '/vocabulary/page?' in r.url and 'offset=0' in r.url):
+                    page.get_by_role('button', name='Trang trước', exact=True).click()
+                print('PASS: full HSK corpus, combined level/topic filter and mobile pagination', flush=True)
+                phase = 'Vy vocabulary and notebook'
                 with page.expect_response(lambda r: '/media/word-' in r.url) as pronunciation:
                     page.get_by_role('button',name='Nghe phát âm',exact=True).first.click()
                 assert pronunciation.value.status in (200,206)

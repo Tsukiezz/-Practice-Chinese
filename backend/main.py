@@ -40,12 +40,18 @@ from services import (configured_api_key, configured_model, evaluate_with_ai,
 @asynccontextmanager
 async def lifespan(app):
     init_db()
+    from vocabulary_catalog import init_catalog
+    with database() as conn:
+        init_catalog(conn)
     from usecase_features import init_features
     init_features()
     yield
 
 
+from vocabulary_catalog import router as vocabulary_router
+
 app = FastAPI(title="HanziGo · Chinese Learning API", version="1.0.0", lifespan=lifespan)
+app.include_router(vocabulary_router)
 app.add_middleware(CORSMiddleware,
                    allow_origins=os.getenv("FRONTEND_ORIGINS", "http://localhost:5173,http://localhost:8080").split(","),
                    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],

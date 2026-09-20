@@ -17,7 +17,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: scheme.copyWith(primary: jade, secondary: red),
       scaffoldBackgroundColor: cream,
-      fontFamily: 'sans-serif',
+      fontFamily: 'HanziGoHSK',
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,

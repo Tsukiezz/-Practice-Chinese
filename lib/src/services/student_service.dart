@@ -126,12 +126,16 @@ class VocabularyEntry {
     required this.hsk,
     required this.example,
     required this.audioUrl,
+    this.topics = const [],
+    this.senses = const [],
     this.lookupCount = 0,
     this.lastLookedAt = 0,
   });
 
   final int id, hsk, lookupCount, lastLookedAt;
   final String hanzi, pinyin, meaning, example, audioUrl;
+  final List<String> topics;
+  final List<Map<String, dynamic>> senses;
 
   factory VocabularyEntry.fromJson(Map<String, dynamic> json) {
     return VocabularyEntry(
@@ -142,10 +146,26 @@ class VocabularyEntry {
       hsk: json['hsk'] as int,
       example: json['example'] as String? ?? '',
       audioUrl: json['audio_url'] as String? ?? '',
+      topics: (json['topics'] as List? ?? []).cast<String>(),
+      senses: (json['senses'] as List? ?? [])
+          .map((s) => Map<String, dynamic>.from(s as Map))
+          .toList(),
       lookupCount: json['lookup_count'] as int? ?? 0,
       lastLookedAt: json['last_looked_at'] as int? ?? 0,
     );
   }
+}
+
+class VocabularyPage {
+  const VocabularyPage(
+      {required this.items,
+      required this.total,
+      this.offset = 0,
+      this.limit = 40,
+      this.topics = const []});
+  final List<VocabularyEntry> items;
+  final int total, offset, limit;
+  final List<Map<String, dynamic>> topics;
 }
 
 class HandwritingCandidate {
@@ -393,6 +413,30 @@ class StudentService {
     }
   }
 
+  Future<VocabularyPage> fetchVocabularyPage(
+      {String search = '', int? hsk, String? topic, int offset = 0}) async {
+    final uri = Uri.parse('$baseUrl/vocabulary/page').replace(queryParameters: {
+      'search': search.trim(),
+      'offset': '$offset',
+      'limit': '40',
+      if (hsk != null) 'hsk': '$hsk',
+      if (topic != null) 'topic': topic,
+    });
+    final response = await _request('GET', uri, requiresAuth: false);
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return VocabularyPage(
+      items: (data['items'] as List)
+          .map((v) => VocabularyEntry.fromJson(v as Map<String, dynamic>))
+          .toList(),
+      total: data['total'] as int,
+      offset: data['offset'] as int,
+      limit: data['limit'] as int,
+      topics: (data['topics'] as List)
+          .map((t) => Map<String, dynamic>.from(t as Map))
+          .toList(),
+    );
+  }
+
   Future<List<VocabularyEntry>> fetchVocabulary({String search = ''}) async {
     final uri = Uri.parse('$baseUrl/vocabulary').replace(
       queryParameters: search.trim().isEmpty ? null : {'search': search.trim()},
@@ -516,7 +560,9 @@ class StudentService {
 
   Future<String> fetchAvatar() async {
     final response = await _request('GET', Uri.parse('$baseUrl/account'));
-    return (jsonDecode(response.body) as Map<String, dynamic>)['avatar'] as String? ?? '';
+    return (jsonDecode(response.body) as Map<String, dynamic>)['avatar']
+            as String? ??
+        '';
   }
 
   Future<Map<String, dynamic>> generatePersonalizedPractice() async {
@@ -656,7 +702,8 @@ class StudentService {
         'PUT' => _client.put(uri, headers: headers, body: body),
         'DELETE' => _client.delete(uri, headers: headers),
         _ => _client.get(uri, headers: headers),
-      }).timeout(timeout);
+      })
+          .timeout(timeout);
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return response;
       }
