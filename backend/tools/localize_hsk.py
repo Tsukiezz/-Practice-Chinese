@@ -4,6 +4,7 @@ Resumes validated batches. Credentials come only from backend/.env.
 Runtime and seed do not call Gemini. Review the generated editorial data.
 """
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -117,8 +118,14 @@ def main():
         for row in localized:
             row.update(overrides.get(str(row['source_id']), {}))
         localized.sort(key=lambda r: r['source_id'])
-        (data / 'hsk20_vi.json').write_text(json.dumps(localized, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+        (data / 'hsk20_vi.json').write_text(json.dumps(localized, ensure_ascii=False, indent=2)+'\n', encoding='utf-8', newline='\n')
         (data / 'topics.json').write_text(json.dumps(TOPICS, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+        manifest_path = data / 'manifest.json'
+        manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+        for filename, field in [('hsk20_source.json', 'source_sha256'), ('hsk20_vi.json', 'vi_sha256')]:
+            manifest[field] = hashlib.sha256((data / filename).read_bytes()).hexdigest()
+        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2)+'\n',
+                                 encoding='utf-8', newline='\n')
 
 
 if __name__ == '__main__':

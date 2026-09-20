@@ -1,4 +1,5 @@
 """Corpus coverage and mobile catalog tests on isolated databases."""
+import hashlib
 import json
 from pathlib import Path
 import tempfile
@@ -25,6 +26,9 @@ class VocabularyCatalogTest(unittest.TestCase):
         self.temp.cleanup()
 
     def test_complete_source_and_localization(self):
+        manifest = json.loads((DATA / 'manifest.json').read_text(encoding='utf-8'))
+        for filename, key in [('hsk20_source.json', 'source_sha256'), ('hsk20_vi.json', 'vi_sha256')]:
+            self.assertEqual(hashlib.sha256((DATA / filename).read_bytes()).hexdigest(), manifest[key])
         words = load_corpus()
         self.assertEqual(len(words), 4993)
         self.assertEqual(sum(map(len, words.values())), 5000)
