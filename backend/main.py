@@ -45,6 +45,8 @@ async def lifespan(app):
         init_catalog(conn)
     from usecase_features import init_features
     init_features()
+    from lesson_catalog import init_lessons
+    init_lessons()
     yield
 
 
@@ -1060,6 +1062,8 @@ def remove_personal_word(word_id: int, user=Depends(current_user)):
 
 from usecase_features import register_features
 register_features(app, current_user, hash_password)
+from lesson_catalog import register_lessons
+register_lessons(app, current_user)
 
 ADMIN_DIR = Path(__file__).resolve().parent.parent / "admin"
 WEB_DIR = Path(os.environ["WEB_APP_DIR"]).resolve() if os.getenv("WEB_APP_DIR") else None

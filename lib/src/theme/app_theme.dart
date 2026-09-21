@@ -53,7 +53,8 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(
+              fontFamily: 'HanziGoHSK', fontWeight: FontWeight.w700),
         ),
       ),
     );

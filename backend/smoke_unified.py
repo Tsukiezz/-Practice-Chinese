@@ -18,10 +18,12 @@ from main import hash_password
 from listening_demo import seed_listening
 from seed import seed
 from vocabulary_catalog import import_corpus
+from lesson_catalog import curriculum
 
 
 def run():
     expect.set_options(timeout=30000)
+    (Path(__file__).parent / 'test-results').mkdir(exist_ok=True)
     web_dir = Path(os.environ['WEB_APP_DIR']).resolve()
     assert (web_dir / 'index.html').is_file(), 'Build Flutter web first'
     with tempfile.TemporaryDirectory() as temp:
@@ -101,6 +103,46 @@ def run():
                 phase = 'student login'
                 login('student@example.test')
                 expect(page.get_by_role('tab', name='Nghe', exact=True)).to_be_visible()
+                phase = 'HSK lessons and saved progress'
+                page.get_by_role('tab', name='Bài học', exact=True).click()
+                expect(page.get_by_text('Từng bài nhỏ, tiến bộ lớn', exact=True)).to_be_visible()
+                page.mouse.move(1000, 50)
+                page.wait_for_timeout(500)
+                page.screenshot(path=str(Path(__file__).parent / 'test-results' / 'lessons-desktop.png'))
+                page.set_viewport_size({'width': 390, 'height': 844})
+                page.wait_for_timeout(500)
+                page.screenshot(path=str(Path(__file__).parent / 'test-results' / 'lessons-mobile.png'))
+                page.get_by_role('button', name='Bắt đầu: Chào hỏi và giới thiệu', exact=True).click()
+                expect(page.get_by_text('01 · Từ vựng trọng tâm', exact=True)).to_be_visible()
+                for label in ['Tiếp tục · Mẫu câu', 'Tiếp tục · Đọc hiểu', 'Tiếp tục · Luyện tập']:
+                    page.get_by_role('button', name=label, exact=True).click()
+                expect(page.get_by_role('button', name='Nộp bài · 0/4 câu', exact=True)).to_be_visible()
+                # All answers are from the offline authored fixture, never hard-coded user data.
+                first_lesson = curriculum()['lessons'][0]
+                for question in first_lesson['questions']:
+                    index = question['answer']
+                    label = chr(65 + index) + '. ' + question['options'][index]
+                    answer = page.get_by_label(re.compile(r'^Câu ' + question['id'][1:] + r' ·')).get_by_role('button', name=label, exact=True)
+                    for _ in range(20):
+                        if answer.count() and answer.is_visible():
+                            break
+                        page.mouse.move(190, 430)
+                        page.mouse.wheel(0, 360)
+                        page.wait_for_timeout(150)
+                    answer.click()
+                page.get_by_role('button', name='Nộp bài · 4/4 câu', exact=True).click()
+                expect(page.get_by_role('group', name=re.compile(r'^100% · Đã hoàn thành bài'))).to_be_visible()
+                page.screenshot(path=str(Path(__file__).parent / 'test-results' / 'lesson-completed-mobile.png'))
+                page.get_by_role('button', name='Về lộ trình', exact=True).click()
+                expect(page.get_by_text('1/48 bài hoàn thành • Đạt từ 75% câu đúng để hoàn thành', exact=True)).to_be_visible()
+                # Reload from the server to prove progress is persistent.
+                page.reload()
+                placeholder = page.locator('flt-semantics-placeholder')
+                placeholder.evaluate('(el) => el.click()')
+                page.get_by_role('tab', name='Bài học', exact=True).click()
+                expect(page.get_by_text('1/48 bài hoàn thành • Đạt từ 75% câu đúng để hoàn thành', exact=True)).to_be_visible()
+                print('PASS: HSK lesson four-step learning, server grading and persisted progress on mobile', flush=True)
+                page.set_viewport_size({'width': 1100, 'height': 900})
                 phase = 'Vy vocabulary and notebook'
                 page.get_by_role('tab',name='Từ vựng',exact=True).click()
                 page.set_viewport_size({'width': 390, 'height': 844})

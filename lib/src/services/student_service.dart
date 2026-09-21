@@ -157,12 +157,13 @@ class VocabularyEntry {
 }
 
 class VocabularyPage {
-  const VocabularyPage(
-      {required this.items,
-      required this.total,
-      this.offset = 0,
-      this.limit = 40,
-      this.topics = const []});
+  const VocabularyPage({
+    required this.items,
+    required this.total,
+    this.offset = 0,
+    this.limit = 40,
+    this.topics = const [],
+  });
   final List<VocabularyEntry> items;
   final int total, offset, limit;
   final List<Map<String, dynamic>> topics;
@@ -370,6 +371,49 @@ class StudentService {
   final Future<String?> Function() tokenProvider;
   final http.Client _client;
 
+  Future<Map<String, dynamic>> fetchLessons() async {
+    final response = await _request(
+      'GET',
+      Uri.parse('$baseUrl/lessons'),
+      requiresAuth: false,
+    );
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> fetchLesson(String id) async {
+    final response = await _request(
+      'GET',
+      Uri.parse('$baseUrl/lessons/${Uri.encodeComponent(id)}'),
+      requiresAuth: false,
+    );
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  Future<List<Map<String, dynamic>>> fetchLessonProgress() async {
+    final response = await _request('GET', Uri.parse('$baseUrl/me/lessons'));
+    return (jsonDecode(response.body) as List).cast<Map<String, dynamic>>();
+  }
+
+  Future<void> saveLessonStage(String id, int stage) async {
+    await _request(
+      'PUT',
+      Uri.parse('$baseUrl/me/lessons/${Uri.encodeComponent(id)}/progress'),
+      body: jsonEncode({'stage': stage}),
+    );
+  }
+
+  Future<Map<String, dynamic>> submitLesson(
+    String id,
+    Map<String, int> answers,
+  ) async {
+    final response = await _request(
+      'POST',
+      Uri.parse('$baseUrl/me/lessons/${Uri.encodeComponent(id)}/submit'),
+      body: jsonEncode({'answers': answers}),
+    );
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
   Future<List<StudentResult>> fetchMyResults() async {
     final response = await _request('GET', Uri.parse('$baseUrl/me/results'));
     try {
@@ -413,15 +457,21 @@ class StudentService {
     }
   }
 
-  Future<VocabularyPage> fetchVocabularyPage(
-      {String search = '', int? hsk, String? topic, int offset = 0}) async {
-    final uri = Uri.parse('$baseUrl/vocabulary/page').replace(queryParameters: {
-      'search': search.trim(),
-      'offset': '$offset',
-      'limit': '40',
-      if (hsk != null) 'hsk': '$hsk',
-      if (topic != null) 'topic': topic,
-    });
+  Future<VocabularyPage> fetchVocabularyPage({
+    String search = '',
+    int? hsk,
+    String? topic,
+    int offset = 0,
+  }) async {
+    final uri = Uri.parse('$baseUrl/vocabulary/page').replace(
+      queryParameters: {
+        'search': search.trim(),
+        'offset': '$offset',
+        'limit': '40',
+        if (hsk != null) 'hsk': '$hsk',
+        if (topic != null) 'topic': topic,
+      },
+    );
     final response = await _request('GET', uri, requiresAuth: false);
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     return VocabularyPage(

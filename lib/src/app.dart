@@ -213,7 +213,7 @@ class _AppShellState extends State<AppShell> {
             onOpenDictionary: () => setState(() => _index = 4),
             onOpenProfile: () => setState(() => _index = 5),
           ),
-          const LessonsScreen(),
+          LessonsScreen(service: _studentService),
           ListeningScreen(
             repository: _listeningRepository!,
             draftOwner: _authService.currentUser?.id,

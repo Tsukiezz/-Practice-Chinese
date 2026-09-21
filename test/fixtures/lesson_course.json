@@ -1,0 +1,255 @@
+{
+  "edition": "HSK 2.0",
+  "version": 1,
+  "description": "48 bài học bổ trợ do HanziGo biên soạn theo hướng từ cơ bản đến nâng cao; không thay thế toàn bộ giáo trình hoặc đề thi HSK chính thức.",
+  "levels": [
+    {
+      "hsk": 1,
+      "title": "Nền tảng đầu tiên",
+      "description": "Bắt đầu từ câu ngắn: giới thiệu, hỏi đáp và sinh hoạt hằng ngày.",
+      "prerequisite": "Chưa cần kiến thức tiếng Trung. Đọc pinyin chậm, nhận diện thanh điệu trước khi tăng tốc."
+    },
+    {
+      "hsk": 2,
+      "title": "Giao tiếp quen thuộc",
+      "description": "Kể việc đã làm, so sánh và trao đổi những kế hoạch đơn giản.",
+      "prerequisite": "Nên hiểu câu 是, 有, 在 và câu hỏi 吗 của HSK 1."
+    },
+    {
+      "hsk": 3,
+      "title": "Kết nối ý và kể chuyện",
+      "description": "Nối câu, diễn tả trải nghiệm và giải thích kế hoạch của mình.",
+      "prerequisite": "Ôn cách dùng 了, câu so sánh 比 và các động từ năng nguyện."
+    },
+    {
+      "hsk": 4,
+      "title": "Diễn đạt có tổ chức",
+      "description": "Trình bày mục đích, đề xuất, điều kiện và cách giải quyết vấn đề.",
+      "prerequisite": "Nên nắm các liên từ cơ bản, câu 把 và cách kể trải nghiệm."
+    },
+    {
+      "hsk": 5,
+      "title": "Lập luận và văn viết",
+      "description": "Phân tích dữ kiện, tóm tắt và đưa đề xuất có căn cứ.",
+      "prerequisite": "Có thể đọc đoạn văn nhiều câu, phân biệt nguyên nhân với điều kiện."
+    },
+    {
+      "hsk": 6,
+      "title": "Đọc sâu và diễn đạt chính xác",
+      "description": "Nhận diện hàm ý, kiểm tra lập luận và tổng hợp nhiều góc nhìn.",
+      "prerequisite": "Nên đọc được đoạn nghị luận, tóm tắt trung thành và giải thích quan điểm."
+    }
+  ],
+  "lessons": [
+    {
+      "id": "hsk1-01",
+      "hsk": 1,
+      "order": 1,
+      "title": "Chào hỏi và giới thiệu",
+      "minutes": 10,
+      "review": false,
+      "objective": "Vận dụng A + 是 + B trong chủ đề chào hỏi và giới thiệu.",
+      "vocabulary": [
+        {
+          "hanzi": "你",
+          "pinyin": "nǐ",
+          "meaning": "bạn, cậu",
+          "hsk": 1
+        },
+        {
+          "hanzi": "我",
+          "pinyin": "wǒ",
+          "meaning": "tôi, tao, ta",
+          "hsk": 1
+        },
+        {
+          "hanzi": "是",
+          "pinyin": "shì",
+          "meaning": "là",
+          "hsk": 1
+        },
+        {
+          "hanzi": "学生",
+          "pinyin": "xué sheng",
+          "meaning": "học sinh, sinh viên",
+          "hsk": 1
+        },
+        {
+          "hanzi": "老师",
+          "pinyin": "lǎo shī",
+          "meaning": "giáo viên, thầy cô giáo",
+          "hsk": 1
+        }
+      ],
+      "grammar": {
+        "pattern": "A + 是 + B",
+        "note": "是 nối chủ ngữ với danh từ chỉ người hoặc nghề nghiệp. Dùng 不是 để phủ định; không đặt 是 trước mọi tính từ.",
+        "example": {
+          "hanzi": "我是学生。",
+          "pinyin": "Wǒ shì xuésheng.",
+          "meaning": "Tôi là học sinh."
+        }
+      },
+      "reading": {
+        "hanzi": "你好！我叫小明。我是学生。她是我的老师。",
+        "meaning": "Xin chào! Tôi tên Tiểu Minh. Tôi là học sinh. Cô ấy là giáo viên của tôi."
+      },
+      "task": "Tự giới thiệu tên và vai trò của bạn bằng hai câu.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "我___学生。",
+          "options": [
+            "在",
+            "是",
+            "很"
+          ],
+          "answer": 1,
+          "explanation": "是 nối chủ ngữ với danh từ chỉ người hoặc nghề nghiệp. Dùng 不是 để phủ định; không đặt 是 trước mọi tính từ. Ví dụ: 我是学生。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "小明是谁？",
+          "options": [
+            "学生",
+            "医生",
+            "老师"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Xin chào! Tôi tên Tiểu Minh. Tôi là học sinh. Cô ấy là giáo viên của tôi."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 你 (nǐ) nghĩa là gì?",
+          "options": [
+            "là",
+            "bạn, cậu",
+            "tôi, tao, ta"
+          ],
+          "answer": 1,
+          "explanation": "你 · nǐ: bạn, cậu."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 我 (wǒ) nghĩa là gì?",
+          "options": [
+            "tôi, tao, ta",
+            "bạn, cậu",
+            "là"
+          ],
+          "answer": 0,
+          "explanation": "我 · wǒ: tôi, tao, ta."
+        }
+      ]
+    },
+    {
+      "id": "hsk6-01",
+      "hsk": 6,
+      "order": 1,
+      "title": "Luận điểm, tiền đề và suy luận",
+      "minutes": 20,
+      "review": false,
+      "objective": "Vận dụng 只有在……的前提下，才能…… trong chủ đề luận điểm, tiền đề và suy luận.",
+      "vocabulary": [
+        {
+          "hanzi": "前提",
+          "pinyin": "qián tí",
+          "meaning": "tiền đề",
+          "hsk": 6
+        },
+        {
+          "hanzi": "推理",
+          "pinyin": "tuī lǐ",
+          "meaning": "suy luận, lập luận",
+          "hsk": 6
+        },
+        {
+          "hanzi": "论证",
+          "pinyin": "lùn zhèng",
+          "meaning": "luận chứng, chứng minh",
+          "hsk": 6
+        },
+        {
+          "hanzi": "结论",
+          "pinyin": "jié lùn",
+          "meaning": "kết luận",
+          "hsk": 5
+        },
+        {
+          "hanzi": "依据",
+          "pinyin": "yī jù",
+          "meaning": "căn cứ, dựa trên",
+          "hsk": 6
+        }
+      ],
+      "grammar": {
+        "pattern": "只有在……的前提下，才能……",
+        "note": "Phân biệt điều kiện cần, dữ kiện và kết luận. Một lập luận có thể hợp hình thức nhưng kết luận vẫn thiếu chắc chắn nếu tiền đề chưa được chứng minh.",
+        "example": {
+          "hanzi": "只有在样本具有代表性的前提下，才能作出可靠判断。",
+          "pinyin": "Zhǐyǒu zài yàngběn jùyǒu dàibiǎoxìng de qiántí xià, cái néng zuò chū kěkào pànduàn.",
+          "meaning": "Chỉ khi mẫu có tính đại diện mới có thể đưa ra nhận định đáng tin."
+        }
+      },
+      "reading": {
+        "hanzi": "一份调查显示，接受访问的居民大多支持延长图书馆开放时间。有人据此断言，全市居民都有同样的需求。然而，调查只在图书馆门口进行，受访者本来就更可能使用这项服务。结果能够说明常来图书馆的人有这种愿望，却不足以直接代表所有市民。若要扩大结论的适用范围，就应补充不同地区、年龄和使用习惯的样本，并公开调查方式。这并不是否定调查的价值，而是让结论与证据保持相称。",
+        "meaning": "Khảo sát cho thấy đa số người được hỏi ủng hộ kéo dài giờ thư viện. Có người kết luận toàn thành phố có cùng nhu cầu. Nhưng khảo sát chỉ diễn ra ở cửa thư viện, nơi người được hỏi vốn dễ dùng dịch vụ hơn. Kết quả cho biết mong muốn của người hay đến, chưa đại diện mọi cư dân. Muốn mở rộng kết luận cần thêm mẫu theo khu vực, tuổi và thói quen, đồng thời công khai cách khảo sát. Đây không phải phủ nhận giá trị mà là giữ kết luận tương xứng bằng chứng."
+      },
+      "task": "Chỉ ra tiền đề còn thiếu trong một kết luận phổ biến và cách kiểm tra nó.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "“只有在样本具有代表性的前提下，才能推广结论”强调什么？",
+          "options": [
+            "样本数量多就一定能推广结论",
+            "任何样本都能代表所有人",
+            "代表性是推广结论的必要条件"
+          ],
+          "answer": 2,
+          "explanation": "Phân biệt điều kiện cần, dữ kiện và kết luận. Một lập luận có thể hợp hình thức nhưng kết luận vẫn thiếu chắc chắn nếu tiền đề chưa được chứng minh. Ví dụ: 只有在样本具有代表性的前提下，才能作出可靠判断。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "作者质疑的主要是什么？",
+          "options": [
+            "调查完全没有任何价值",
+            "从有限样本推及全体居民",
+            "图书馆存在使用需求"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Khảo sát cho thấy đa số người được hỏi ủng hộ kéo dài giờ thư viện. Có người kết luận toàn thành phố có cùng nhu cầu. Nhưng khảo sát chỉ diễn ra ở cửa thư viện, nơi người được hỏi vốn dễ dùng dịch vụ hơn. Kết quả cho biết mong muốn của người hay đến, chưa đại diện mọi cư dân. Muốn mở rộng kết luận cần thêm mẫu theo khu vực, tuổi và thói quen, đồng thời công khai cách khảo sát. Đây không phải phủ nhận giá trị mà là giữ kết luận tương xứng bằng chứng."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 前提 (qián tí) nghĩa là gì?",
+          "options": [
+            "suy luận, lập luận",
+            "luận chứng, chứng minh",
+            "tiền đề"
+          ],
+          "answer": 2,
+          "explanation": "前提 · qián tí: tiền đề."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 推理 (tuī lǐ) nghĩa là gì?",
+          "options": [
+            "luận chứng, chứng minh",
+            "suy luận, lập luận",
+            "tiền đề"
+          ],
+          "answer": 1,
+          "explanation": "推理 · tuī lǐ: suy luận, lập luận."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,5085 @@
+{
+  "edition": "HSK 2.0",
+  "version": 1,
+  "description": "48 bài học bổ trợ do HanziGo biên soạn theo hướng từ cơ bản đến nâng cao; không thay thế toàn bộ giáo trình hoặc đề thi HSK chính thức.",
+  "levels": [
+    {
+      "hsk": 1,
+      "title": "Nền tảng đầu tiên",
+      "description": "Bắt đầu từ câu ngắn: giới thiệu, hỏi đáp và sinh hoạt hằng ngày.",
+      "prerequisite": "Chưa cần kiến thức tiếng Trung. Đọc pinyin chậm, nhận diện thanh điệu trước khi tăng tốc."
+    },
+    {
+      "hsk": 2,
+      "title": "Giao tiếp quen thuộc",
+      "description": "Kể việc đã làm, so sánh và trao đổi những kế hoạch đơn giản.",
+      "prerequisite": "Nên hiểu câu 是, 有, 在 và câu hỏi 吗 của HSK 1."
+    },
+    {
+      "hsk": 3,
+      "title": "Kết nối ý và kể chuyện",
+      "description": "Nối câu, diễn tả trải nghiệm và giải thích kế hoạch của mình.",
+      "prerequisite": "Ôn cách dùng 了, câu so sánh 比 và các động từ năng nguyện."
+    },
+    {
+      "hsk": 4,
+      "title": "Diễn đạt có tổ chức",
+      "description": "Trình bày mục đích, đề xuất, điều kiện và cách giải quyết vấn đề.",
+      "prerequisite": "Nên nắm các liên từ cơ bản, câu 把 và cách kể trải nghiệm."
+    },
+    {
+      "hsk": 5,
+      "title": "Lập luận và văn viết",
+      "description": "Phân tích dữ kiện, tóm tắt và đưa đề xuất có căn cứ.",
+      "prerequisite": "Có thể đọc đoạn văn nhiều câu, phân biệt nguyên nhân với điều kiện."
+    },
+    {
+      "hsk": 6,
+      "title": "Đọc sâu và diễn đạt chính xác",
+      "description": "Nhận diện hàm ý, kiểm tra lập luận và tổng hợp nhiều góc nhìn.",
+      "prerequisite": "Nên đọc được đoạn nghị luận, tóm tắt trung thành và giải thích quan điểm."
+    }
+  ],
+  "lessons": [
+    {
+      "id": "hsk1-01",
+      "hsk": 1,
+      "order": 1,
+      "title": "Chào hỏi và giới thiệu",
+      "minutes": 10,
+      "review": false,
+      "objective": "Vận dụng A + 是 + B trong chủ đề chào hỏi và giới thiệu.",
+      "vocabulary": [
+        {
+          "hanzi": "你",
+          "pinyin": "nǐ",
+          "meaning": "bạn, cậu",
+          "hsk": 1
+        },
+        {
+          "hanzi": "我",
+          "pinyin": "wǒ",
+          "meaning": "tôi, tao, ta",
+          "hsk": 1
+        },
+        {
+          "hanzi": "是",
+          "pinyin": "shì",
+          "meaning": "là",
+          "hsk": 1
+        },
+        {
+          "hanzi": "学生",
+          "pinyin": "xué sheng",
+          "meaning": "học sinh, sinh viên",
+          "hsk": 1
+        },
+        {
+          "hanzi": "老师",
+          "pinyin": "lǎo shī",
+          "meaning": "giáo viên, thầy cô giáo",
+          "hsk": 1
+        }
+      ],
+      "grammar": {
+        "pattern": "A + 是 + B",
+        "note": "是 nối chủ ngữ với danh từ chỉ người hoặc nghề nghiệp. Dùng 不是 để phủ định; không đặt 是 trước mọi tính từ.",
+        "example": {
+          "hanzi": "我是学生。",
+          "pinyin": "Wǒ shì xuésheng.",
+          "meaning": "Tôi là học sinh."
+        }
+      },
+      "reading": {
+        "hanzi": "你好！我叫小明。我是学生。她是我的老师。",
+        "meaning": "Xin chào! Tôi tên Tiểu Minh. Tôi là học sinh. Cô ấy là giáo viên của tôi."
+      },
+      "task": "Tự giới thiệu tên và vai trò của bạn bằng hai câu.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "我___学生。",
+          "options": [
+            "在",
+            "是",
+            "很"
+          ],
+          "answer": 1,
+          "explanation": "是 nối chủ ngữ với danh từ chỉ người hoặc nghề nghiệp. Dùng 不是 để phủ định; không đặt 是 trước mọi tính từ. Ví dụ: 我是学生。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "小明是谁？",
+          "options": [
+            "学生",
+            "医生",
+            "老师"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Xin chào! Tôi tên Tiểu Minh. Tôi là học sinh. Cô ấy là giáo viên của tôi."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 你 (nǐ) nghĩa là gì?",
+          "options": [
+            "là",
+            "bạn, cậu",
+            "tôi, tao, ta"
+          ],
+          "answer": 1,
+          "explanation": "你 · nǐ: bạn, cậu."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 我 (wǒ) nghĩa là gì?",
+          "options": [
+            "tôi, tao, ta",
+            "bạn, cậu",
+            "là"
+          ],
+          "answer": 0,
+          "explanation": "我 · wǒ: tôi, tao, ta."
+        }
+      ]
+    },
+    {
+      "id": "hsk1-02",
+      "hsk": 1,
+      "order": 2,
+      "title": "Hỏi thăm và câu hỏi có–không",
+      "minutes": 10,
+      "review": false,
+      "objective": "Vận dụng Câu trần thuật + 吗？ trong chủ đề hỏi thăm và câu hỏi có–không.",
+      "vocabulary": [
+        {
+          "hanzi": "好",
+          "pinyin": "hǎo",
+          "meaning": "Tốt, đẹp, ngon, được, khỏe; rất (phó từ chỉ mức độ)",
+          "hsk": 1
+        },
+        {
+          "hanzi": "吗",
+          "pinyin": "ma",
+          "meaning": "trợ từ nghi vấn đặt ở cuối câu hỏi",
+          "hsk": 1
+        },
+        {
+          "hanzi": "不",
+          "pinyin": "bù",
+          "meaning": "Không (phó từ dùng để phủ định)",
+          "hsk": 1
+        },
+        {
+          "hanzi": "很",
+          "pinyin": "hěn",
+          "meaning": "Rất (phó từ chỉ mức độ)",
+          "hsk": 1
+        },
+        {
+          "hanzi": "高兴",
+          "pinyin": "gāo xìng",
+          "meaning": "Vui vẻ, phấn khởi, mừng rỡ",
+          "hsk": 1
+        }
+      ],
+      "grammar": {
+        "pattern": "Câu trần thuật + 吗？",
+        "note": "Thêm 吗 ở cuối câu để hỏi có–không. Khi trả lời, lặp lại động từ hoặc tính từ; phủ định thường dùng 不.",
+        "example": {
+          "hanzi": "你好吗？我很好。",
+          "pinyin": "Nǐ hǎo ma? Wǒ hěn hǎo.",
+          "meaning": "Bạn khỏe không? Tôi khỏe."
+        }
+      },
+      "reading": {
+        "hanzi": "小王：你好吗？小李：我很好。你呢？小王：我也很好。",
+        "meaning": "Tiểu Vương: Bạn khỏe không? Tiểu Lý: Tôi khỏe. Còn bạn? Tiểu Vương: Tôi cũng khỏe."
+      },
+      "task": "Viết một câu hỏi có–không và một câu trả lời phủ định.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "你是老师___？",
+          "options": [
+            "吗",
+            "的",
+            "在"
+          ],
+          "answer": 0,
+          "explanation": "Thêm 吗 ở cuối câu để hỏi có–không. Khi trả lời, lặp lại động từ hoặc tính từ; phủ định thường dùng 不. Ví dụ: 你好吗？我很好。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "小李怎么样？",
+          "options": [
+            "不好",
+            "很冷",
+            "很好"
+          ],
+          "answer": 2,
+          "explanation": "Đối chiếu đoạn đọc: Tiểu Vương: Bạn khỏe không? Tiểu Lý: Tôi khỏe. Còn bạn? Tiểu Vương: Tôi cũng khỏe."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 好 (hǎo) nghĩa là gì?",
+          "options": [
+            "Tốt, đẹp, ngon, được, khỏe; rất (phó từ chỉ mức độ)",
+            "trợ từ nghi vấn đặt ở cuối câu hỏi",
+            "Không (phó từ dùng để phủ định)"
+          ],
+          "answer": 0,
+          "explanation": "好 · hǎo: Tốt, đẹp, ngon, được, khỏe; rất (phó từ chỉ mức độ)."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 吗 (ma) nghĩa là gì?",
+          "options": [
+            "Tốt, đẹp, ngon, được, khỏe; rất (phó từ chỉ mức độ)",
+            "Không (phó từ dùng để phủ định)",
+            "trợ từ nghi vấn đặt ở cuối câu hỏi"
+          ],
+          "answer": 2,
+          "explanation": "吗 · ma: trợ từ nghi vấn đặt ở cuối câu hỏi."
+        }
+      ]
+    },
+    {
+      "id": "hsk1-03",
+      "hsk": 1,
+      "order": 3,
+      "title": "Gia đình và sở hữu",
+      "minutes": 10,
+      "review": false,
+      "objective": "Vận dụng Người sở hữu + 的 + danh từ trong chủ đề gia đình và sở hữu.",
+      "vocabulary": [
+        {
+          "hanzi": "爸爸",
+          "pinyin": "bà ba",
+          "meaning": "Bố, ba, cha",
+          "hsk": 1
+        },
+        {
+          "hanzi": "妈妈",
+          "pinyin": "mā ma",
+          "meaning": "mẹ",
+          "hsk": 1
+        },
+        {
+          "hanzi": "儿子",
+          "pinyin": "ér zi",
+          "meaning": "Con trai",
+          "hsk": 1
+        },
+        {
+          "hanzi": "女儿",
+          "pinyin": "nǚ ér",
+          "meaning": "con gái",
+          "hsk": 1
+        },
+        {
+          "hanzi": "家",
+          "pinyin": "jiā",
+          "meaning": "Nhà, gia đình; lượng từ dùng cho công ty, cửa hàng, nhà hàng",
+          "hsk": 1
+        }
+      ],
+      "grammar": {
+        "pattern": "Người sở hữu + 的 + danh từ",
+        "note": "的 thể hiện quan hệ sở hữu. Với quan hệ gia đình gần gũi có thể lược 的: 我妈妈. Đừng nhầm 的 với động từ 是.",
+        "example": {
+          "hanzi": "这是我的妈妈。",
+          "pinyin": "Zhè shì wǒ de māma.",
+          "meaning": "Đây là mẹ của tôi."
+        }
+      },
+      "reading": {
+        "hanzi": "我家有三个人：爸爸、妈妈和我。我爸爸是医生。我妈妈是老师。",
+        "meaning": "Nhà tôi có ba người: bố, mẹ và tôi. Bố tôi là bác sĩ. Mẹ tôi là giáo viên."
+      },
+      "task": "Giới thiệu hai người thân và nghề nghiệp của họ.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "这是我___家。",
+          "options": [
+            "吗",
+            "不",
+            "的"
+          ],
+          "answer": 2,
+          "explanation": "的 thể hiện quan hệ sở hữu. Với quan hệ gia đình gần gũi có thể lược 的: 我妈妈. Đừng nhầm 的 với động từ 是. Ví dụ: 这是我的妈妈。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "谁是医生？",
+          "options": [
+            "我",
+            "爸爸",
+            "妈妈"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Nhà tôi có ba người: bố, mẹ và tôi. Bố tôi là bác sĩ. Mẹ tôi là giáo viên."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 爸爸 (bà ba) nghĩa là gì?",
+          "options": [
+            "mẹ",
+            "Con trai",
+            "Bố, ba, cha"
+          ],
+          "answer": 2,
+          "explanation": "爸爸 · bà ba: Bố, ba, cha."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 妈妈 (mā ma) nghĩa là gì?",
+          "options": [
+            "Con trai",
+            "mẹ",
+            "Bố, ba, cha"
+          ],
+          "answer": 1,
+          "explanation": "妈妈 · mā ma: mẹ."
+        }
+      ]
+    },
+    {
+      "id": "hsk1-04",
+      "hsk": 1,
+      "order": 4,
+      "title": "Số lượng và tuổi",
+      "minutes": 10,
+      "review": false,
+      "objective": "Vận dụng Số + lượng từ + danh từ trong chủ đề số lượng và tuổi.",
+      "vocabulary": [
+        {
+          "hanzi": "一",
+          "pinyin": "yī",
+          "meaning": "số một, một",
+          "hsk": 1
+        },
+        {
+          "hanzi": "二",
+          "pinyin": "èr",
+          "meaning": "Số hai",
+          "hsk": 1
+        },
+        {
+          "hanzi": "三",
+          "pinyin": "sān",
+          "meaning": "ba, số ba",
+          "hsk": 1
+        },
+        {
+          "hanzi": "个",
+          "pinyin": "gè",
+          "meaning": "Cái, chiếc, người (lượng từ phổ biến nhất dùng cho người hoặc vật)",
+          "hsk": 1
+        },
+        {
+          "hanzi": "岁",
+          "pinyin": "suì",
+          "meaning": "tuổi",
+          "hsk": 1
+        }
+      ],
+      "grammar": {
+        "pattern": "Số + lượng từ + danh từ",
+        "note": "个 là lượng từ thông dụng nhưng không dùng cho mọi danh từ. Hỏi tuổi trẻ em bằng 几岁; hỏi người lớn dùng 多大. Nói tuổi không cần 是.",
+        "example": {
+          "hanzi": "我有三个朋友。",
+          "pinyin": "Wǒ yǒu sān ge péngyou.",
+          "meaning": "Tôi có ba người bạn."
+        }
+      },
+      "reading": {
+        "hanzi": "我有一个儿子和一个女儿。儿子五岁，女儿三岁。他们都很高兴。",
+        "meaning": "Tôi có một con trai và một con gái. Con trai năm tuổi, con gái ba tuổi. Cả hai đều rất vui."
+      },
+      "task": "Viết tuổi và số người trong gia đình bạn.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "我有三___朋友。",
+          "options": [
+            "点",
+            "个",
+            "岁"
+          ],
+          "answer": 1,
+          "explanation": "个 là lượng từ thông dụng nhưng không dùng cho mọi danh từ. Hỏi tuổi trẻ em bằng 几岁; hỏi người lớn dùng 多大. Nói tuổi không cần 是. Ví dụ: 我有三个朋友。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "女儿几岁？",
+          "options": [
+            "三岁",
+            "五岁",
+            "一岁"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Tôi có một con trai và một con gái. Con trai năm tuổi, con gái ba tuổi. Cả hai đều rất vui."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 一 (yī) nghĩa là gì?",
+          "options": [
+            "ba, số ba",
+            "số một, một",
+            "Số hai"
+          ],
+          "answer": 1,
+          "explanation": "一 · yī: số một, một."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 二 (èr) nghĩa là gì?",
+          "options": [
+            "Số hai",
+            "số một, một",
+            "ba, số ba"
+          ],
+          "answer": 0,
+          "explanation": "二 · èr: Số hai."
+        }
+      ]
+    },
+    {
+      "id": "hsk1-05",
+      "hsk": 1,
+      "order": 5,
+      "title": "Ngày tháng và giờ giấc",
+      "minutes": 10,
+      "review": false,
+      "objective": "Vận dụng Chủ ngữ + thời gian + hành động trong chủ đề ngày tháng và giờ giấc.",
+      "vocabulary": [
+        {
+          "hanzi": "今天",
+          "pinyin": "jīn tiān",
+          "meaning": "Hôm nay",
+          "hsk": 1
+        },
+        {
+          "hanzi": "明天",
+          "pinyin": "míng tiān",
+          "meaning": "ngày mai",
+          "hsk": 1
+        },
+        {
+          "hanzi": "点",
+          "pinyin": "diǎn",
+          "meaning": "Giờ (khi nói thời gian); điểm, một chút; gọi món",
+          "hsk": 1
+        },
+        {
+          "hanzi": "分钟",
+          "pinyin": "fēn zhōng",
+          "meaning": "Phút (đơn vị thời gian)",
+          "hsk": 1
+        },
+        {
+          "hanzi": "时候",
+          "pinyin": "shí hou",
+          "meaning": "lúc, khi, thời gian",
+          "hsk": 1
+        }
+      ],
+      "grammar": {
+        "pattern": "Chủ ngữ + thời gian + hành động",
+        "note": "Cụm thời gian thường đứng trước động từ, sau chủ ngữ hoặc đầu câu. 点 chỉ giờ; 分钟 chỉ khoảng thời gian tính bằng phút.",
+        "example": {
+          "hanzi": "我明天八点去学校。",
+          "pinyin": "Wǒ míngtiān bā diǎn qù xuéxiào.",
+          "meaning": "Ngày mai tôi đến trường lúc tám giờ."
+        }
+      },
+      "reading": {
+        "hanzi": "今天是星期一。我八点去学校，十二点吃饭。明天我也去学校。",
+        "meaning": "Hôm nay là thứ Hai. Tôi đến trường lúc tám giờ, ăn cơm lúc mười hai giờ. Ngày mai tôi cũng đến trường."
+      },
+      "task": "Viết lịch một ngày với ba mốc giờ.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "我明天八___去学校。",
+          "options": [
+            "点",
+            "个",
+            "岁"
+          ],
+          "answer": 0,
+          "explanation": "Cụm thời gian thường đứng trước động từ, sau chủ ngữ hoặc đầu câu. 点 chỉ giờ; 分钟 chỉ khoảng thời gian tính bằng phút. Ví dụ: 我明天八点去学校。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "我几点吃饭？",
+          "options": [
+            "八点",
+            "三点",
+            "十二点"
+          ],
+          "answer": 2,
+          "explanation": "Đối chiếu đoạn đọc: Hôm nay là thứ Hai. Tôi đến trường lúc tám giờ, ăn cơm lúc mười hai giờ. Ngày mai tôi cũng đến trường."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 今天 (jīn tiān) nghĩa là gì?",
+          "options": [
+            "Hôm nay",
+            "ngày mai",
+            "Giờ (khi nói thời gian); điểm, một chút; gọi món"
+          ],
+          "answer": 0,
+          "explanation": "今天 · jīn tiān: Hôm nay."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 明天 (míng tiān) nghĩa là gì?",
+          "options": [
+            "Hôm nay",
+            "Giờ (khi nói thời gian); điểm, một chút; gọi món",
+            "ngày mai"
+          ],
+          "answer": 2,
+          "explanation": "明天 · míng tiān: ngày mai."
+        }
+      ]
+    },
+    {
+      "id": "hsk1-06",
+      "hsk": 1,
+      "order": 6,
+      "title": "Ăn uống và sở thích",
+      "minutes": 10,
+      "review": false,
+      "objective": "Vận dụng 喜欢 + danh từ / động từ trong chủ đề ăn uống và sở thích.",
+      "vocabulary": [
+        {
+          "hanzi": "吃",
+          "pinyin": "chī",
+          "meaning": "Ăn",
+          "hsk": 1
+        },
+        {
+          "hanzi": "喝",
+          "pinyin": "hē",
+          "meaning": "Uống",
+          "hsk": 1
+        },
+        {
+          "hanzi": "茶",
+          "pinyin": "chá",
+          "meaning": "Trà, chè",
+          "hsk": 1
+        },
+        {
+          "hanzi": "米饭",
+          "pinyin": "mǐ fàn",
+          "meaning": "cơm",
+          "hsk": 1
+        },
+        {
+          "hanzi": "喜欢",
+          "pinyin": "xǐ huan",
+          "meaning": "thích, ưa chuộng",
+          "hsk": 1
+        }
+      ],
+      "grammar": {
+        "pattern": "喜欢 + danh từ / động từ",
+        "note": "喜欢 diễn tả sở thích; 想 diễn tả ý muốn trong tình huống hiện tại. Ăn dùng 吃, uống dùng 喝.",
+        "example": {
+          "hanzi": "我喜欢喝茶。",
+          "pinyin": "Wǒ xǐhuan hē chá.",
+          "meaning": "Tôi thích uống trà."
+        }
+      },
+      "reading": {
+        "hanzi": "我喜欢吃米饭，也喜欢喝茶。今天中午我在家吃饭。妈妈喝水，我喝茶。",
+        "meaning": "Tôi thích ăn cơm, cũng thích uống trà. Trưa nay tôi ăn ở nhà. Mẹ uống nước, tôi uống trà."
+      },
+      "task": "Nói hai món hoặc đồ uống bạn thích và một món không thích.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "我喜欢___茶。",
+          "options": [
+            "吃",
+            "看",
+            "喝"
+          ],
+          "answer": 2,
+          "explanation": "喜欢 diễn tả sở thích; 想 diễn tả ý muốn trong tình huống hiện tại. Ăn dùng 吃, uống dùng 喝. Ví dụ: 我喜欢喝茶。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "妈妈喝什么？",
+          "options": [
+            "米饭",
+            "水",
+            "茶"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Tôi thích ăn cơm, cũng thích uống trà. Trưa nay tôi ăn ở nhà. Mẹ uống nước, tôi uống trà."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 吃 (chī) nghĩa là gì?",
+          "options": [
+            "Uống",
+            "Trà, chè",
+            "Ăn"
+          ],
+          "answer": 2,
+          "explanation": "吃 · chī: Ăn."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 喝 (hē) nghĩa là gì?",
+          "options": [
+            "Trà, chè",
+            "Uống",
+            "Ăn"
+          ],
+          "answer": 1,
+          "explanation": "喝 · hē: Uống."
+        }
+      ]
+    },
+    {
+      "id": "hsk1-07",
+      "hsk": 1,
+      "order": 7,
+      "title": "Vị trí và nơi chốn",
+      "minutes": 10,
+      "review": false,
+      "objective": "Vận dụng Người / vật + 在 + nơi chốn trong chủ đề vị trí và nơi chốn.",
+      "vocabulary": [
+        {
+          "hanzi": "在",
+          "pinyin": "zài",
+          "meaning": "ở, tại, đang",
+          "hsk": 1
+        },
+        {
+          "hanzi": "学校",
+          "pinyin": "xué xiào",
+          "meaning": "trường học",
+          "hsk": 1
+        },
+        {
+          "hanzi": "商店",
+          "pinyin": "shāng diàn",
+          "meaning": "cửa hàng, tiệm",
+          "hsk": 1
+        },
+        {
+          "hanzi": "前面",
+          "pinyin": "qián miàn",
+          "meaning": "phía trước, đằng trước",
+          "hsk": 1
+        },
+        {
+          "hanzi": "后面",
+          "pinyin": "hòu mian",
+          "meaning": "Phía sau, đằng sau",
+          "hsk": 1
+        }
+      ],
+      "grammar": {
+        "pattern": "Người / vật + 在 + nơi chốn",
+        "note": "在 có thể chỉ vị trí. Khi diễn tả làm gì ở đâu, dùng 在 + địa điểm trước động từ: 我在家学习.",
+        "example": {
+          "hanzi": "学校在商店后面。",
+          "pinyin": "Xuéxiào zài shāngdiàn hòumian.",
+          "meaning": "Trường học ở phía sau cửa hàng."
+        }
+      },
+      "reading": {
+        "hanzi": "我家前面有一个商店。学校在商店后面。我今天在学校学习汉语。",
+        "meaning": "Trước nhà tôi có một cửa hàng. Trường học ở sau cửa hàng. Hôm nay tôi học tiếng Trung ở trường."
+      },
+      "task": "Mô tả vị trí nhà, trường hoặc cửa hàng quen thuộc.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "我___学校学习汉语。",
+          "options": [
+            "的",
+            "在",
+            "是"
+          ],
+          "answer": 1,
+          "explanation": "在 có thể chỉ vị trí. Khi diễn tả làm gì ở đâu, dùng 在 + địa điểm trước động từ: 我在家学习. Ví dụ: 学校在商店后面。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "学校在哪里？",
+          "options": [
+            "商店后面",
+            "商店前面",
+            "我家里面"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Trước nhà tôi có một cửa hàng. Trường học ở sau cửa hàng. Hôm nay tôi học tiếng Trung ở trường."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 在 (zài) nghĩa là gì?",
+          "options": [
+            "cửa hàng, tiệm",
+            "ở, tại, đang",
+            "trường học"
+          ],
+          "answer": 1,
+          "explanation": "在 · zài: ở, tại, đang."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 学校 (xué xiào) nghĩa là gì?",
+          "options": [
+            "trường học",
+            "ở, tại, đang",
+            "cửa hàng, tiệm"
+          ],
+          "answer": 0,
+          "explanation": "学校 · xué xiào: trường học."
+        }
+      ]
+    },
+    {
+      "id": "hsk1-08",
+      "hsk": 1,
+      "order": 8,
+      "title": "Ôn tập: Một ngày của tôi",
+      "minutes": 12,
+      "review": true,
+      "objective": "Vận dụng Chủ ngữ + thời gian + 在 + nơi chốn + động từ trong chủ đề ôn tập: một ngày của tôi.",
+      "vocabulary": [
+        {
+          "hanzi": "学习",
+          "pinyin": "xué xí",
+          "meaning": "học tập, học",
+          "hsk": 1
+        },
+        {
+          "hanzi": "汉语",
+          "pinyin": "Hàn yǔ",
+          "meaning": "Tiếng Trung, tiếng Hán",
+          "hsk": 1
+        },
+        {
+          "hanzi": "朋友",
+          "pinyin": "péng you",
+          "meaning": "bạn bè",
+          "hsk": 1
+        },
+        {
+          "hanzi": "看",
+          "pinyin": "kàn",
+          "meaning": "Nhìn, xem, đọc, quan sát",
+          "hsk": 1
+        },
+        {
+          "hanzi": "书",
+          "pinyin": "shū",
+          "meaning": "sách",
+          "hsk": 1
+        }
+      ],
+      "grammar": {
+        "pattern": "Chủ ngữ + thời gian + 在 + nơi chốn + động từ",
+        "note": "Kết hợp thời gian, địa điểm và hành động. 也 đứng trước vị ngữ để bổ sung một ý tương tự. Giữ câu ngắn và rõ trước khi nối nhiều ý.",
+        "example": {
+          "hanzi": "我今天在家看书。",
+          "pinyin": "Wǒ jīntiān zài jiā kàn shū.",
+          "meaning": "Hôm nay tôi đọc sách ở nhà."
+        }
+      },
+      "reading": {
+        "hanzi": "我叫小林，是学生。我今天在家看书。下午三点，我和朋友去学校学习汉语。",
+        "meaning": "Tôi tên Tiểu Lâm, là học sinh. Hôm nay tôi đọc sách ở nhà. Ba giờ chiều, tôi cùng bạn đến trường học tiếng Trung."
+      },
+      "task": "Viết 4–5 câu giới thiệu bản thân và lịch sinh hoạt.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "我在家___书。",
+          "options": [
+            "看",
+            "喝",
+            "是"
+          ],
+          "answer": 0,
+          "explanation": "Kết hợp thời gian, địa điểm và hành động. 也 đứng trước vị ngữ để bổ sung một ý tương tự. Giữ câu ngắn và rõ trước khi nối nhiều ý. Ví dụ: 我今天在家看书。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "下午三点，小林做什么？",
+          "options": [
+            "在家喝茶",
+            "去商店买东西",
+            "去学校学习汉语"
+          ],
+          "answer": 2,
+          "explanation": "Đối chiếu đoạn đọc: Tôi tên Tiểu Lâm, là học sinh. Hôm nay tôi đọc sách ở nhà. Ba giờ chiều, tôi cùng bạn đến trường học tiếng Trung."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 学习 (xué xí) nghĩa là gì?",
+          "options": [
+            "học tập, học",
+            "Tiếng Trung, tiếng Hán",
+            "bạn bè"
+          ],
+          "answer": 0,
+          "explanation": "学习 · xué xí: học tập, học."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 汉语 (Hàn yǔ) nghĩa là gì?",
+          "options": [
+            "học tập, học",
+            "bạn bè",
+            "Tiếng Trung, tiếng Hán"
+          ],
+          "answer": 2,
+          "explanation": "汉语 · Hàn yǔ: Tiếng Trung, tiếng Hán."
+        }
+      ]
+    },
+    {
+      "id": "hsk2-01",
+      "hsk": 2,
+      "order": 1,
+      "title": "Việc đã làm và trải nghiệm gần đây",
+      "minutes": 12,
+      "review": false,
+      "objective": "Vận dụng Động từ + 了 + tân ngữ trong chủ đề việc đã làm và trải nghiệm gần đây.",
+      "vocabulary": [
+        {
+          "hanzi": "已经",
+          "pinyin": "yǐ jīng",
+          "meaning": "đã, đã rồi",
+          "hsk": 2
+        },
+        {
+          "hanzi": "昨天",
+          "pinyin": "zuó tiān",
+          "meaning": "hôm qua",
+          "hsk": 1
+        },
+        {
+          "hanzi": "买",
+          "pinyin": "mǎi",
+          "meaning": "mua",
+          "hsk": 1
+        },
+        {
+          "hanzi": "东西",
+          "pinyin": "dōng xi",
+          "meaning": "Đồ đạc, thứ, vật phẩm",
+          "hsk": 1
+        },
+        {
+          "hanzi": "了",
+          "pinyin": "le",
+          "meaning": "trợ từ động thái biểu thị hành động đã hoàn thành",
+          "hsk": 1
+        }
+      ],
+      "grammar": {
+        "pattern": "Động từ + 了 + tân ngữ",
+        "note": "了 sau động từ đánh dấu hành động đã hoàn thành trong ngữ cảnh; không phải cứ quá khứ là thêm 了. Phủ định việc chưa làm thường dùng 没 + động từ và bỏ 了.",
+        "example": {
+          "hanzi": "我昨天买了一本书。",
+          "pinyin": "Wǒ zuótiān mǎi le yì běn shū.",
+          "meaning": "Hôm qua tôi đã mua một cuốn sách."
+        }
+      },
+      "reading": {
+        "hanzi": "昨天我和姐姐去商店。我买了一本书，姐姐买了一件衣服。今天我们没有去商店。",
+        "meaning": "Hôm qua tôi cùng chị đến cửa hàng. Tôi mua một cuốn sách, chị mua một bộ quần áo. Hôm nay chúng tôi không đến cửa hàng."
+      },
+      "task": "Kể hai việc đã làm hôm qua và một việc chưa làm.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "我昨天没___书。",
+          "options": [
+            "买",
+            "买了",
+            "了买"
+          ],
+          "answer": 0,
+          "explanation": "了 sau động từ đánh dấu hành động đã hoàn thành trong ngữ cảnh; không phải cứ quá khứ là thêm 了. Phủ định việc chưa làm thường dùng 没 + động từ và bỏ 了. Ví dụ: 我昨天买了一本书。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "谁买了衣服？",
+          "options": [
+            "我",
+            "弟弟",
+            "姐姐"
+          ],
+          "answer": 2,
+          "explanation": "Đối chiếu đoạn đọc: Hôm qua tôi cùng chị đến cửa hàng. Tôi mua một cuốn sách, chị mua một bộ quần áo. Hôm nay chúng tôi không đến cửa hàng."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 已经 (yǐ jīng) nghĩa là gì?",
+          "options": [
+            "đã, đã rồi",
+            "hôm qua",
+            "mua"
+          ],
+          "answer": 0,
+          "explanation": "已经 · yǐ jīng: đã, đã rồi."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 昨天 (zuó tiān) nghĩa là gì?",
+          "options": [
+            "đã, đã rồi",
+            "mua",
+            "hôm qua"
+          ],
+          "answer": 2,
+          "explanation": "昨天 · zuó tiān: hôm qua."
+        }
+      ]
+    },
+    {
+      "id": "hsk2-02",
+      "hsk": 2,
+      "order": 2,
+      "title": "Đang làm gì?",
+      "minutes": 12,
+      "review": false,
+      "objective": "Vận dụng 正在 + động từ + tân ngữ trong chủ đề đang làm gì?.",
+      "vocabulary": [
+        {
+          "hanzi": "正在",
+          "pinyin": "zhèng zài",
+          "meaning": "đang",
+          "hsk": 2
+        },
+        {
+          "hanzi": "说话",
+          "pinyin": "shuō huà",
+          "meaning": "nói chuyện, trò chuyện",
+          "hsk": 1
+        },
+        {
+          "hanzi": "做",
+          "pinyin": "zuò",
+          "meaning": "làm, chế tạo, làm việc",
+          "hsk": 1
+        },
+        {
+          "hanzi": "看",
+          "pinyin": "kàn",
+          "meaning": "Nhìn, xem, đọc, quan sát",
+          "hsk": 1
+        },
+        {
+          "hanzi": "电视",
+          "pinyin": "diàn shì",
+          "meaning": "Ti vi, truyền hình",
+          "hsk": 1
+        }
+      ],
+      "grammar": {
+        "pattern": "正在 + động từ + tân ngữ",
+        "note": "正在 nhấn mạnh hành động đang diễn ra. Có thể dùng 呢 cuối câu. Không dùng 正在 cho trạng thái sở hữu như 有 khi không có ý nghĩa hành động.",
+        "example": {
+          "hanzi": "他正在看电视呢。",
+          "pinyin": "Tā zhèngzài kàn diànshì ne.",
+          "meaning": "Anh ấy đang xem ti vi."
+        }
+      },
+      "reading": {
+        "hanzi": "晚上八点，爸爸正在看电视，妈妈正在做饭。我没有看电视，我正在学习。",
+        "meaning": "Tám giờ tối, bố đang xem ti vi, mẹ đang nấu cơm. Tôi không xem ti vi, tôi đang học."
+      },
+      "task": "Mô tả ba hành động đang xảy ra quanh bạn.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "妈妈___做饭呢。",
+          "options": [
+            "每",
+            "比",
+            "正在"
+          ],
+          "answer": 2,
+          "explanation": "正在 nhấn mạnh hành động đang diễn ra. Có thể dùng 呢 cuối câu. Không dùng 正在 cho trạng thái sở hữu như 有 khi không có ý nghĩa hành động. Ví dụ: 他正在看电视呢。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "我正在做什么？",
+          "options": [
+            "做饭",
+            "学习",
+            "看电视"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Tám giờ tối, bố đang xem ti vi, mẹ đang nấu cơm. Tôi không xem ti vi, tôi đang học."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 正在 (zhèng zài) nghĩa là gì?",
+          "options": [
+            "nói chuyện, trò chuyện",
+            "làm, chế tạo, làm việc",
+            "đang"
+          ],
+          "answer": 2,
+          "explanation": "正在 · zhèng zài: đang."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 说话 (shuō huà) nghĩa là gì?",
+          "options": [
+            "làm, chế tạo, làm việc",
+            "nói chuyện, trò chuyện",
+            "đang"
+          ],
+          "answer": 1,
+          "explanation": "说话 · shuō huà: nói chuyện, trò chuyện."
+        }
+      ]
+    },
+    {
+      "id": "hsk2-03",
+      "hsk": 2,
+      "order": 3,
+      "title": "So sánh khi mua sắm",
+      "minutes": 12,
+      "review": false,
+      "objective": "Vận dụng A + 比 + B + tính từ trong chủ đề so sánh khi mua sắm.",
+      "vocabulary": [
+        {
+          "hanzi": "比",
+          "pinyin": "bǐ",
+          "meaning": "Từ dùng để so sánh; so sánh, đọ",
+          "hsk": 2
+        },
+        {
+          "hanzi": "贵",
+          "pinyin": "guì",
+          "meaning": "Đắt (giá cả); quý giá, cao quý",
+          "hsk": 2
+        },
+        {
+          "hanzi": "便宜",
+          "pinyin": "pián yi",
+          "meaning": "rẻ",
+          "hsk": 2
+        },
+        {
+          "hanzi": "颜色",
+          "pinyin": "yán sè",
+          "meaning": "màu sắc",
+          "hsk": 2
+        },
+        {
+          "hanzi": "件",
+          "pinyin": "jiàn",
+          "meaning": "Cái, chiếc (lượng từ dùng cho sự việc, quần áo...)",
+          "hsk": 2
+        }
+      ],
+      "grammar": {
+        "pattern": "A + 比 + B + tính từ",
+        "note": "比 đặt đối tượng so sánh trước tính từ. Không thêm 很 ngay trước tính từ trong mẫu cơ bản này. Có thể thêm 一点儿 để nói chênh lệch nhỏ.",
+        "example": {
+          "hanzi": "这件衣服比那件便宜。",
+          "pinyin": "Zhè jiàn yīfu bǐ nà jiàn piányi.",
+          "meaning": "Bộ quần áo này rẻ hơn bộ kia."
+        }
+      },
+      "reading": {
+        "hanzi": "这件红衣服一百块，那件白衣服八十块。红衣服比白衣服贵。小王喜欢白色，所以买了白衣服。",
+        "meaning": "Bộ quần áo đỏ giá một trăm tệ, bộ trắng tám mươi tệ. Bộ đỏ đắt hơn bộ trắng. Tiểu Vương thích màu trắng nên đã mua bộ trắng."
+      },
+      "task": "So sánh hai món đồ theo giá hoặc kích thước.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "红衣服___白衣服贵。",
+          "options": [
+            "给",
+            "比",
+            "在"
+          ],
+          "answer": 1,
+          "explanation": "比 đặt đối tượng so sánh trước tính từ. Không thêm 很 ngay trước tính từ trong mẫu cơ bản này. Có thể thêm 一点儿 để nói chênh lệch nhỏ. Ví dụ: 这件衣服比那件便宜。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "小王买了什么颜色的衣服？",
+          "options": [
+            "白色",
+            "红色",
+            "黑色"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Bộ quần áo đỏ giá một trăm tệ, bộ trắng tám mươi tệ. Bộ đỏ đắt hơn bộ trắng. Tiểu Vương thích màu trắng nên đã mua bộ trắng."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 比 (bǐ) nghĩa là gì?",
+          "options": [
+            "rẻ",
+            "Từ dùng để so sánh; so sánh, đọ",
+            "Đắt (giá cả); quý giá, cao quý"
+          ],
+          "answer": 1,
+          "explanation": "比 · bǐ: Từ dùng để so sánh; so sánh, đọ."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 贵 (guì) nghĩa là gì?",
+          "options": [
+            "Đắt (giá cả); quý giá, cao quý",
+            "Từ dùng để so sánh; so sánh, đọ",
+            "rẻ"
+          ],
+          "answer": 0,
+          "explanation": "贵 · guì: Đắt (giá cả); quý giá, cao quý."
+        }
+      ]
+    },
+    {
+      "id": "hsk2-04",
+      "hsk": 2,
+      "order": 4,
+      "title": "Lý do và kết quả",
+      "minutes": 12,
+      "review": false,
+      "objective": "Vận dụng 因为……所以…… trong chủ đề lý do và kết quả.",
+      "vocabulary": [
+        {
+          "hanzi": "因为",
+          "pinyin": "yīn wèi",
+          "meaning": "bởi vì, vì",
+          "hsk": 2
+        },
+        {
+          "hanzi": "所以",
+          "pinyin": "suǒ yǐ",
+          "meaning": "cho nên, vì vậy",
+          "hsk": 2
+        },
+        {
+          "hanzi": "生病",
+          "pinyin": "shēng bìng",
+          "meaning": "bị bệnh, ốm",
+          "hsk": 2
+        },
+        {
+          "hanzi": "休息",
+          "pinyin": "xiū xi",
+          "meaning": "nghỉ ngơi",
+          "hsk": 2
+        },
+        {
+          "hanzi": "药",
+          "pinyin": "yào",
+          "meaning": "thuốc",
+          "hsk": 2
+        }
+      ],
+      "grammar": {
+        "pattern": "因为……所以……",
+        "note": "因为 nêu nguyên nhân, 所以 nêu kết quả. Có thể chỉ dùng một vế liên từ khi quan hệ đã rõ; hãy kiểm tra thứ tự nguyên nhân–kết quả.",
+        "example": {
+          "hanzi": "因为我生病了，所以今天休息。",
+          "pinyin": "Yīnwèi wǒ shēngbìng le, suǒyǐ jīntiān xiūxi.",
+          "meaning": "Vì tôi bị ốm nên hôm nay nghỉ ngơi."
+        }
+      },
+      "reading": {
+        "hanzi": "今天小李没有去上班。因为他生病了，所以在家休息。医生说要多喝水，按时吃药。",
+        "meaning": "Hôm nay Tiểu Lý không đi làm. Vì bị ốm nên anh ấy nghỉ ở nhà. Bác sĩ dặn uống nhiều nước và uống thuốc đúng giờ."
+      },
+      "task": "Giải thích lý do cho một thay đổi trong kế hoạch của bạn.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "因为下雨了，___我没出去。",
+          "options": [
+            "所以",
+            "虽然",
+            "比"
+          ],
+          "answer": 0,
+          "explanation": "因为 nêu nguyên nhân, 所以 nêu kết quả. Có thể chỉ dùng một vế liên từ khi quan hệ đã rõ; hãy kiểm tra thứ tự nguyên nhân–kết quả. Ví dụ: 因为我生病了，所以今天休息。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "小李为什么没去上班？",
+          "options": [
+            "去旅游了",
+            "买衣服了",
+            "生病了"
+          ],
+          "answer": 2,
+          "explanation": "Đối chiếu đoạn đọc: Hôm nay Tiểu Lý không đi làm. Vì bị ốm nên anh ấy nghỉ ở nhà. Bác sĩ dặn uống nhiều nước và uống thuốc đúng giờ."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 因为 (yīn wèi) nghĩa là gì?",
+          "options": [
+            "bởi vì, vì",
+            "cho nên, vì vậy",
+            "bị bệnh, ốm"
+          ],
+          "answer": 0,
+          "explanation": "因为 · yīn wèi: bởi vì, vì."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 所以 (suǒ yǐ) nghĩa là gì?",
+          "options": [
+            "bởi vì, vì",
+            "bị bệnh, ốm",
+            "cho nên, vì vậy"
+          ],
+          "answer": 2,
+          "explanation": "所以 · suǒ yǐ: cho nên, vì vậy."
+        }
+      ]
+    },
+    {
+      "id": "hsk2-05",
+      "hsk": 2,
+      "order": 5,
+      "title": "Khả năng và xin phép",
+      "minutes": 12,
+      "review": false,
+      "objective": "Vận dụng 会 / 能 / 可以 + động từ trong chủ đề khả năng và xin phép.",
+      "vocabulary": [
+        {
+          "hanzi": "会",
+          "pinyin": "huì",
+          "meaning": "Biết (qua học tập), sẽ; họp, hội nghị",
+          "hsk": 1
+        },
+        {
+          "hanzi": "能",
+          "pinyin": "néng",
+          "meaning": "có thể, năng lực",
+          "hsk": 1
+        },
+        {
+          "hanzi": "可以",
+          "pinyin": "kě yǐ",
+          "meaning": "được, có thể",
+          "hsk": 2
+        },
+        {
+          "hanzi": "游泳",
+          "pinyin": "yóu yǒng",
+          "meaning": "bơi lội",
+          "hsk": 2
+        },
+        {
+          "hanzi": "帮助",
+          "pinyin": "bāng zhù",
+          "meaning": "Giúp đỡ, hỗ trợ",
+          "hsk": 2
+        }
+      ],
+      "grammar": {
+        "pattern": "会 / 能 / 可以 + động từ",
+        "note": "会 thường nói kỹ năng đã học; 能 nhấn mạnh khả năng hoặc điều kiện; 可以 thường xin phép hoặc nói điều được phép. Nghĩa có thể giao nhau tùy ngữ cảnh.",
+        "example": {
+          "hanzi": "我会游泳，今天可以去吗？",
+          "pinyin": "Wǒ huì yóuyǒng, jīntiān kěyǐ qù ma?",
+          "meaning": "Tôi biết bơi, hôm nay đi được không?"
+        }
+      },
+      "reading": {
+        "hanzi": "小张会游泳，也会打篮球。但是今天他生病了，不能去游泳。他想明天再去。",
+        "meaning": "Tiểu Trương biết bơi, cũng biết chơi bóng rổ. Nhưng hôm nay bị ốm nên không thể đi bơi. Anh ấy muốn ngày mai đi."
+      },
+      "task": "Viết một kỹ năng bạn có và một câu xin phép.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "我学过游泳，所以我___游泳。",
+          "options": [
+            "是",
+            "的",
+            "会"
+          ],
+          "answer": 2,
+          "explanation": "会 thường nói kỹ năng đã học; 能 nhấn mạnh khả năng hoặc điều kiện; 可以 thường xin phép hoặc nói điều được phép. Nghĩa có thể giao nhau tùy ngữ cảnh. Ví dụ: 我会游泳，今天可以去吗？"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "小张今天为什么不能游泳？",
+          "options": [
+            "没有朋友",
+            "生病了",
+            "不会游泳"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Tiểu Trương biết bơi, cũng biết chơi bóng rổ. Nhưng hôm nay bị ốm nên không thể đi bơi. Anh ấy muốn ngày mai đi."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 会 (huì) nghĩa là gì?",
+          "options": [
+            "có thể, năng lực",
+            "được, có thể",
+            "Biết (qua học tập), sẽ; họp, hội nghị"
+          ],
+          "answer": 2,
+          "explanation": "会 · huì: Biết (qua học tập), sẽ; họp, hội nghị."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 能 (néng) nghĩa là gì?",
+          "options": [
+            "được, có thể",
+            "có thể, năng lực",
+            "Biết (qua học tập), sẽ; họp, hội nghị"
+          ],
+          "answer": 1,
+          "explanation": "能 · néng: có thể, năng lực."
+        }
+      ]
+    },
+    {
+      "id": "hsk2-06",
+      "hsk": 2,
+      "order": 6,
+      "title": "Dự định cuối tuần",
+      "minutes": 12,
+      "review": false,
+      "objective": "Vận dụng 想 / 要 + động từ trong chủ đề dự định cuối tuần.",
+      "vocabulary": [
+        {
+          "hanzi": "想",
+          "pinyin": "xiǎng",
+          "meaning": "nghĩ, muốn, nhớ",
+          "hsk": 1
+        },
+        {
+          "hanzi": "要",
+          "pinyin": "yào",
+          "meaning": "muốn, cần, sẽ",
+          "hsk": 2
+        },
+        {
+          "hanzi": "旅游",
+          "pinyin": "lǚ yóu",
+          "meaning": "du lịch",
+          "hsk": 2
+        },
+        {
+          "hanzi": "准备",
+          "pinyin": "zhǔn bèi",
+          "meaning": "chuẩn bị, định",
+          "hsk": 2
+        },
+        {
+          "hanzi": "一起",
+          "pinyin": "yī qǐ",
+          "meaning": "cùng nhau, cùng",
+          "hsk": 2
+        }
+      ],
+      "grammar": {
+        "pattern": "想 / 要 + động từ",
+        "note": "想 thể hiện mong muốn; 要 thường thể hiện ý định rõ hơn hoặc sự cần thiết. Dùng 想 để đề xuất nhẹ nhàng; ngữ cảnh quyết định sắc thái.",
+        "example": {
+          "hanzi": "我们想一起去旅游。",
+          "pinyin": "Wǒmen xiǎng yìqǐ qù lǚyóu.",
+          "meaning": "Chúng tôi muốn cùng đi du lịch."
+        }
+      },
+      "reading": {
+        "hanzi": "这个星期六，我想和朋友一起去北京。我们准备坐火车去，星期天晚上回来。如果下雨，就不去公园。",
+        "meaning": "Thứ Bảy này tôi muốn cùng bạn đi Bắc Kinh. Chúng tôi định đi tàu hỏa và về tối Chủ nhật. Nếu trời mưa thì không đi công viên."
+      },
+      "task": "Lập kế hoạch cuối tuần: đi đâu, với ai, bằng phương tiện gì.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "我们___一起去旅游。",
+          "options": [
+            "过",
+            "想",
+            "的"
+          ],
+          "answer": 1,
+          "explanation": "想 thể hiện mong muốn; 要 thường thể hiện ý định rõ hơn hoặc sự cần thiết. Dùng 想 để đề xuất nhẹ nhàng; ngữ cảnh quyết định sắc thái. Ví dụ: 我们想一起去旅游。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "他们准备怎么去北京？",
+          "options": [
+            "坐火车",
+            "坐飞机",
+            "走路"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Thứ Bảy này tôi muốn cùng bạn đi Bắc Kinh. Chúng tôi định đi tàu hỏa và về tối Chủ nhật. Nếu trời mưa thì không đi công viên."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 想 (xiǎng) nghĩa là gì?",
+          "options": [
+            "du lịch",
+            "nghĩ, muốn, nhớ",
+            "muốn, cần, sẽ"
+          ],
+          "answer": 1,
+          "explanation": "想 · xiǎng: nghĩ, muốn, nhớ."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 要 (yào) nghĩa là gì?",
+          "options": [
+            "muốn, cần, sẽ",
+            "nghĩ, muốn, nhớ",
+            "du lịch"
+          ],
+          "answer": 0,
+          "explanation": "要 · yào: muốn, cần, sẽ."
+        }
+      ]
+    },
+    {
+      "id": "hsk2-07",
+      "hsk": 2,
+      "order": 7,
+      "title": "Nhận xét cách thực hiện",
+      "minutes": 12,
+      "review": false,
+      "objective": "Vận dụng Động từ + 得 + nhận xét trong chủ đề nhận xét cách thực hiện.",
+      "vocabulary": [
+        {
+          "hanzi": "得",
+          "pinyin": "de",
+          "meaning": "Trợ từ kết cấu đứng sau động từ hoặc tính từ để nối với phần bổ ngữ",
+          "hsk": 2
+        },
+        {
+          "hanzi": "快",
+          "pinyin": "kuài",
+          "meaning": "nhanh, mau",
+          "hsk": 2
+        },
+        {
+          "hanzi": "慢",
+          "pinyin": "màn",
+          "meaning": "chậm",
+          "hsk": 2
+        },
+        {
+          "hanzi": "跑步",
+          "pinyin": "pǎo bù",
+          "meaning": "chạy bộ",
+          "hsk": 2
+        },
+        {
+          "hanzi": "唱歌",
+          "pinyin": "chàng gē",
+          "meaning": "Hát, ca hát",
+          "hsk": 2
+        }
+      ],
+      "grammar": {
+        "pattern": "Động từ + 得 + nhận xét",
+        "note": "得 sau động từ nối với phần nhận xét: 跑得快. Với tân ngữ, có thể nhắc lại động từ: 他唱歌唱得很好. Phân biệt 得 với 的 chỉ sở hữu.",
+        "example": {
+          "hanzi": "她唱歌唱得很好。",
+          "pinyin": "Tā chàng gē chàng de hěn hǎo.",
+          "meaning": "Cô ấy hát rất hay."
+        }
+      },
+      "reading": {
+        "hanzi": "小王每天早上跑步。他跑得很快。小李喜欢唱歌，她唱得很好，但是跑得不快。",
+        "meaning": "Tiểu Vương chạy bộ mỗi sáng. Anh ấy chạy rất nhanh. Tiểu Lý thích hát, cô ấy hát hay nhưng chạy không nhanh."
+      },
+      "task": "Nhận xét cách bạn hoặc bạn bè làm hai hoạt động.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "他跑___很快。",
+          "options": [
+            "得",
+            "的",
+            "地方"
+          ],
+          "answer": 0,
+          "explanation": "得 sau động từ nối với phần nhận xét: 跑得快. Với tân ngữ, có thể nhắc lại động từ: 他唱歌唱得很好. Phân biệt 得 với 的 chỉ sở hữu. Ví dụ: 她唱歌唱得很好。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "谁唱得好？",
+          "options": [
+            "小王",
+            "老师",
+            "小李"
+          ],
+          "answer": 2,
+          "explanation": "Đối chiếu đoạn đọc: Tiểu Vương chạy bộ mỗi sáng. Anh ấy chạy rất nhanh. Tiểu Lý thích hát, cô ấy hát hay nhưng chạy không nhanh."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 得 (de) nghĩa là gì?",
+          "options": [
+            "Trợ từ kết cấu đứng sau động từ hoặc tính từ để nối với phần bổ ngữ",
+            "nhanh, mau",
+            "chậm"
+          ],
+          "answer": 0,
+          "explanation": "得 · de: Trợ từ kết cấu đứng sau động từ hoặc tính từ để nối với phần bổ ngữ."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 快 (kuài) nghĩa là gì?",
+          "options": [
+            "Trợ từ kết cấu đứng sau động từ hoặc tính từ để nối với phần bổ ngữ",
+            "chậm",
+            "nhanh, mau"
+          ],
+          "answer": 2,
+          "explanation": "快 · kuài: nhanh, mau."
+        }
+      ]
+    },
+    {
+      "id": "hsk2-08",
+      "hsk": 2,
+      "order": 8,
+      "title": "Ôn tập: Một chuyến đi",
+      "minutes": 14,
+      "review": true,
+      "objective": "Vận dụng 从 + nơi xuất phát + 到 + điểm đến trong chủ đề ôn tập: một chuyến đi.",
+      "vocabulary": [
+        {
+          "hanzi": "火车",
+          "pinyin": "huǒchē",
+          "meaning": "tàu hỏa",
+          "hsk": null
+        },
+        {
+          "hanzi": "机场",
+          "pinyin": "jī chǎng",
+          "meaning": "Sân bay",
+          "hsk": 2
+        },
+        {
+          "hanzi": "到",
+          "pinyin": "dào",
+          "meaning": "Đến, tới",
+          "hsk": 2
+        },
+        {
+          "hanzi": "从",
+          "pinyin": "cóng",
+          "meaning": "Từ, từ đâu (chỉ điểm xuất phát)",
+          "hsk": 2
+        },
+        {
+          "hanzi": "离",
+          "pinyin": "lí",
+          "meaning": "cách, rời khỏi",
+          "hsk": 2
+        }
+      ],
+      "grammar": {
+        "pattern": "从 + nơi xuất phát + 到 + điểm đến",
+        "note": "从 chỉ điểm bắt đầu, 到 chỉ điểm đến. 离 dùng nói khoảng cách giữa hai nơi; không dùng thay cho động từ di chuyển.",
+        "example": {
+          "hanzi": "从我家到车站要十分钟。",
+          "pinyin": "Cóng wǒ jiā dào chēzhàn yào shí fēnzhōng.",
+          "meaning": "Từ nhà tôi đến ga cần mười phút."
+        }
+      },
+      "reading": {
+        "hanzi": "昨天我从家坐车到火车站。因为车站离家不远，所以十分钟就到了。我坐九点的火车去北京。",
+        "meaning": "Hôm qua tôi đi xe từ nhà đến ga tàu. Vì ga không xa nhà nên chỉ mười phút đã đến. Tôi đi chuyến tàu chín giờ đến Bắc Kinh."
+      },
+      "task": "Kể chuyến đi bằng 5–6 câu, có thời gian, phương tiện và một lý do.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "___我家到车站要十分钟。",
+          "options": [
+            "比",
+            "的",
+            "从"
+          ],
+          "answer": 2,
+          "explanation": "从 chỉ điểm bắt đầu, 到 chỉ điểm đến. 离 dùng nói khoảng cách giữa hai nơi; không dùng thay cho động từ di chuyển. Ví dụ: 从我家到车站要十分钟。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "到火车站用了多长时间？",
+          "options": [
+            "一小时",
+            "十分钟",
+            "九分钟"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Hôm qua tôi đi xe từ nhà đến ga tàu. Vì ga không xa nhà nên chỉ mười phút đã đến. Tôi đi chuyến tàu chín giờ đến Bắc Kinh."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 火车 (huǒchē) nghĩa là gì?",
+          "options": [
+            "Sân bay",
+            "Đến, tới",
+            "tàu hỏa"
+          ],
+          "answer": 2,
+          "explanation": "火车 · huǒchē: tàu hỏa."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 机场 (jī chǎng) nghĩa là gì?",
+          "options": [
+            "Đến, tới",
+            "Sân bay",
+            "tàu hỏa"
+          ],
+          "answer": 1,
+          "explanation": "机场 · jī chǎng: Sân bay."
+        }
+      ]
+    },
+    {
+      "id": "hsk3-01",
+      "hsk": 3,
+      "order": 1,
+      "title": "Kinh nghiệm và trải nghiệm",
+      "minutes": 14,
+      "review": false,
+      "objective": "Vận dụng Động từ + 过 trong chủ đề kinh nghiệm và trải nghiệm.",
+      "vocabulary": [
+        {
+          "hanzi": "以前",
+          "pinyin": "yǐ qián",
+          "meaning": "trước đây, trước khi",
+          "hsk": 3
+        },
+        {
+          "hanzi": "旅游",
+          "pinyin": "lǚ yóu",
+          "meaning": "du lịch",
+          "hsk": 2
+        },
+        {
+          "hanzi": "过",
+          "pinyin": "guò",
+          "meaning": "qua, trải qua, vượt qua, quá mức",
+          "hsk": 4
+        },
+        {
+          "hanzi": "地方",
+          "pinyin": "dì fang",
+          "meaning": "nơi chốn, địa điểm",
+          "hsk": 3
+        },
+        {
+          "hanzi": "城市",
+          "pinyin": "chéng shì",
+          "meaning": "thành phố, đô thị",
+          "hsk": 3
+        }
+      ],
+      "grammar": {
+        "pattern": "Động từ + 过",
+        "note": "过 nhấn mạnh đã từng có trải nghiệm, không tập trung thời điểm hoàn thành. Phủ định dùng 没 + động từ + 过; thường đi với 以前.",
+        "example": {
+          "hanzi": "我以前去过这个城市。",
+          "pinyin": "Wǒ yǐqián qù guo zhège chéngshì.",
+          "meaning": "Trước đây tôi từng đến thành phố này."
+        }
+      },
+      "reading": {
+        "hanzi": "我以前去过北京两次，但是没去过上海。朋友说上海有很多有意思的地方。今年暑假，我们打算一起去看看。",
+        "meaning": "Trước đây tôi đến Bắc Kinh hai lần nhưng chưa đến Thượng Hải. Bạn nói Thượng Hải có nhiều nơi thú vị. Hè năm nay chúng tôi định cùng đi xem."
+      },
+      "task": "Viết ba trải nghiệm đã có hoặc chưa có và một dự định.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "我以前去___北京。",
+          "options": [
+            "的",
+            "比",
+            "过"
+          ],
+          "answer": 2,
+          "explanation": "过 nhấn mạnh đã từng có trải nghiệm, không tập trung thời điểm hoàn thành. Phủ định dùng 没 + động từ + 过; thường đi với 以前. Ví dụ: 我以前去过这个城市。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "作者没去过哪里？",
+          "options": [
+            "两个城市都去过",
+            "上海",
+            "北京"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Trước đây tôi đến Bắc Kinh hai lần nhưng chưa đến Thượng Hải. Bạn nói Thượng Hải có nhiều nơi thú vị. Hè năm nay chúng tôi định cùng đi xem."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 以前 (yǐ qián) nghĩa là gì?",
+          "options": [
+            "du lịch",
+            "qua, trải qua, vượt qua, quá mức",
+            "trước đây, trước khi"
+          ],
+          "answer": 2,
+          "explanation": "以前 · yǐ qián: trước đây, trước khi."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 旅游 (lǚ yóu) nghĩa là gì?",
+          "options": [
+            "qua, trải qua, vượt qua, quá mức",
+            "du lịch",
+            "trước đây, trước khi"
+          ],
+          "answer": 1,
+          "explanation": "旅游 · lǚ yóu: du lịch."
+        }
+      ]
+    },
+    {
+      "id": "hsk3-02",
+      "hsk": 3,
+      "order": 2,
+      "title": "Sắp xếp đồ vật với 把",
+      "minutes": 14,
+      "review": false,
+      "objective": "Vận dụng Chủ ngữ + 把 + vật xác định + động từ + kết quả / vị trí trong chủ đề sắp xếp đồ vật với 把.",
+      "vocabulary": [
+        {
+          "hanzi": "把",
+          "pinyin": "bǎ",
+          "meaning": "giới từ đặt trước tân ngữ chỉ đối tượng bị tác động trong câu chữ bả",
+          "hsk": 3
+        },
+        {
+          "hanzi": "放",
+          "pinyin": "fàng",
+          "meaning": "đặt, để, thả",
+          "hsk": 3
+        },
+        {
+          "hanzi": "房间",
+          "pinyin": "fáng jiān",
+          "meaning": "Phòng, căn phòng",
+          "hsk": 2
+        },
+        {
+          "hanzi": "干净",
+          "pinyin": "gān jìng",
+          "meaning": "sạch sẽ",
+          "hsk": 3
+        },
+        {
+          "hanzi": "桌子",
+          "pinyin": "zhuō zi",
+          "meaning": "cái bàn",
+          "hsk": 1
+        }
+      ],
+      "grammar": {
+        "pattern": "Chủ ngữ + 把 + vật xác định + động từ + kết quả / vị trí",
+        "note": "把 nhấn mạnh xử lý một đối tượng đã biết. Vị ngữ thường cần phần kết quả hoặc vị trí; không chỉ đặt một động từ đơn lẻ sau 把.",
+        "example": {
+          "hanzi": "请把书放在桌子上。",
+          "pinyin": "Qǐng bǎ shū fàng zài zhuōzi shang.",
+          "meaning": "Hãy đặt sách lên bàn."
+        }
+      },
+      "reading": {
+        "hanzi": "周末，小林打扫房间。他把书放在桌子上，把衣服放进柜子里。房间干净了，他才开始做作业。",
+        "meaning": "Cuối tuần, Tiểu Lâm dọn phòng. Anh đặt sách lên bàn, cho quần áo vào tủ. Phòng sạch rồi anh mới bắt đầu làm bài tập."
+      },
+      "task": "Dùng 把 viết hai lời nhờ sắp xếp đồ đạc.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "请___书放在桌子上。",
+          "options": [
+            "从",
+            "把",
+            "比"
+          ],
+          "answer": 1,
+          "explanation": "把 nhấn mạnh xử lý một đối tượng đã biết. Vị ngữ thường cần phần kết quả hoặc vị trí; không chỉ đặt một động từ đơn lẻ sau 把. Ví dụ: 请把书放在桌子上。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "小林把书放在哪里？",
+          "options": [
+            "桌子上",
+            "柜子里",
+            "地上"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Cuối tuần, Tiểu Lâm dọn phòng. Anh đặt sách lên bàn, cho quần áo vào tủ. Phòng sạch rồi anh mới bắt đầu làm bài tập."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 把 (bǎ) nghĩa là gì?",
+          "options": [
+            "Phòng, căn phòng",
+            "giới từ đặt trước tân ngữ chỉ đối tượng bị tác động trong câu chữ bả",
+            "đặt, để, thả"
+          ],
+          "answer": 1,
+          "explanation": "把 · bǎ: giới từ đặt trước tân ngữ chỉ đối tượng bị tác động trong câu chữ bả."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 放 (fàng) nghĩa là gì?",
+          "options": [
+            "đặt, để, thả",
+            "giới từ đặt trước tân ngữ chỉ đối tượng bị tác động trong câu chữ bả",
+            "Phòng, căn phòng"
+          ],
+          "answer": 0,
+          "explanation": "放 · fàng: đặt, để, thả."
+        }
+      ]
+    },
+    {
+      "id": "hsk3-03",
+      "hsk": 3,
+      "order": 3,
+      "title": "Kết quả và sự cố với 被",
+      "minutes": 14,
+      "review": false,
+      "objective": "Vận dụng Đối tượng chịu tác động + 被 + tác nhân + hành động trong chủ đề kết quả và sự cố với 被.",
+      "vocabulary": [
+        {
+          "hanzi": "被",
+          "pinyin": "bèi",
+          "meaning": "dùng trong câu bị động để chỉ người hoặc vật chịu tác động",
+          "hsk": 3
+        },
+        {
+          "hanzi": "自行车",
+          "pinyin": "zì xíng chē",
+          "meaning": "xe đạp",
+          "hsk": 2
+        },
+        {
+          "hanzi": "发现",
+          "pinyin": "fā xiàn",
+          "meaning": "phát hiện, tìm ra",
+          "hsk": 3
+        },
+        {
+          "hanzi": "解决",
+          "pinyin": "jiě jué",
+          "meaning": "giải quyết",
+          "hsk": 3
+        },
+        {
+          "hanzi": "问题",
+          "pinyin": "wèn tí",
+          "meaning": "câu hỏi, vấn đề",
+          "hsk": 2
+        }
+      ],
+      "grammar": {
+        "pattern": "Đối tượng chịu tác động + 被 + tác nhân + hành động",
+        "note": "被 chuyển trọng tâm sang đối tượng chịu tác động. Tác nhân có thể lược khi không biết hoặc không cần nêu. Không phải câu 被 nào cũng nói điều xấu.",
+        "example": {
+          "hanzi": "我的自行车被弟弟骑走了。",
+          "pinyin": "Wǒ de zìxíngchē bèi dìdi qí zǒu le.",
+          "meaning": "Xe đạp của tôi bị em trai đi mất rồi."
+        }
+      },
+      "reading": {
+        "hanzi": "早上，我发现自行车不见了。后来才知道，自行车被弟弟骑走了。他下午就会把车送回来，所以我先坐公共汽车上班。",
+        "meaning": "Sáng nay tôi thấy xe đạp biến mất. Sau đó mới biết em trai đã đi xe mất. Chiều em sẽ mang về nên tôi đi xe buýt đến chỗ làm trước."
+      },
+      "task": "Kể một sự việc từ góc nhìn của vật hoặc người chịu tác động.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "自行车___弟弟骑走了。",
+          "options": [
+            "被",
+            "比",
+            "从"
+          ],
+          "answer": 0,
+          "explanation": "被 chuyển trọng tâm sang đối tượng chịu tác động. Tác nhân có thể lược khi không biết hoặc không cần nêu. Không phải câu 被 nào cũng nói điều xấu. Ví dụ: 我的自行车被弟弟骑走了。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "谁骑走了自行车？",
+          "options": [
+            "同事",
+            "司机",
+            "弟弟"
+          ],
+          "answer": 2,
+          "explanation": "Đối chiếu đoạn đọc: Sáng nay tôi thấy xe đạp biến mất. Sau đó mới biết em trai đã đi xe mất. Chiều em sẽ mang về nên tôi đi xe buýt đến chỗ làm trước."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 被 (bèi) nghĩa là gì?",
+          "options": [
+            "dùng trong câu bị động để chỉ người hoặc vật chịu tác động",
+            "xe đạp",
+            "phát hiện, tìm ra"
+          ],
+          "answer": 0,
+          "explanation": "被 · bèi: dùng trong câu bị động để chỉ người hoặc vật chịu tác động."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 自行车 (zì xíng chē) nghĩa là gì?",
+          "options": [
+            "dùng trong câu bị động để chỉ người hoặc vật chịu tác động",
+            "phát hiện, tìm ra",
+            "xe đạp"
+          ],
+          "answer": 2,
+          "explanation": "自行车 · zì xíng chē: xe đạp."
+        }
+      ]
+    },
+    {
+      "id": "hsk3-04",
+      "hsk": 3,
+      "order": 4,
+      "title": "Điều kiện và kế hoạch dự phòng",
+      "minutes": 14,
+      "review": false,
+      "objective": "Vận dụng 如果……就…… trong chủ đề điều kiện và kế hoạch dự phòng.",
+      "vocabulary": [
+        {
+          "hanzi": "如果",
+          "pinyin": "rú guǒ",
+          "meaning": "nếu, giả sử",
+          "hsk": 3
+        },
+        {
+          "hanzi": "就",
+          "pinyin": "jiù",
+          "meaning": "thì, liền, ngay",
+          "hsk": 2
+        },
+        {
+          "hanzi": "天气",
+          "pinyin": "tiān qì",
+          "meaning": "thời tiết",
+          "hsk": 1
+        },
+        {
+          "hanzi": "决定",
+          "pinyin": "jué dìng",
+          "meaning": "quyết định",
+          "hsk": 3
+        },
+        {
+          "hanzi": "运动",
+          "pinyin": "yùn dòng",
+          "meaning": "vận động, thể thao",
+          "hsk": 2
+        }
+      ],
+      "grammar": {
+        "pattern": "如果……就……",
+        "note": "如果 nêu điều kiện giả định; 就 thường đứng sau chủ ngữ của vế kết quả. Phân biệt giả định với 因为 nêu nguyên nhân đã biết.",
+        "example": {
+          "hanzi": "如果明天下雨，我们就在家学习。",
+          "pinyin": "Rúguǒ míngtiān xià yǔ, wǒmen jiù zài jiā xuéxí.",
+          "meaning": "Nếu mai mưa thì chúng tôi học ở nhà."
+        }
+      },
+      "reading": {
+        "hanzi": "我们决定星期天去爬山。如果天气好，就早上八点出发；如果下雨，就去图书馆。大家都觉得这个计划不错。",
+        "meaning": "Chúng tôi quyết định Chủ nhật đi leo núi. Nếu trời đẹp thì xuất phát lúc tám giờ sáng; nếu mưa thì đi thư viện. Mọi người đều thấy kế hoạch này tốt."
+      },
+      "task": "Đưa ra kế hoạch A và kế hoạch B theo một điều kiện.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "___明天下雨，我们就不爬山。",
+          "options": [
+            "已经",
+            "一边",
+            "如果"
+          ],
+          "answer": 2,
+          "explanation": "如果 nêu điều kiện giả định; 就 thường đứng sau chủ ngữ của vế kết quả. Phân biệt giả định với 因为 nêu nguyên nhân đã biết. Ví dụ: 如果明天下雨，我们就在家学习。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "如果下雨，他们去哪里？",
+          "options": [
+            "机场",
+            "图书馆",
+            "山上"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Chúng tôi quyết định Chủ nhật đi leo núi. Nếu trời đẹp thì xuất phát lúc tám giờ sáng; nếu mưa thì đi thư viện. Mọi người đều thấy kế hoạch này tốt."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 如果 (rú guǒ) nghĩa là gì?",
+          "options": [
+            "thì, liền, ngay",
+            "thời tiết",
+            "nếu, giả sử"
+          ],
+          "answer": 2,
+          "explanation": "如果 · rú guǒ: nếu, giả sử."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 就 (jiù) nghĩa là gì?",
+          "options": [
+            "thời tiết",
+            "thì, liền, ngay",
+            "nếu, giả sử"
+          ],
+          "answer": 1,
+          "explanation": "就 · jiù: thì, liền, ngay."
+        }
+      ]
+    },
+    {
+      "id": "hsk3-05",
+      "hsk": 3,
+      "order": 5,
+      "title": "Tương phản và nhượng bộ",
+      "minutes": 14,
+      "review": false,
+      "objective": "Vận dụng 虽然……但是…… trong chủ đề tương phản và nhượng bộ.",
+      "vocabulary": [
+        {
+          "hanzi": "虽然",
+          "pinyin": "suī rán",
+          "meaning": "mặc dù, dẫu cho",
+          "hsk": 3
+        },
+        {
+          "hanzi": "但是",
+          "pinyin": "dàn shì",
+          "meaning": "Nhưng, nhưng mà",
+          "hsk": 2
+        },
+        {
+          "hanzi": "容易",
+          "pinyin": "róng yì",
+          "meaning": "dễ dàng, dễ",
+          "hsk": 3
+        },
+        {
+          "hanzi": "难",
+          "pinyin": "nán",
+          "meaning": "khó khăn, khó",
+          "hsk": 3
+        },
+        {
+          "hanzi": "努力",
+          "pinyin": "nǔ lì",
+          "meaning": "nỗ lực, cố gắng",
+          "hsk": 3
+        }
+      ],
+      "grammar": {
+        "pattern": "虽然……但是……",
+        "note": "虽然 thừa nhận một thực tế; 但是 đưa ý trái với dự đoán thông thường. Hai vế phải có quan hệ tương phản hợp lý.",
+        "example": {
+          "hanzi": "虽然汉字很难，但是我想继续学。",
+          "pinyin": "Suīrán Hànzì hěn nán, dànshì wǒ xiǎng jìxù xué.",
+          "meaning": "Tuy chữ Hán khó nhưng tôi muốn học tiếp."
+        }
+      },
+      "reading": {
+        "hanzi": "小安觉得写汉字不容易。虽然每天只有二十分钟，但是他一直坚持练习。三个月后，他已经能写很多常用字了。",
+        "meaning": "Tiểu An thấy viết chữ Hán không dễ. Dù mỗi ngày chỉ có hai mươi phút, bạn ấy vẫn kiên trì luyện tập. Ba tháng sau, bạn đã viết được nhiều chữ thông dụng."
+      },
+      "task": "Viết hai câu nhượng bộ về việc học hoặc công việc.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "___很难，但是我会努力。",
+          "options": [
+            "为了",
+            "虽然",
+            "所以"
+          ],
+          "answer": 1,
+          "explanation": "虽然 thừa nhận một thực tế; 但是 đưa ý trái với dự đoán thông thường. Hai vế phải có quan hệ tương phản hợp lý. Ví dụ: 虽然汉字很难，但是我想继续学。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "小安怎样提高写字能力？",
+          "options": [
+            "每天坚持练习",
+            "完全不练习",
+            "只买书不学习"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Tiểu An thấy viết chữ Hán không dễ. Dù mỗi ngày chỉ có hai mươi phút, bạn ấy vẫn kiên trì luyện tập. Ba tháng sau, bạn đã viết được nhiều chữ thông dụng."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 虽然 (suī rán) nghĩa là gì?",
+          "options": [
+            "dễ dàng, dễ",
+            "mặc dù, dẫu cho",
+            "Nhưng, nhưng mà"
+          ],
+          "answer": 1,
+          "explanation": "虽然 · suī rán: mặc dù, dẫu cho."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 但是 (dàn shì) nghĩa là gì?",
+          "options": [
+            "Nhưng, nhưng mà",
+            "mặc dù, dẫu cho",
+            "dễ dàng, dễ"
+          ],
+          "answer": 0,
+          "explanation": "但是 · dàn shì: Nhưng, nhưng mà."
+        }
+      ]
+    },
+    {
+      "id": "hsk3-06",
+      "hsk": 3,
+      "order": 6,
+      "title": "Thay đổi theo thời gian",
+      "minutes": 14,
+      "review": false,
+      "objective": "Vận dụng 越来越 + tính từ / động từ tâm lý trong chủ đề thay đổi theo thời gian.",
+      "vocabulary": [
+        {
+          "hanzi": "越来越",
+          "pinyin": "yuèláiyuè",
+          "meaning": "ngày càng",
+          "hsk": null
+        },
+        {
+          "hanzi": "健康",
+          "pinyin": "jiàn kāng",
+          "meaning": "sức khỏe, khỏe mạnh",
+          "hsk": 3
+        },
+        {
+          "hanzi": "习惯",
+          "pinyin": "xí guàn",
+          "meaning": "thói quen, quen với",
+          "hsk": 3
+        },
+        {
+          "hanzi": "锻炼",
+          "pinyin": "duàn liàn",
+          "meaning": "rèn luyện",
+          "hsk": 3
+        },
+        {
+          "hanzi": "身体",
+          "pinyin": "shēn tǐ",
+          "meaning": "cơ thể, sức khỏe",
+          "hsk": 2
+        }
+      ],
+      "grammar": {
+        "pattern": "越来越 + tính từ / động từ tâm lý",
+        "note": "越来越 diễn tả mức độ tăng dần theo thời gian. Không thêm 很 ngay sau 越来越. So với 比, mẫu này nhấn mạnh xu hướng chứ không so hai đối tượng.",
+        "example": {
+          "hanzi": "我的身体越来越好了。",
+          "pinyin": "Wǒ de shēntǐ yuèláiyuè hǎo le.",
+          "meaning": "Sức khỏe của tôi ngày càng tốt."
+        }
+      },
+      "reading": {
+        "hanzi": "以前我很少运动，总觉得累。现在我每天走路半小时，也早一点儿睡觉。坚持两个月以后，身体越来越好了。",
+        "meaning": "Trước đây tôi ít vận động, luôn thấy mệt. Nay tôi đi bộ nửa giờ mỗi ngày và ngủ sớm hơn. Sau hai tháng kiên trì, sức khỏe ngày càng tốt."
+      },
+      "task": "Mô tả hai điều đang thay đổi trong cuộc sống.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "天气___热了。",
+          "options": [
+            "越来越",
+            "一边",
+            "把"
+          ],
+          "answer": 0,
+          "explanation": "越来越 diễn tả mức độ tăng dần theo thời gian. Không thêm 很 ngay sau 越来越. So với 比, mẫu này nhấn mạnh xu hướng chứ không so hai đối tượng. Ví dụ: 我的身体越来越好了。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "作者现在每天做什么？",
+          "options": [
+            "睡到中午",
+            "完全不运动",
+            "走路半小时"
+          ],
+          "answer": 2,
+          "explanation": "Đối chiếu đoạn đọc: Trước đây tôi ít vận động, luôn thấy mệt. Nay tôi đi bộ nửa giờ mỗi ngày và ngủ sớm hơn. Sau hai tháng kiên trì, sức khỏe ngày càng tốt."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 越来越 (yuèláiyuè) nghĩa là gì?",
+          "options": [
+            "ngày càng",
+            "sức khỏe, khỏe mạnh",
+            "thói quen, quen với"
+          ],
+          "answer": 0,
+          "explanation": "越来越 · yuèláiyuè: ngày càng."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 健康 (jiàn kāng) nghĩa là gì?",
+          "options": [
+            "ngày càng",
+            "thói quen, quen với",
+            "sức khỏe, khỏe mạnh"
+          ],
+          "answer": 2,
+          "explanation": "健康 · jiàn kāng: sức khỏe, khỏe mạnh."
+        }
+      ]
+    },
+    {
+      "id": "hsk3-07",
+      "hsk": 3,
+      "order": 7,
+      "title": "Hai hoạt động song song",
+      "minutes": 14,
+      "review": false,
+      "objective": "Vận dụng 一边……一边…… trong chủ đề hai hoạt động song song.",
+      "vocabulary": [
+        {
+          "hanzi": "一边",
+          "pinyin": "yī biān",
+          "meaning": "vừa... vừa...",
+          "hsk": 3
+        },
+        {
+          "hanzi": "音乐",
+          "pinyin": "yīn yuè",
+          "meaning": "âm nhạc",
+          "hsk": 3
+        },
+        {
+          "hanzi": "做饭",
+          "pinyin": "zuò fàn",
+          "meaning": "nấu ăn",
+          "hsk": null
+        },
+        {
+          "hanzi": "练习",
+          "pinyin": "liàn xí",
+          "meaning": "luyện tập, bài tập",
+          "hsk": 3
+        },
+        {
+          "hanzi": "习惯",
+          "pinyin": "xí guàn",
+          "meaning": "thói quen, quen với",
+          "hsk": 3
+        }
+      ],
+      "grammar": {
+        "pattern": "一边……一边……",
+        "note": "Hai vế 一边 diễn tả hành động cùng xảy ra, thường cùng một chủ thể. Không dùng cho hai việc nối tiếp đã hoàn thành.",
+        "example": {
+          "hanzi": "她一边听音乐，一边做饭。",
+          "pinyin": "Tā yìbiān tīng yīnyuè, yìbiān zuò fàn.",
+          "meaning": "Cô ấy vừa nghe nhạc vừa nấu ăn."
+        }
+      },
+      "reading": {
+        "hanzi": "姐姐喜欢一边听音乐一边做饭。我做作业时却不听音乐，因为我容易分心。我们有不同的学习和生活习惯。",
+        "meaning": "Chị thích vừa nghe nhạc vừa nấu ăn. Còn tôi không nghe nhạc khi làm bài vì dễ mất tập trung. Chúng tôi có thói quen học và sinh hoạt khác nhau."
+      },
+      "task": "Mô tả một tình huống làm hai việc cùng lúc và nhận xét hiệu quả.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "她一边听音乐，___做饭。",
+          "options": [
+            "以前",
+            "已经",
+            "一边"
+          ],
+          "answer": 2,
+          "explanation": "Hai vế 一边 diễn tả hành động cùng xảy ra, thường cùng một chủ thể. Không dùng cho hai việc nối tiếp đã hoàn thành. Ví dụ: 她一边听音乐，一边做饭。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "作者做作业时为什么不听音乐？",
+          "options": [
+            "姐姐不喜欢音乐",
+            "容易分心",
+            "没有音乐"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Chị thích vừa nghe nhạc vừa nấu ăn. Còn tôi không nghe nhạc khi làm bài vì dễ mất tập trung. Chúng tôi có thói quen học và sinh hoạt khác nhau."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 一边 (yī biān) nghĩa là gì?",
+          "options": [
+            "âm nhạc",
+            "nấu ăn",
+            "vừa... vừa..."
+          ],
+          "answer": 2,
+          "explanation": "一边 · yī biān: vừa... vừa...."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 音乐 (yīn yuè) nghĩa là gì?",
+          "options": [
+            "nấu ăn",
+            "âm nhạc",
+            "vừa... vừa..."
+          ],
+          "answer": 1,
+          "explanation": "音乐 · yīn yuè: âm nhạc."
+        }
+      ]
+    },
+    {
+      "id": "hsk3-08",
+      "hsk": 3,
+      "order": 8,
+      "title": "Ôn tập: Học tập có kế hoạch",
+      "minutes": 16,
+      "review": true,
+      "objective": "Vận dụng 先……再……最后…… trong chủ đề ôn tập: học tập có kế hoạch.",
+      "vocabulary": [
+        {
+          "hanzi": "计划",
+          "pinyin": "jì huà",
+          "meaning": "kế hoạch, dự án, lên kế hoạch",
+          "hsk": 4
+        },
+        {
+          "hanzi": "复习",
+          "pinyin": "fù xí",
+          "meaning": "ôn tập",
+          "hsk": 3
+        },
+        {
+          "hanzi": "考试",
+          "pinyin": "kǎo shì",
+          "meaning": "thi cử, kỳ thi",
+          "hsk": 2
+        },
+        {
+          "hanzi": "提高",
+          "pinyin": "tí gāo",
+          "meaning": "nâng cao, cải thiện",
+          "hsk": 3
+        },
+        {
+          "hanzi": "完成",
+          "pinyin": "wán chéng",
+          "meaning": "hoàn thành, hoàn tất",
+          "hsk": 3
+        }
+      ],
+      "grammar": {
+        "pattern": "先……再……最后……",
+        "note": "先、再、最后 sắp xếp trình tự. Kết hợp điều kiện, lý do hoặc kết quả để viết một đoạn rõ ràng; tránh dùng 一边 cho các bước nối tiếp.",
+        "example": {
+          "hanzi": "我先复习生词，再做练习。",
+          "pinyin": "Wǒ xiān fùxí shēngcí, zài zuò liànxí.",
+          "meaning": "Tôi ôn từ mới trước rồi làm bài tập."
+        }
+      },
+      "reading": {
+        "hanzi": "下个月有考试。我计划每天先复习生词，再读课文，最后做练习。如果遇到不懂的问题，就问老师。我希望通过这个方法提高成绩。",
+        "meaning": "Tháng sau có kỳ thi. Tôi định mỗi ngày ôn từ mới trước, rồi đọc bài, cuối cùng làm bài tập. Nếu gặp vấn đề chưa hiểu thì hỏi giáo viên. Tôi mong cách này giúp cải thiện điểm số."
+      },
+      "task": "Viết kế hoạch học một tuần với trình tự và cách xử lý khó khăn.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "我先复习，___做练习。",
+          "options": [
+            "被",
+            "再",
+            "比"
+          ],
+          "answer": 1,
+          "explanation": "先、再、最后 sắp xếp trình tự. Kết hợp điều kiện, lý do hoặc kết quả để viết một đoạn rõ ràng; tránh dùng 一边 cho các bước nối tiếp. Ví dụ: 我先复习生词，再做练习。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "计划中的第一步是什么？",
+          "options": [
+            "复习生词",
+            "做练习",
+            "问老师"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Tháng sau có kỳ thi. Tôi định mỗi ngày ôn từ mới trước, rồi đọc bài, cuối cùng làm bài tập. Nếu gặp vấn đề chưa hiểu thì hỏi giáo viên. Tôi mong cách này giúp cải thiện điểm số."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 计划 (jì huà) nghĩa là gì?",
+          "options": [
+            "thi cử, kỳ thi",
+            "kế hoạch, dự án, lên kế hoạch",
+            "ôn tập"
+          ],
+          "answer": 1,
+          "explanation": "计划 · jì huà: kế hoạch, dự án, lên kế hoạch."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 复习 (fù xí) nghĩa là gì?",
+          "options": [
+            "ôn tập",
+            "kế hoạch, dự án, lên kế hoạch",
+            "thi cử, kỳ thi"
+          ],
+          "answer": 0,
+          "explanation": "复习 · fù xí: ôn tập."
+        }
+      ]
+    },
+    {
+      "id": "hsk4-01",
+      "hsk": 4,
+      "order": 1,
+      "title": "Mục đích và hành động",
+      "minutes": 16,
+      "review": false,
+      "objective": "Vận dụng 为了 + mục tiêu，chủ ngữ + hành động trong chủ đề mục đích và hành động.",
+      "vocabulary": [
+        {
+          "hanzi": "为了",
+          "pinyin": "wèi le",
+          "meaning": "để, vì, cho",
+          "hsk": 3
+        },
+        {
+          "hanzi": "提高",
+          "pinyin": "tí gāo",
+          "meaning": "nâng cao, cải thiện",
+          "hsk": 3
+        },
+        {
+          "hanzi": "能力",
+          "pinyin": "néng lì",
+          "meaning": "năng lực, khả năng",
+          "hsk": 4
+        },
+        {
+          "hanzi": "交流",
+          "pinyin": "jiāo liú",
+          "meaning": "giao lưu, trao đổi",
+          "hsk": 4
+        },
+        {
+          "hanzi": "机会",
+          "pinyin": "jī huì",
+          "meaning": "cơ hội",
+          "hsk": 3
+        }
+      ],
+      "grammar": {
+        "pattern": "为了 + mục tiêu，chủ ngữ + hành động",
+        "note": "为了 nêu mục đích chưa nhất thiết đạt được; 因为 nêu nguyên nhân. Sau 为了 thường là cụm động từ thể hiện mục tiêu có chủ đích.",
+        "example": {
+          "hanzi": "为了提高口语，我每天和同学交流。",
+          "pinyin": "Wèile tígāo kǒuyǔ, wǒ měitiān hé tóngxué jiāoliú.",
+          "meaning": "Để nâng cao khẩu ngữ, tôi trao đổi với bạn học mỗi ngày."
+        }
+      },
+      "reading": {
+        "hanzi": "小陈以前不敢开口说汉语。为了提高交流能力，他报名参加了学校的中文活动。开始时，他只能说简单的句子，但每次都认真听别人怎么表达。几个月后，他已经能主动介绍自己的家乡了。",
+        "meaning": "Trước đây Tiểu Trần không dám nói tiếng Trung. Để nâng cao khả năng giao tiếp, anh đăng ký hoạt động tiếng Trung của trường. Ban đầu anh chỉ nói được câu đơn giản nhưng luôn chú ý cách người khác diễn đạt. Vài tháng sau, anh đã có thể chủ động giới thiệu quê mình."
+      },
+      "task": "Viết mục tiêu học tập, hai hành động cụ thể và cách tự đánh giá.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "___提高口语，我每天练习。",
+          "options": [
+            "虽然",
+            "为了",
+            "因为"
+          ],
+          "answer": 1,
+          "explanation": "为了 nêu mục đích chưa nhất thiết đạt được; 因为 nêu nguyên nhân. Sau 为了 thường là cụm động từ thể hiện mục tiêu có chủ đích. Ví dụ: 为了提高口语，我每天和同学交流。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "小陈参加活动的主要目的是什么？",
+          "options": [
+            "提高交流能力",
+            "获得旅游机会",
+            "减少学习时间"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Trước đây Tiểu Trần không dám nói tiếng Trung. Để nâng cao khả năng giao tiếp, anh đăng ký hoạt động tiếng Trung của trường. Ban đầu anh chỉ nói được câu đơn giản nhưng luôn chú ý cách người khác diễn đạt. Vài tháng sau, anh đã có thể chủ động giới thiệu quê mình."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 为了 (wèi le) nghĩa là gì?",
+          "options": [
+            "năng lực, khả năng",
+            "để, vì, cho",
+            "nâng cao, cải thiện"
+          ],
+          "answer": 1,
+          "explanation": "为了 · wèi le: để, vì, cho."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 提高 (tí gāo) nghĩa là gì?",
+          "options": [
+            "nâng cao, cải thiện",
+            "để, vì, cho",
+            "năng lực, khả năng"
+          ],
+          "answer": 0,
+          "explanation": "提高 · tí gāo: nâng cao, cải thiện."
+        }
+      ]
+    },
+    {
+      "id": "hsk4-02",
+      "hsk": 4,
+      "order": 2,
+      "title": "Bổ sung thông tin và tăng tiến",
+      "minutes": 16,
+      "review": false,
+      "objective": "Vận dụng 不仅……而且…… trong chủ đề bổ sung thông tin và tăng tiến.",
+      "vocabulary": [
+        {
+          "hanzi": "不仅",
+          "pinyin": "bù jǐn",
+          "meaning": "không chỉ",
+          "hsk": 4
+        },
+        {
+          "hanzi": "而且",
+          "pinyin": "ér qiě",
+          "meaning": "hơn nữa",
+          "hsk": 3
+        },
+        {
+          "hanzi": "经验",
+          "pinyin": "jīng yàn",
+          "meaning": "kinh nghiệm",
+          "hsk": 4
+        },
+        {
+          "hanzi": "丰富",
+          "pinyin": "fēng fù",
+          "meaning": " phong phú, đa dạng",
+          "hsk": 4
+        },
+        {
+          "hanzi": "负责",
+          "pinyin": "fù zé",
+          "meaning": "chịu trách nhiệm, phụ trách",
+          "hsk": 4
+        }
+      ],
+      "grammar": {
+        "pattern": "不仅……而且……",
+        "note": "Mẫu này thêm ý thứ hai mạnh hơn hoặc bổ sung ý thứ nhất. Khi hai vế khác chủ ngữ, 不仅 thường đứng trước chủ ngữ thứ nhất.",
+        "example": {
+          "hanzi": "她不仅经验丰富，而且很负责。",
+          "pinyin": "Tā bùjǐn jīngyàn fēngfù, érqiě hěn fùzé.",
+          "meaning": "Cô ấy không chỉ giàu kinh nghiệm mà còn rất có trách nhiệm."
+        }
+      },
+      "reading": {
+        "hanzi": "公司需要一位新的项目负责人。大家推荐李老师，因为她不仅经验丰富，而且愿意听不同的意见。遇到困难时，她总是先了解情况，再和同事一起讨论办法。因此，年轻同事也很信任她。",
+        "meaning": "Công ty cần người phụ trách dự án mới. Mọi người đề cử cô Lý vì cô không chỉ giàu kinh nghiệm mà còn lắng nghe ý kiến khác. Khi khó khăn, cô tìm hiểu tình hình rồi bàn cách giải quyết với đồng nghiệp. Vì vậy các đồng nghiệp trẻ cũng tin tưởng cô."
+      },
+      "task": "Giới thiệu một người hoặc một sản phẩm bằng hai ưu điểm có dẫn chứng.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "她不仅认真，___很负责。",
+          "options": [
+            "而且",
+            "所以",
+            "虽然"
+          ],
+          "answer": 0,
+          "explanation": "Mẫu này thêm ý thứ hai mạnh hơn hoặc bổ sung ý thứ nhất. Khi hai vế khác chủ ngữ, 不仅 thường đứng trước chủ ngữ thứ nhất. Ví dụ: 她不仅经验丰富，而且很负责。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "大家推荐李老师的原因是什么？",
+          "options": [
+            "从不与同事讨论",
+            "只重视自己的想法",
+            "有经验并愿意听取意见"
+          ],
+          "answer": 2,
+          "explanation": "Đối chiếu đoạn đọc: Công ty cần người phụ trách dự án mới. Mọi người đề cử cô Lý vì cô không chỉ giàu kinh nghiệm mà còn lắng nghe ý kiến khác. Khi khó khăn, cô tìm hiểu tình hình rồi bàn cách giải quyết với đồng nghiệp. Vì vậy các đồng nghiệp trẻ cũng tin tưởng cô."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 不仅 (bù jǐn) nghĩa là gì?",
+          "options": [
+            "không chỉ",
+            "hơn nữa",
+            "kinh nghiệm"
+          ],
+          "answer": 0,
+          "explanation": "不仅 · bù jǐn: không chỉ."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 而且 (ér qiě) nghĩa là gì?",
+          "options": [
+            "không chỉ",
+            "kinh nghiệm",
+            "hơn nữa"
+          ],
+          "answer": 2,
+          "explanation": "而且 · ér qiě: hơn nữa."
+        }
+      ]
+    },
+    {
+      "id": "hsk4-03",
+      "hsk": 4,
+      "order": 3,
+      "title": "Điều kiện đủ và điều kiện cần",
+      "minutes": 16,
+      "review": false,
+      "objective": "Vận dụng 只要……就…… / 只有……才…… trong chủ đề điều kiện đủ và điều kiện cần.",
+      "vocabulary": [
+        {
+          "hanzi": "只要",
+          "pinyin": "zhǐ yào",
+          "meaning": "chỉ cần, miễn là",
+          "hsk": 4
+        },
+        {
+          "hanzi": "只有",
+          "pinyin": "zhǐyǒu",
+          "meaning": "chỉ khi; chỉ có",
+          "hsk": null
+        },
+        {
+          "hanzi": "坚持",
+          "pinyin": "jiān chí",
+          "meaning": "kiên trì, bền chí",
+          "hsk": 4
+        },
+        {
+          "hanzi": "成功",
+          "pinyin": "chéng gōng",
+          "meaning": "thành công",
+          "hsk": 4
+        },
+        {
+          "hanzi": "方法",
+          "pinyin": "fāng fǎ",
+          "meaning": "phương pháp, cách thức",
+          "hsk": 4
+        }
+      ],
+      "grammar": {
+        "pattern": "只要……就…… / 只有……才……",
+        "note": "只要 nêu điều kiện đủ để có kết quả trong ngữ cảnh; 只有 nêu điều kiện cần. Không đảo 就 và 才 một cách máy móc vì sẽ thay đổi quan hệ logic.",
+        "example": {
+          "hanzi": "只有认真准备，才能做好这次报告。",
+          "pinyin": "Zhǐyǒu rènzhēn zhǔnbèi, cái néng zuò hǎo zhè cì bàogào.",
+          "meaning": "Chỉ khi chuẩn bị nghiêm túc mới có thể làm tốt báo cáo này."
+        }
+      },
+      "reading": {
+        "hanzi": "学校的实验室规定，只有完成安全培训，学生才能独立使用设备。小周想参加实验，所以先报名培训。老师提醒他，学会操作还不够，做实验时也必须遵守规定。这些要求是为了保护每一个人。",
+        "meaning": "Phòng thí nghiệm quy định sinh viên chỉ được dùng thiết bị độc lập sau khi hoàn thành tập huấn an toàn. Tiểu Châu muốn làm thí nghiệm nên đăng ký tập huấn trước. Giáo viên nhắc biết thao tác chưa đủ, còn phải tuân thủ quy định khi thực hành. Các yêu cầu này nhằm bảo vệ mọi người."
+      },
+      "task": "Viết một điều kiện cần và một điều kiện đủ trong việc học hoặc làm việc.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "只有认真准备，___能做好报告。",
+          "options": [
+            "就",
+            "也",
+            "才"
+          ],
+          "answer": 2,
+          "explanation": "只要 nêu điều kiện đủ để có kết quả trong ngữ cảnh; 只有 nêu điều kiện cần. Không đảo 就 và 才 một cách máy móc vì sẽ thay đổi quan hệ logic. Ví dụ: 只有认真准备，才能做好这次报告。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "独立使用设备的必要条件是什么？",
+          "options": [
+            "提前买好午饭",
+            "完成安全培训",
+            "只看设备价格"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Phòng thí nghiệm quy định sinh viên chỉ được dùng thiết bị độc lập sau khi hoàn thành tập huấn an toàn. Tiểu Châu muốn làm thí nghiệm nên đăng ký tập huấn trước. Giáo viên nhắc biết thao tác chưa đủ, còn phải tuân thủ quy định khi thực hành. Các yêu cầu này nhằm bảo vệ mọi người."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 只要 (zhǐ yào) nghĩa là gì?",
+          "options": [
+            "chỉ khi; chỉ có",
+            "kiên trì, bền chí",
+            "chỉ cần, miễn là"
+          ],
+          "answer": 2,
+          "explanation": "只要 · zhǐ yào: chỉ cần, miễn là."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 只有 (zhǐyǒu) nghĩa là gì?",
+          "options": [
+            "kiên trì, bền chí",
+            "chỉ khi; chỉ có",
+            "chỉ cần, miễn là"
+          ],
+          "answer": 1,
+          "explanation": "只有 · zhǐyǒu: chỉ khi; chỉ có."
+        }
+      ]
+    },
+    {
+      "id": "hsk4-04",
+      "hsk": 4,
+      "order": 4,
+      "title": "Kết quả ngoài dự đoán",
+      "minutes": 16,
+      "review": false,
+      "objective": "Vận dụng 以为……，却…… trong chủ đề kết quả ngoài dự đoán.",
+      "vocabulary": [
+        {
+          "hanzi": "却",
+          "pinyin": "què",
+          "meaning": "nhưng, lại, mà",
+          "hsk": 4
+        },
+        {
+          "hanzi": "竟然",
+          "pinyin": "jìng rán",
+          "meaning": "vậy mà, lại thế (ngoài dự đoán)",
+          "hsk": 4
+        },
+        {
+          "hanzi": "原来",
+          "pinyin": "yuán lái",
+          "meaning": "hóa ra, ban đầu, vốn dĩ",
+          "hsk": 4
+        },
+        {
+          "hanzi": "以为",
+          "pinyin": "yǐ wéi",
+          "meaning": "cho rằng, cứ nghĩ là",
+          "hsk": 3
+        },
+        {
+          "hanzi": "结果",
+          "pinyin": "jié guǒ",
+          "meaning": "kết quả",
+          "hsk": 4
+        }
+      ],
+      "grammar": {
+        "pattern": "以为……，却……",
+        "note": "以为 nêu nhận định trước đó, thường được sửa lại sau; 却 làm nổi bật kết quả trái dự đoán. 竟然 nhấn mạnh sự ngạc nhiên, không đơn thuần nối hai sự việc.",
+        "example": {
+          "hanzi": "我以为他会拒绝，他却答应了。",
+          "pinyin": "Wǒ yǐwéi tā huì jùjué, tā què dāying le.",
+          "meaning": "Tôi tưởng anh ấy sẽ từ chối, vậy mà anh ấy đồng ý."
+        }
+      },
+      "reading": {
+        "hanzi": "我以为周末的博物馆一定很安静，所以没有提前预约。到了门口才发现，参观的人竟然排起了长队。原来当天有一个特别的展览。我只好改变计划，下次先查好信息再来。",
+        "meaning": "Tôi tưởng bảo tàng cuối tuần sẽ yên tĩnh nên không đặt trước. Đến cửa mới thấy người tham quan xếp hàng dài. Hóa ra hôm đó có triển lãm đặc biệt. Tôi đành đổi kế hoạch; lần sau sẽ tìm hiểu thông tin trước khi đến."
+      },
+      "task": "Kể một lần dự đoán sai, nêu điều bạn đã rút kinh nghiệm.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "我以为他不同意，他___答应了。",
+          "options": [
+            "为了",
+            "却",
+            "所以"
+          ],
+          "answer": 1,
+          "explanation": "以为 nêu nhận định trước đó, thường được sửa lại sau; 却 làm nổi bật kết quả trái dự đoán. 竟然 nhấn mạnh sự ngạc nhiên, không đơn thuần nối hai sự việc. Ví dụ: 我以为他会拒绝，他却答应了。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "作者为什么没有预约？",
+          "options": [
+            "以为博物馆会很安静",
+            "已经买到了门票",
+            "不知道博物馆在哪里"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Tôi tưởng bảo tàng cuối tuần sẽ yên tĩnh nên không đặt trước. Đến cửa mới thấy người tham quan xếp hàng dài. Hóa ra hôm đó có triển lãm đặc biệt. Tôi đành đổi kế hoạch; lần sau sẽ tìm hiểu thông tin trước khi đến."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 却 (què) nghĩa là gì?",
+          "options": [
+            "hóa ra, ban đầu, vốn dĩ",
+            "nhưng, lại, mà",
+            "vậy mà, lại thế (ngoài dự đoán)"
+          ],
+          "answer": 1,
+          "explanation": "却 · què: nhưng, lại, mà."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 竟然 (jìng rán) nghĩa là gì?",
+          "options": [
+            "vậy mà, lại thế (ngoài dự đoán)",
+            "nhưng, lại, mà",
+            "hóa ra, ban đầu, vốn dĩ"
+          ],
+          "answer": 0,
+          "explanation": "竟然 · jìng rán: vậy mà, lại thế (ngoài dự đoán)."
+        }
+      ]
+    },
+    {
+      "id": "hsk4-05",
+      "hsk": 4,
+      "order": 5,
+      "title": "Lựa chọn và cân nhắc",
+      "minutes": 16,
+      "review": false,
+      "objective": "Vận dụng Câu hỏi lựa chọn dùng 还是；câu trần thuật thường dùng 或者 trong chủ đề lựa chọn và cân nhắc.",
+      "vocabulary": [
+        {
+          "hanzi": "选择",
+          "pinyin": "xuǎn zé",
+          "meaning": "lựa chọn, chọn lựa",
+          "hsk": 3
+        },
+        {
+          "hanzi": "考虑",
+          "pinyin": "kǎo lǜ",
+          "meaning": "xem xét, cân nhắc",
+          "hsk": 4
+        },
+        {
+          "hanzi": "适合",
+          "pinyin": "shì hé",
+          "meaning": "thích hợp, phù hợp",
+          "hsk": 4
+        },
+        {
+          "hanzi": "或者",
+          "pinyin": "huò zhě",
+          "meaning": "hoặc, hay là",
+          "hsk": 3
+        },
+        {
+          "hanzi": "还是",
+          "pinyin": "hái shi",
+          "meaning": "hay là, vẫn",
+          "hsk": 3
+        }
+      ],
+      "grammar": {
+        "pattern": "Câu hỏi lựa chọn dùng 还是；câu trần thuật thường dùng 或者",
+        "note": "还是 yêu cầu chọn giữa các phương án trong câu hỏi. 或者 nêu các khả năng trong câu trần thuật. 还是 còn có nghĩa khác tùy ngữ cảnh nên cần đọc cả câu.",
+        "example": {
+          "hanzi": "你想坐火车还是坐飞机？",
+          "pinyin": "Nǐ xiǎng zuò huǒchē háishi zuò fēijī?",
+          "meaning": "Bạn muốn đi tàu hỏa hay máy bay?"
+        }
+      },
+      "reading": {
+        "hanzi": "小林要去外地参加会议。他考虑坐飞机或者坐高铁。飞机虽然快，但机场离家很远。高铁站就在附近，而且车上也能工作。比较时间和费用以后，他决定选择高铁。",
+        "meaning": "Tiểu Lâm đi tỉnh khác dự hội nghị. Anh cân nhắc máy bay hoặc tàu cao tốc. Máy bay nhanh nhưng sân bay xa nhà. Ga cao tốc ở gần, trên tàu cũng có thể làm việc. So sánh thời gian và chi phí xong, anh chọn tàu cao tốc."
+      },
+      "task": "So sánh hai lựa chọn và giải thích quyết định bằng ba tiêu chí.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "你想喝茶___喝咖啡？",
+          "options": [
+            "还是",
+            "或者",
+            "因为"
+          ],
+          "answer": 0,
+          "explanation": "还是 yêu cầu chọn giữa các phương án trong câu hỏi. 或者 nêu các khả năng trong câu trần thuật. 还是 còn có nghĩa khác tùy ngữ cảnh nên cần đọc cả câu. Ví dụ: 你想坐火车还是坐飞机？"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "小林最终选择了什么？",
+          "options": [
+            "飞机",
+            "出租车",
+            "高铁"
+          ],
+          "answer": 2,
+          "explanation": "Đối chiếu đoạn đọc: Tiểu Lâm đi tỉnh khác dự hội nghị. Anh cân nhắc máy bay hoặc tàu cao tốc. Máy bay nhanh nhưng sân bay xa nhà. Ga cao tốc ở gần, trên tàu cũng có thể làm việc. So sánh thời gian và chi phí xong, anh chọn tàu cao tốc."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 选择 (xuǎn zé) nghĩa là gì?",
+          "options": [
+            "lựa chọn, chọn lựa",
+            "xem xét, cân nhắc",
+            "thích hợp, phù hợp"
+          ],
+          "answer": 0,
+          "explanation": "选择 · xuǎn zé: lựa chọn, chọn lựa."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 考虑 (kǎo lǜ) nghĩa là gì?",
+          "options": [
+            "lựa chọn, chọn lựa",
+            "thích hợp, phù hợp",
+            "xem xét, cân nhắc"
+          ],
+          "answer": 2,
+          "explanation": "考虑 · kǎo lǜ: xem xét, cân nhắc."
+        }
+      ]
+    },
+    {
+      "id": "hsk4-06",
+      "hsk": 4,
+      "order": 6,
+      "title": "Ước lượng và mức độ",
+      "minutes": 16,
+      "review": false,
+      "objective": "Vận dụng Số lượng + 左右 / 至少 + số lượng trong chủ đề ước lượng và mức độ.",
+      "vocabulary": [
+        {
+          "hanzi": "大概",
+          "pinyin": "dà gài",
+          "meaning": "đại khái khoảng chừng",
+          "hsk": 4
+        },
+        {
+          "hanzi": "左右",
+          "pinyin": "zuǒ yòu",
+          "meaning": "khoảng, đại khái, trái phải",
+          "hsk": 6
+        },
+        {
+          "hanzi": "至少",
+          "pinyin": "zhì shǎo",
+          "meaning": "ít nhất",
+          "hsk": 4
+        },
+        {
+          "hanzi": "超过",
+          "pinyin": "chāo guò",
+          "meaning": "vượt quá",
+          "hsk": 4
+        },
+        {
+          "hanzi": "数量",
+          "pinyin": "shù liàng",
+          "meaning": "số lượng",
+          "hsk": 4
+        }
+      ],
+      "grammar": {
+        "pattern": "Số lượng + 左右 / 至少 + số lượng",
+        "note": "左右 chỉ xấp xỉ; 至少 chỉ giới hạn thấp nhất. Không dùng 左右 khi thông tin cần chính xác tuyệt đối. 大概 còn có thể thể hiện suy đoán.",
+        "example": {
+          "hanzi": "参加活动的大概有三十人。",
+          "pinyin": "Cānjiā huódòng de dàgài yǒu sānshí rén.",
+          "meaning": "Có khoảng ba mươi người tham gia hoạt động."
+        }
+      },
+      "reading": {
+        "hanzi": "社区计划举办读书活动，预计有三十人左右参加。工作人员准备了四十把椅子，并要求每位发言者至少提前十分钟到场。活动开始前，报名人数已经超过三十五人，大家于是又增加了几把椅子。",
+        "meaning": "Khu dân cư dự kiến tổ chức buổi đọc sách với khoảng ba mươi người. Nhân viên chuẩn bị bốn mươi ghế và yêu cầu người phát biểu đến sớm ít nhất mười phút. Trước giờ bắt đầu, số đăng ký đã vượt ba mươi lăm nên họ kê thêm ghế."
+      },
+      "task": "Tóm tắt một sự kiện, phân biệt số ước lượng và yêu cầu tối thiểu.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "大约有三十人___参加。",
+          "options": [
+            "至少",
+            "不到",
+            "左右"
+          ],
+          "answer": 2,
+          "explanation": "左右 chỉ xấp xỉ; 至少 chỉ giới hạn thấp nhất. Không dùng 左右 khi thông tin cần chính xác tuyệt đối. 大概 còn có thể thể hiện suy đoán. Ví dụ: 参加活动的大概有三十人。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "发言者至少要提前多久到场？",
+          "options": [
+            "四十分钟",
+            "十分钟",
+            "三十分钟"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Khu dân cư dự kiến tổ chức buổi đọc sách với khoảng ba mươi người. Nhân viên chuẩn bị bốn mươi ghế và yêu cầu người phát biểu đến sớm ít nhất mười phút. Trước giờ bắt đầu, số đăng ký đã vượt ba mươi lăm nên họ kê thêm ghế."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 大概 (dà gài) nghĩa là gì?",
+          "options": [
+            "khoảng, đại khái, trái phải",
+            "ít nhất",
+            "đại khái khoảng chừng"
+          ],
+          "answer": 2,
+          "explanation": "大概 · dà gài: đại khái khoảng chừng."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 左右 (zuǒ yòu) nghĩa là gì?",
+          "options": [
+            "ít nhất",
+            "khoảng, đại khái, trái phải",
+            "đại khái khoảng chừng"
+          ],
+          "answer": 1,
+          "explanation": "左右 · zuǒ yòu: khoảng, đại khái, trái phải."
+        }
+      ]
+    },
+    {
+      "id": "hsk4-07",
+      "hsk": 4,
+      "order": 7,
+      "title": "Đề xuất và thương lượng",
+      "minutes": 16,
+      "review": false,
+      "objective": "Vận dụng 要不……吧 / 最好 + động từ trong chủ đề đề xuất và thương lượng.",
+      "vocabulary": [
+        {
+          "hanzi": "建议",
+          "pinyin": "jiàn yì",
+          "meaning": "đề nghị, gợi ý",
+          "hsk": 5
+        },
+        {
+          "hanzi": "意见",
+          "pinyin": "yì jiàn",
+          "meaning": "ý kiến, ý tưởng, sự bất bình",
+          "hsk": 4
+        },
+        {
+          "hanzi": "商量",
+          "pinyin": "shāng liang",
+          "meaning": "thương lượng, bàn bạc",
+          "hsk": 4
+        },
+        {
+          "hanzi": "安排",
+          "pinyin": "ān pái",
+          "meaning": "sắp xếp, bố trí",
+          "hsk": 4
+        },
+        {
+          "hanzi": "接受",
+          "pinyin": "jiē shòu",
+          "meaning": "tiếp nhận, chấp nhận",
+          "hsk": 4
+        }
+      ],
+      "grammar": {
+        "pattern": "要不……吧 / 最好 + động từ",
+        "note": "要不……吧 đưa phương án thay thế thân thiện. 最好 đưa lời khuyên, không phải mệnh lệnh tuyệt đối. Giải thích lý do giúp lời đề xuất thuyết phục hơn.",
+        "example": {
+          "hanzi": "要不我们把会议改到下午吧。",
+          "pinyin": "Yàobù wǒmen bǎ huìyì gǎi dào xiàwǔ ba.",
+          "meaning": "Hay là chúng ta chuyển cuộc họp sang chiều nhé."
+        }
+      },
+      "reading": {
+        "hanzi": "原来的会议安排在周一上午，但两位同事那时要接待客户。小王建议改到下午，并提前发邮件询问大家是否方便。经过商量，大家接受了这个安排。这样既照顾了客户，也保证所有成员都能参加讨论。",
+        "meaning": "Cuộc họp vốn xếp sáng thứ Hai nhưng hai đồng nghiệp phải tiếp khách lúc đó. Tiểu Vương đề nghị chuyển sang chiều và gửi thư hỏi mọi người có tiện không. Sau trao đổi, cả nhóm chấp nhận. Cách này vừa lo được khách hàng vừa giúp đủ thành viên dự thảo luận."
+      },
+      "task": "Viết lời đề nghị đổi lịch, nêu lý do và hỏi ý kiến người nhận.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "___我们改到下午吧。",
+          "options": [
+            "由于",
+            "要不",
+            "尽管"
+          ],
+          "answer": 1,
+          "explanation": "要不……吧 đưa phương án thay thế thân thiện. 最好 đưa lời khuyên, không phải mệnh lệnh tuyệt đối. Giải thích lý do giúp lời đề xuất thuyết phục hơn. Ví dụ: 要不我们把会议改到下午吧。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "会议为什么改到下午？",
+          "options": [
+            "两位同事上午要接待客户",
+            "下午没有人参加",
+            "会议已经取消了"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Cuộc họp vốn xếp sáng thứ Hai nhưng hai đồng nghiệp phải tiếp khách lúc đó. Tiểu Vương đề nghị chuyển sang chiều và gửi thư hỏi mọi người có tiện không. Sau trao đổi, cả nhóm chấp nhận. Cách này vừa lo được khách hàng vừa giúp đủ thành viên dự thảo luận."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 建议 (jiàn yì) nghĩa là gì?",
+          "options": [
+            "thương lượng, bàn bạc",
+            "đề nghị, gợi ý",
+            "ý kiến, ý tưởng, sự bất bình"
+          ],
+          "answer": 1,
+          "explanation": "建议 · jiàn yì: đề nghị, gợi ý."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 意见 (yì jiàn) nghĩa là gì?",
+          "options": [
+            "ý kiến, ý tưởng, sự bất bình",
+            "đề nghị, gợi ý",
+            "thương lượng, bàn bạc"
+          ],
+          "answer": 0,
+          "explanation": "意见 · yì jiàn: ý kiến, ý tưởng, sự bất bình."
+        }
+      ]
+    },
+    {
+      "id": "hsk4-08",
+      "hsk": 4,
+      "order": 8,
+      "title": "Ôn tập: Giải quyết một vấn đề",
+      "minutes": 18,
+      "review": true,
+      "objective": "Vận dụng 问题 → 原因 → 办法 → 结果 trong chủ đề ôn tập: giải quyết một vấn đề.",
+      "vocabulary": [
+        {
+          "hanzi": "原因",
+          "pinyin": "yuán yīn",
+          "meaning": "nguyên nhân, lý do",
+          "hsk": 4
+        },
+        {
+          "hanzi": "办法",
+          "pinyin": "bàn fǎ",
+          "meaning": "biện pháp, cách giải quyết",
+          "hsk": 3
+        },
+        {
+          "hanzi": "解决",
+          "pinyin": "jiě jué",
+          "meaning": "giải quyết",
+          "hsk": 3
+        },
+        {
+          "hanzi": "效果",
+          "pinyin": "xiào guǒ",
+          "meaning": "hiệu quả, kết quả",
+          "hsk": 4
+        },
+        {
+          "hanzi": "总结",
+          "pinyin": "zǒng jié",
+          "meaning": "tổng kết, rút ra kết luận",
+          "hsk": 4
+        }
+      ],
+      "grammar": {
+        "pattern": "问题 → 原因 → 办法 → 结果",
+        "note": "Khi trình bày giải pháp, tách việc quan sát được khỏi suy đoán về nguyên nhân. Dùng 首先、其次、因此 để nối ý; kết luận phải dựa vào dữ kiện đã nêu.",
+        "example": {
+          "hanzi": "我们先找出原因，再讨论解决办法。",
+          "pinyin": "Wǒmen xiān zhǎo chū yuányīn, zài tǎolùn jiějué bànfǎ.",
+          "meaning": "Chúng ta tìm nguyên nhân trước rồi bàn cách giải quyết."
+        }
+      },
+      "reading": {
+        "hanzi": "图书馆最近总有人抱怨找不到书。工作人员调查后发现，并不是书太少，而是分类标志不清楚。他们重新设计了指示牌，还增加了查询说明。一个月后，类似的抱怨明显减少。这说明，先找对原因比急着增加资源更重要。",
+        "meaning": "Gần đây nhiều người phàn nàn không tìm được sách ở thư viện. Khảo sát cho thấy không phải ít sách mà biển phân loại thiếu rõ ràng. Nhân viên làm lại biển chỉ dẫn và thêm hướng dẫn tra cứu. Một tháng sau, phàn nàn giảm rõ rệt. Điều này cho thấy xác định đúng nguyên nhân quan trọng hơn vội tăng nguồn lực."
+      },
+      "task": "Viết 8–10 câu theo bốn phần: vấn đề, nguyên nhân, giải pháp, kết quả dự kiến.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "我们先找原因，___讨论办法。",
+          "options": [
+            "再",
+            "却",
+            "除非"
+          ],
+          "answer": 0,
+          "explanation": "Khi trình bày giải pháp, tách việc quan sát được khỏi suy đoán về nguyên nhân. Dùng 首先、其次、因此 để nối ý; kết luận phải dựa vào dữ kiện đã nêu. Ví dụ: 我们先找出原因，再讨论解决办法。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "找不到书的主要原因是什么？",
+          "options": [
+            "图书馆完全没有书",
+            "工作人员不允许查询",
+            "分类标志不清楚"
+          ],
+          "answer": 2,
+          "explanation": "Đối chiếu đoạn đọc: Gần đây nhiều người phàn nàn không tìm được sách ở thư viện. Khảo sát cho thấy không phải ít sách mà biển phân loại thiếu rõ ràng. Nhân viên làm lại biển chỉ dẫn và thêm hướng dẫn tra cứu. Một tháng sau, phàn nàn giảm rõ rệt. Điều này cho thấy xác định đúng nguyên nhân quan trọng hơn vội tăng nguồn lực."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 原因 (yuán yīn) nghĩa là gì?",
+          "options": [
+            "nguyên nhân, lý do",
+            "biện pháp, cách giải quyết",
+            "giải quyết"
+          ],
+          "answer": 0,
+          "explanation": "原因 · yuán yīn: nguyên nhân, lý do."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 办法 (bàn fǎ) nghĩa là gì?",
+          "options": [
+            "nguyên nhân, lý do",
+            "giải quyết",
+            "biện pháp, cách giải quyết"
+          ],
+          "answer": 2,
+          "explanation": "办法 · bàn fǎ: biện pháp, cách giải quyết."
+        }
+      ]
+    },
+    {
+      "id": "hsk5-01",
+      "hsk": 5,
+      "order": 1,
+      "title": "Nêu quan điểm và dẫn chứng",
+      "minutes": 18,
+      "review": false,
+      "objective": "Vận dụng 在我看来……；以……为例 trong chủ đề nêu quan điểm và dẫn chứng.",
+      "vocabulary": [
+        {
+          "hanzi": "观点",
+          "pinyin": "guān diǎn",
+          "meaning": "quan điểm, góc nhìn",
+          "hsk": 5
+        },
+        {
+          "hanzi": "事实",
+          "pinyin": "shì shí",
+          "meaning": "sự thật, thực tế",
+          "hsk": 5
+        },
+        {
+          "hanzi": "证明",
+          "pinyin": "zhèng míng",
+          "meaning": "chứng minh, giấy chứng nhận",
+          "hsk": 4
+        },
+        {
+          "hanzi": "结论",
+          "pinyin": "jié lùn",
+          "meaning": "kết luận",
+          "hsk": 5
+        },
+        {
+          "hanzi": "分析",
+          "pinyin": "fēn xī",
+          "meaning": "phân tích",
+          "hsk": 5
+        }
+      ],
+      "grammar": {
+        "pattern": "在我看来……；以……为例",
+        "note": "在我看来 đánh dấu nhận định cá nhân. 以……为例 đưa dẫn chứng, nhưng một ví dụ chưa đủ chứng minh kết luận áp dụng cho mọi trường hợp.",
+        "example": {
+          "hanzi": "在我看来，评价方法比单纯比较分数更重要。",
+          "pinyin": "Zài wǒ kàn lái, píngjià fāngfǎ bǐ dānchún bǐjiào fēnshù gèng zhòngyào.",
+          "meaning": "Theo tôi, đánh giá phương pháp quan trọng hơn chỉ so sánh điểm số."
+        }
+      },
+      "reading": {
+        "hanzi": "有些人认为，学习时间越长，成绩就一定越好。在我看来，这种说法忽略了方法的作用。以背单词为例，只是反复看词表，未必能在交流中正确使用；如果把词放进句子，再隔几天复习，往往更容易记住。当然，不同学习者的情况并不完全相同。因此，评价学习效果时，既要看投入的时间，也要看实际运用的能力。",
+        "meaning": "Có người cho rằng học càng lâu thì điểm chắc chắn càng tốt. Theo tôi, nhận định này bỏ qua phương pháp. Chẳng hạn, chỉ nhìn đi nhìn lại danh sách từ chưa chắc giúp dùng đúng khi giao tiếp; đặt từ vào câu rồi ôn cách vài ngày thường dễ nhớ hơn. Tình hình từng người dĩ nhiên không hoàn toàn giống nhau. Vì vậy, đánh giá hiệu quả cần xem cả thời gian đầu tư lẫn khả năng vận dụng."
+      },
+      "task": "Viết một quan điểm, một ví dụ và một giới hạn của kết luận.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "___背单词为例，我们可以比较不同方法。",
+          "options": [
+            "以",
+            "被",
+            "把"
+          ],
+          "answer": 0,
+          "explanation": "在我看来 đánh dấu nhận định cá nhân. 以……为例 đưa dẫn chứng, nhưng một ví dụ chưa đủ chứng minh kết luận áp dụng cho mọi trường hợp. Ví dụ: 在我看来，评价方法比单纯比较分数更重要。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "作者主要反对哪种观点？",
+          "options": [
+            "学习方法值得关注",
+            "运用能力应该被评价",
+            "学习时间能单独决定效果"
+          ],
+          "answer": 2,
+          "explanation": "Đối chiếu đoạn đọc: Có người cho rằng học càng lâu thì điểm chắc chắn càng tốt. Theo tôi, nhận định này bỏ qua phương pháp. Chẳng hạn, chỉ nhìn đi nhìn lại danh sách từ chưa chắc giúp dùng đúng khi giao tiếp; đặt từ vào câu rồi ôn cách vài ngày thường dễ nhớ hơn. Tình hình từng người dĩ nhiên không hoàn toàn giống nhau. Vì vậy, đánh giá hiệu quả cần xem cả thời gian đầu tư lẫn khả năng vận dụng."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 观点 (guān diǎn) nghĩa là gì?",
+          "options": [
+            "quan điểm, góc nhìn",
+            "sự thật, thực tế",
+            "chứng minh, giấy chứng nhận"
+          ],
+          "answer": 0,
+          "explanation": "观点 · guān diǎn: quan điểm, góc nhìn."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 事实 (shì shí) nghĩa là gì?",
+          "options": [
+            "quan điểm, góc nhìn",
+            "chứng minh, giấy chứng nhận",
+            "sự thật, thực tế"
+          ],
+          "answer": 2,
+          "explanation": "事实 · shì shí: sự thật, thực tế."
+        }
+      ]
+    },
+    {
+      "id": "hsk5-02",
+      "hsk": 5,
+      "order": 2,
+      "title": "Nguyên nhân trong văn viết",
+      "minutes": 18,
+      "review": false,
+      "objective": "Vận dụng 由于 + nguyên nhân，……；……导致 + kết quả trong chủ đề nguyên nhân trong văn viết.",
+      "vocabulary": [
+        {
+          "hanzi": "由于",
+          "pinyin": "yóu yú",
+          "meaning": "do, bởi vì, do đó",
+          "hsk": 4
+        },
+        {
+          "hanzi": "导致",
+          "pinyin": "dǎo zhì",
+          "meaning": "dẫn đến, gây ra",
+          "hsk": 5
+        },
+        {
+          "hanzi": "因素",
+          "pinyin": "yīn sù",
+          "meaning": "nhân tố, yếu tố",
+          "hsk": 5
+        },
+        {
+          "hanzi": "产生",
+          "pinyin": "chǎn shēng",
+          "meaning": "sinh ra",
+          "hsk": 5
+        },
+        {
+          "hanzi": "影响",
+          "pinyin": "yǐng xiǎng",
+          "meaning": "ảnh hưởng",
+          "hsk": 3
+        }
+      ],
+      "grammar": {
+        "pattern": "由于 + nguyên nhân，……；……导致 + kết quả",
+        "note": "由于 thường xuất hiện trong văn viết. 导致 nối nguyên nhân với hệ quả, thường là hệ quả không mong muốn. Phân biệt quan hệ nhân quả với việc hai hiện tượng cùng xuất hiện.",
+        "example": {
+          "hanzi": "由于缺少沟通，项目进度受到了影响。",
+          "pinyin": "Yóuyú quēshǎo gōutōng, xiàngmù jìndù shòudào le yǐngxiǎng.",
+          "meaning": "Do thiếu trao đổi, tiến độ dự án bị ảnh hưởng."
+        }
+      },
+      "reading": {
+        "hanzi": "一家公司发现，项目总是比计划完成得晚。最初，管理者认为员工不够努力。但进一步调查显示，各部门对任务的理解并不一致，信息又传递得很慢。由于缺少及时沟通，同样的工作常常被重复完成。公司随后建立了统一的任务记录，并安排定期交流。问题有所改善，不过管理者仍需要继续观察，不能仅凭短期变化就判断所有问题已经解决。",
+        "meaning": "Một công ty thấy dự án luôn trễ kế hoạch. Ban đầu quản lý cho rằng nhân viên thiếu cố gắng. Khảo sát sâu hơn cho thấy các bộ phận hiểu nhiệm vụ khác nhau và thông tin truyền chậm. Thiếu trao đổi kịp thời khiến công việc bị làm trùng. Công ty dùng bản ghi nhiệm vụ chung và trao đổi định kỳ. Tình hình cải thiện nhưng vẫn cần quan sát, không thể dựa vào thay đổi ngắn hạn để kết luận mọi vấn đề đã hết."
+      },
+      "task": "Phân tích một vấn đề, nêu hai nguyên nhân khả dĩ và bằng chứng cần kiểm tra.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "___缺少沟通，进度受到了影响。",
+          "options": [
+            "尽管",
+            "以便",
+            "由于"
+          ],
+          "answer": 2,
+          "explanation": "由于 thường xuất hiện trong văn viết. 导致 nối nguyên nhân với hệ quả, thường là hệ quả không mong muốn. Phân biệt quan hệ nhân quả với việc hai hiện tượng cùng xuất hiện. Ví dụ: 由于缺少沟通，项目进度受到了影响。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "调查发现的主要问题是什么？",
+          "options": [
+            "公司完全没有项目",
+            "任务理解不一致且信息传递慢",
+            "员工全部缺少技能"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Một công ty thấy dự án luôn trễ kế hoạch. Ban đầu quản lý cho rằng nhân viên thiếu cố gắng. Khảo sát sâu hơn cho thấy các bộ phận hiểu nhiệm vụ khác nhau và thông tin truyền chậm. Thiếu trao đổi kịp thời khiến công việc bị làm trùng. Công ty dùng bản ghi nhiệm vụ chung và trao đổi định kỳ. Tình hình cải thiện nhưng vẫn cần quan sát, không thể dựa vào thay đổi ngắn hạn để kết luận mọi vấn đề đã hết."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 由于 (yóu yú) nghĩa là gì?",
+          "options": [
+            "dẫn đến, gây ra",
+            "nhân tố, yếu tố",
+            "do, bởi vì, do đó"
+          ],
+          "answer": 2,
+          "explanation": "由于 · yóu yú: do, bởi vì, do đó."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 导致 (dǎo zhì) nghĩa là gì?",
+          "options": [
+            "nhân tố, yếu tố",
+            "dẫn đến, gây ra",
+            "do, bởi vì, do đó"
+          ],
+          "answer": 1,
+          "explanation": "导致 · dǎo zhì: dẫn đến, gây ra."
+        }
+      ]
+    },
+    {
+      "id": "hsk5-03",
+      "hsk": 5,
+      "order": 3,
+      "title": "Nhượng bộ trong lập luận",
+      "minutes": 18,
+      "review": false,
+      "objective": "Vận dụng 尽管……，仍然 / 还是…… trong chủ đề nhượng bộ trong lập luận.",
+      "vocabulary": [
+        {
+          "hanzi": "尽管",
+          "pinyin": "jǐn guǎn",
+          "meaning": "mặc dù, cho dù",
+          "hsk": 4
+        },
+        {
+          "hanzi": "仍然",
+          "pinyin": "réng rán",
+          "meaning": "vẫn, vẫn cứ",
+          "hsk": 4
+        },
+        {
+          "hanzi": "困难",
+          "pinyin": "kùn nan",
+          "meaning": "khó khăn",
+          "hsk": 4
+        },
+        {
+          "hanzi": "坚持",
+          "pinyin": "jiān chí",
+          "meaning": "kiên trì, bền chí",
+          "hsk": 4
+        },
+        {
+          "hanzi": "价值",
+          "pinyin": "jià zhí",
+          "meaning": "giá trị",
+          "hsk": 5
+        }
+      ],
+      "grammar": {
+        "pattern": "尽管……，仍然 / 还是……",
+        "note": "尽管 thừa nhận một thực tế bất lợi nhưng kết quả vẫn diễn ra. 即使 thường đưa tình huống giả định. Khi viết, làm rõ điều nào đã biết và điều nào chỉ giả sử.",
+        "example": {
+          "hanzi": "尽管条件有限，团队仍然坚持完成调查。",
+          "pinyin": "Jǐnguǎn tiáojiàn yǒuxiàn, tuánduì réngrán jiānchí wánchéng diàochá.",
+          "meaning": "Dù điều kiện hạn chế, nhóm vẫn kiên trì hoàn thành khảo sát."
+        }
+      },
+      "reading": {
+        "hanzi": "一个学生团队想了解社区老人的出行困难。尽管经费有限，他们仍然利用周末进行访问。为了避免只听到熟人的意见，他们还主动联系了不同小区的居民。调查结果不能代表所有老人，却让团队看到了几个过去忽略的问题。他们据此提出改进建议，并在报告中明确说明了调查范围和限制。",
+        "meaning": "Một nhóm sinh viên muốn tìm hiểu khó khăn đi lại của người cao tuổi. Dù kinh phí ít, nhóm vẫn phỏng vấn cuối tuần. Để tránh chỉ nghe người quen, họ liên hệ cư dân ở nhiều khu. Kết quả không đại diện mọi người cao tuổi nhưng chỉ ra những vấn đề từng bị bỏ qua. Nhóm đưa đề xuất và ghi rõ phạm vi, giới hạn khảo sát."
+      },
+      "task": "Trình bày một nỗ lực trong điều kiện bất lợi, kèm giới hạn của thành quả.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "尽管经费有限，他们___继续调查。",
+          "options": [
+            "以免",
+            "仍然",
+            "才能"
+          ],
+          "answer": 1,
+          "explanation": "尽管 thừa nhận một thực tế bất lợi nhưng kết quả vẫn diễn ra. 即使 thường đưa tình huống giả định. Khi viết, làm rõ điều nào đã biết và điều nào chỉ giả sử. Ví dụ: 尽管条件有限，团队仍然坚持完成调查。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "团队为什么联系不同小区的居民？",
+          "options": [
+            "避免只听到熟人的意见",
+            "保证结果代表所有人",
+            "取消周末访问"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Một nhóm sinh viên muốn tìm hiểu khó khăn đi lại của người cao tuổi. Dù kinh phí ít, nhóm vẫn phỏng vấn cuối tuần. Để tránh chỉ nghe người quen, họ liên hệ cư dân ở nhiều khu. Kết quả không đại diện mọi người cao tuổi nhưng chỉ ra những vấn đề từng bị bỏ qua. Nhóm đưa đề xuất và ghi rõ phạm vi, giới hạn khảo sát."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 尽管 (jǐn guǎn) nghĩa là gì?",
+          "options": [
+            "khó khăn",
+            "mặc dù, cho dù",
+            "vẫn, vẫn cứ"
+          ],
+          "answer": 1,
+          "explanation": "尽管 · jǐn guǎn: mặc dù, cho dù."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 仍然 (réng rán) nghĩa là gì?",
+          "options": [
+            "vẫn, vẫn cứ",
+            "mặc dù, cho dù",
+            "khó khăn"
+          ],
+          "answer": 0,
+          "explanation": "仍然 · réng rán: vẫn, vẫn cứ."
+        }
+      ]
+    },
+    {
+      "id": "hsk5-04",
+      "hsk": 5,
+      "order": 4,
+      "title": "Lựa chọn có đánh đổi",
+      "minutes": 18,
+      "review": false,
+      "objective": "Vận dụng 与其……，不如…… trong chủ đề lựa chọn có đánh đổi.",
+      "vocabulary": [
+        {
+          "hanzi": "与其",
+          "pinyin": "yǔ qí",
+          "meaning": "thà rằng... còn hơn...",
+          "hsk": 5
+        },
+        {
+          "hanzi": "不如",
+          "pinyin": "bù rú",
+          "meaning": "chi bằng",
+          "hsk": 5
+        },
+        {
+          "hanzi": "宁可",
+          "pinyin": "nìng kě",
+          "meaning": "thà rằng, đành rằng",
+          "hsk": 5
+        },
+        {
+          "hanzi": "选择",
+          "pinyin": "xuǎn zé",
+          "meaning": "lựa chọn, chọn lựa",
+          "hsk": 3
+        },
+        {
+          "hanzi": "后果",
+          "pinyin": "hòu guǒ",
+          "meaning": "hậu quả",
+          "hsk": 5
+        }
+      ],
+      "grammar": {
+        "pattern": "与其……，不如……",
+        "note": "与其 nêu lựa chọn kém mong muốn hơn; 不如 đưa lựa chọn được ưu tiên. Hai vế cần có thể so sánh trong cùng tình huống, không phải hai sự việc ngẫu nhiên.",
+        "example": {
+          "hanzi": "与其反复抱怨，不如先尝试改变方法。",
+          "pinyin": "Yǔqí fǎnfù bàoyuàn, bùrú xiān chángshì gǎibiàn fāngfǎ.",
+          "meaning": "Thay vì than phiền mãi, chi bằng thử đổi phương pháp trước."
+        }
+      },
+      "reading": {
+        "hanzi": "小林毕业后拿到了两份工作邀请。一份工资较高，但工作内容比较单一；另一份收入稍低，却有机会参与不同项目。他没有马上决定，而是向前辈了解长期发展情况。考虑自己的目标后，他选择了第二份工作。他认为，与其只关注眼前收入，不如选择更适合自己成长的环境。不过，这并不意味着相同选择适合每个人。",
+        "meaning": "Sau tốt nghiệp, Tiểu Lâm nhận hai lời mời. Một việc lương cao nhưng nội dung đơn điệu; việc kia thu nhập thấp hơn một chút nhưng được làm nhiều dự án. Anh hỏi người đi trước về phát triển lâu dài rồi chọn việc thứ hai. Theo anh, thay vì chỉ nhìn thu nhập trước mắt, nên chọn môi trường hợp với sự trưởng thành của mình. Điều đó không có nghĩa lựa chọn này phù hợp mọi người."
+      },
+      "task": "So sánh hai lựa chọn, nêu lợi ích, chi phí và lý do ưu tiên một bên.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "与其抱怨，___改变方法。",
+          "options": [
+            "不如",
+            "尽管",
+            "由于"
+          ],
+          "answer": 0,
+          "explanation": "与其 nêu lựa chọn kém mong muốn hơn; 不如 đưa lựa chọn được ưu tiên. Hai vế cần có thể so sánh trong cùng tình huống, không phải hai sự việc ngẫu nhiên. Ví dụ: 与其反复抱怨，不如先尝试改变方法。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "小林最重视什么？",
+          "options": [
+            "最高的眼前收入",
+            "最单一的工作内容",
+            "与个人目标相符的成长机会"
+          ],
+          "answer": 2,
+          "explanation": "Đối chiếu đoạn đọc: Sau tốt nghiệp, Tiểu Lâm nhận hai lời mời. Một việc lương cao nhưng nội dung đơn điệu; việc kia thu nhập thấp hơn một chút nhưng được làm nhiều dự án. Anh hỏi người đi trước về phát triển lâu dài rồi chọn việc thứ hai. Theo anh, thay vì chỉ nhìn thu nhập trước mắt, nên chọn môi trường hợp với sự trưởng thành của mình. Điều đó không có nghĩa lựa chọn này phù hợp mọi người."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 与其 (yǔ qí) nghĩa là gì?",
+          "options": [
+            "thà rằng... còn hơn...",
+            "chi bằng",
+            "thà rằng, đành rằng"
+          ],
+          "answer": 0,
+          "explanation": "与其 · yǔ qí: thà rằng... còn hơn...."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 不如 (bù rú) nghĩa là gì?",
+          "options": [
+            "thà rằng... còn hơn...",
+            "thà rằng, đành rằng",
+            "chi bằng"
+          ],
+          "answer": 2,
+          "explanation": "不如 · bù rú: chi bằng."
+        }
+      ]
+    },
+    {
+      "id": "hsk5-05",
+      "hsk": 5,
+      "order": 5,
+      "title": "Dữ liệu, xu hướng và giới hạn",
+      "minutes": 18,
+      "review": false,
+      "objective": "Vận dụng 与……相比……；从……上升到…… trong chủ đề dữ liệu, xu hướng và giới hạn.",
+      "vocabulary": [
+        {
+          "hanzi": "比例",
+          "pinyin": "bǐ lì",
+          "meaning": "tỷ lệ, tỉ suất",
+          "hsk": 5
+        },
+        {
+          "hanzi": "增长",
+          "pinyin": "zēng zhǎng",
+          "meaning": "tăng trưởng, lớn lên",
+          "hsk": 4
+        },
+        {
+          "hanzi": "减少",
+          "pinyin": "jiǎn shǎo",
+          "meaning": "giảm bớt",
+          "hsk": 4
+        },
+        {
+          "hanzi": "平均",
+          "pinyin": "píng jūn",
+          "meaning": "trung bình",
+          "hsk": 5
+        },
+        {
+          "hanzi": "数据",
+          "pinyin": "shù jù",
+          "meaning": "dữ liệu",
+          "hsk": 5
+        }
+      ],
+      "grammar": {
+        "pattern": "与……相比……；从……上升到……",
+        "note": "与……相比 xác định mốc so sánh. Từ 从 đến 到 chỉ điểm đầu và cuối, còn 增长了 chỉ mức tăng. Luôn nêu đơn vị, thời gian và đối tượng thống kê.",
+        "example": {
+          "hanzi": "与去年相比，今年的报名人数增加了。",
+          "pinyin": "Yǔ qùnián xiāngbǐ, jīnnián de bàomíng rénshù zēngjiā le.",
+          "meaning": "So với năm ngoái, số người đăng ký năm nay tăng lên."
+        }
+      },
+      "reading": {
+        "hanzi": "某阅读活动去年的报名人数是一百人，今年增加到一百二十人，增长了百分之二十。组织者同时发现，实际到场的人数只增加了十人。因此，报名人数的增长并不完全等于参与程度的提高。要评价活动效果，还需要观察参加者是否持续阅读、是否愿意再次参加，而不能只选一个看起来最漂亮的数字。",
+        "meaning": "Hoạt động đọc sách có một trăm người đăng ký năm ngoái, năm nay tăng lên một trăm hai mươi, tức tăng 20%. Tuy nhiên số thực sự đến chỉ tăng mười người. Vì vậy tăng đăng ký không hoàn toàn đồng nghĩa mức tham gia tăng. Đánh giá hiệu quả còn cần xem họ có đọc đều và muốn tham gia lại không, thay vì chỉ chọn con số đẹp nhất."
+      },
+      "task": "Viết đoạn mô tả số liệu giả định, phân biệt mức tăng và giá trị cuối.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "人数从一百人增加___一百二十人。",
+          "options": [
+            "从",
+            "与",
+            "到"
+          ],
+          "answer": 2,
+          "explanation": "与……相比 xác định mốc so sánh. Từ 从 đến 到 chỉ điểm đầu và cuối, còn 增长了 chỉ mức tăng. Luôn nêu đơn vị, thời gian và đối tượng thống kê. Ví dụ: 与去年相比，今年的报名人数增加了。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "报名人数增长了多少？",
+          "options": [
+            "十人",
+            "百分之二十",
+            "百分之一百二十"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Hoạt động đọc sách có một trăm người đăng ký năm ngoái, năm nay tăng lên một trăm hai mươi, tức tăng 20%. Tuy nhiên số thực sự đến chỉ tăng mười người. Vì vậy tăng đăng ký không hoàn toàn đồng nghĩa mức tham gia tăng. Đánh giá hiệu quả còn cần xem họ có đọc đều và muốn tham gia lại không, thay vì chỉ chọn con số đẹp nhất."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 比例 (bǐ lì) nghĩa là gì?",
+          "options": [
+            "tăng trưởng, lớn lên",
+            "giảm bớt",
+            "tỷ lệ, tỉ suất"
+          ],
+          "answer": 2,
+          "explanation": "比例 · bǐ lì: tỷ lệ, tỉ suất."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 增长 (zēng zhǎng) nghĩa là gì?",
+          "options": [
+            "giảm bớt",
+            "tăng trưởng, lớn lên",
+            "tỷ lệ, tỉ suất"
+          ],
+          "answer": 1,
+          "explanation": "增长 · zēng zhǎng: tăng trưởng, lớn lên."
+        }
+      ]
+    },
+    {
+      "id": "hsk5-06",
+      "hsk": 5,
+      "order": 6,
+      "title": "Điều kiện ngoại lệ",
+      "minutes": 18,
+      "review": false,
+      "objective": "Vận dụng 除非……，否则…… trong chủ đề điều kiện ngoại lệ.",
+      "vocabulary": [
+        {
+          "hanzi": "除非",
+          "pinyin": "chú fēi",
+          "meaning": "trừ phi, nếu không",
+          "hsk": 5
+        },
+        {
+          "hanzi": "否则",
+          "pinyin": "fǒu zé",
+          "meaning": "nếu không, bằng không",
+          "hsk": 4
+        },
+        {
+          "hanzi": "条件",
+          "pinyin": "tiáo jiàn",
+          "meaning": "điều kiện",
+          "hsk": 4
+        },
+        {
+          "hanzi": "允许",
+          "pinyin": "yǔn xǔ",
+          "meaning": "cho phép, đồng ý",
+          "hsk": 4
+        },
+        {
+          "hanzi": "规定",
+          "pinyin": "guī dìng",
+          "meaning": "quy định, ấn định",
+          "hsk": 4
+        }
+      ],
+      "grammar": {
+        "pattern": "除非……，否则……",
+        "note": "除非 nêu ngoại lệ hoặc điều kiện cần để tránh kết quả ở vế 否则. Diễn đạt lại bằng 如果不 giúp kiểm tra logic và tránh hiểu ngược.",
+        "example": {
+          "hanzi": "除非提前申请，否则不能延长借书时间。",
+          "pinyin": "Chúfēi tíqián shēnqǐng, fǒuzé bù néng yáncháng jiè shū shíjiān.",
+          "meaning": "Trừ khi xin trước, nếu không sẽ không được gia hạn mượn sách."
+        }
+      },
+      "reading": {
+        "hanzi": "图书馆规定，读者需要按时归还资料。除非在到期前申请并获得批准，否则不能延长借阅时间。有些读者以为发送申请就自动获得延期，但工作人员提醒，热门资料可能已经被别人预约。制定这一规定，是为了在个人需要和其他读者的使用机会之间取得平衡。",
+        "meaning": "Thư viện quy định trả tài liệu đúng hạn. Nếu không xin trước hạn và được chấp thuận thì không được gia hạn. Có người tưởng gửi yêu cầu là tự được kéo dài, nhưng nhân viên nhắc tài liệu phổ biến có thể đã được người khác đặt. Quy định nhằm cân bằng nhu cầu cá nhân và cơ hội sử dụng của người khác."
+      },
+      "task": "Viết một quy định có ngoại lệ rồi diễn đạt lại bằng câu 如果不.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "除非提前申请，___不能延期。",
+          "options": [
+            "甚至",
+            "否则",
+            "而且"
+          ],
+          "answer": 1,
+          "explanation": "除非 nêu ngoại lệ hoặc điều kiện cần để tránh kết quả ở vế 否则. Diễn đạt lại bằng 如果不 giúp kiểm tra logic và tránh hiểu ngược. Ví dụ: 除非提前申请，否则不能延长借书时间。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "申请延期是否一定会被批准？",
+          "options": [
+            "不一定，还要看预约情况",
+            "一定会自动批准",
+            "从来不允许申请"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Thư viện quy định trả tài liệu đúng hạn. Nếu không xin trước hạn và được chấp thuận thì không được gia hạn. Có người tưởng gửi yêu cầu là tự được kéo dài, nhưng nhân viên nhắc tài liệu phổ biến có thể đã được người khác đặt. Quy định nhằm cân bằng nhu cầu cá nhân và cơ hội sử dụng của người khác."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 除非 (chú fēi) nghĩa là gì?",
+          "options": [
+            "điều kiện",
+            "trừ phi, nếu không",
+            "nếu không, bằng không"
+          ],
+          "answer": 1,
+          "explanation": "除非 · chú fēi: trừ phi, nếu không."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 否则 (fǒu zé) nghĩa là gì?",
+          "options": [
+            "nếu không, bằng không",
+            "trừ phi, nếu không",
+            "điều kiện"
+          ],
+          "answer": 0,
+          "explanation": "否则 · fǒu zé: nếu không, bằng không."
+        }
+      ]
+    },
+    {
+      "id": "hsk5-07",
+      "hsk": 5,
+      "order": 7,
+      "title": "Tóm tắt không thêm ý",
+      "minutes": 18,
+      "review": false,
+      "objective": "Vận dụng 原文指出……；主要原因是…… trong chủ đề tóm tắt không thêm ý.",
+      "vocabulary": [
+        {
+          "hanzi": "概括",
+          "pinyin": "gài kuò",
+          "meaning": "tóm tắt, khái quát",
+          "hsk": 5
+        },
+        {
+          "hanzi": "内容",
+          "pinyin": "nèi róng",
+          "meaning": "nội dung",
+          "hsk": 4
+        },
+        {
+          "hanzi": "重点",
+          "pinyin": "zhòng diǎn",
+          "meaning": "trọng tâm, điểm chính, chú trọng",
+          "hsk": 4
+        },
+        {
+          "hanzi": "保持",
+          "pinyin": "bǎo chí",
+          "meaning": "Duy trì, giữ gìn",
+          "hsk": 5
+        },
+        {
+          "hanzi": "完整",
+          "pinyin": "wán zhěng",
+          "meaning": "hoàn chỉnh, nguyên vẹn",
+          "hsk": 5
+        }
+      ],
+      "grammar": {
+        "pattern": "原文指出……；主要原因是……",
+        "note": "Tóm tắt giữ chủ thể, sự kiện và quan hệ logic chính. Không thêm đánh giá cá nhân, không đổi 可能 thành 一定 và không biến ý kiến một người thành kết luận chung.",
+        "example": {
+          "hanzi": "原文指出，方便并不等于适合所有人。",
+          "pinyin": "Yuánwén zhǐchū, fāngbiàn bìng bù děngyú shìhé suǒyǒu rén.",
+          "meaning": "Bài gốc chỉ ra rằng tiện lợi không đồng nghĩa phù hợp với tất cả mọi người."
+        }
+      },
+      "reading": {
+        "hanzi": "一家社区中心推出网上预约，年轻居民觉得很方便，但部分老人不会使用。工作人员没有取消网上服务，而是保留了电话和现场预约。几个月后，不同年龄的居民都能找到适合自己的方式。文章以此说明，改进服务不一定要用一种新方式完全替代旧方式，也可以让多种渠道互相补充。",
+        "meaning": "Trung tâm cộng đồng mở đặt hẹn trực tuyến, người trẻ thấy tiện nhưng một số người cao tuổi không biết dùng. Nhân viên giữ thêm đặt qua điện thoại và tại chỗ thay vì hủy dịch vụ mạng. Vài tháng sau, các nhóm tuổi đều tìm được cách phù hợp. Bài viết minh họa rằng cải thiện dịch vụ không nhất thiết thay hoàn toàn cách cũ; nhiều kênh có thể bổ sung nhau."
+      },
+      "task": "Tóm tắt đoạn đọc bằng 2–3 câu, sau đó đối chiếu xem có thêm ý ngoài bài không.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "哪种概括符合原文且没有扩大范围？",
+          "options": [
+            "多种预约方式可以互相补充",
+            "所有老人都拒绝网上预约",
+            "新技术总会降低服务质量"
+          ],
+          "answer": 0,
+          "explanation": "Tóm tắt giữ chủ thể, sự kiện và quan hệ logic chính. Không thêm đánh giá cá nhân, không đổi 可能 thành 一定 và không biến ý kiến một người thành kết luận chung. Ví dụ: 原文指出，方便并不等于适合所有人。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "哪项最准确地概括文章？",
+          "options": [
+            "网上预约必须全部取消",
+            "所有居民都只喜欢电话预约",
+            "多种预约方式可以互相补充"
+          ],
+          "answer": 2,
+          "explanation": "Đối chiếu đoạn đọc: Trung tâm cộng đồng mở đặt hẹn trực tuyến, người trẻ thấy tiện nhưng một số người cao tuổi không biết dùng. Nhân viên giữ thêm đặt qua điện thoại và tại chỗ thay vì hủy dịch vụ mạng. Vài tháng sau, các nhóm tuổi đều tìm được cách phù hợp. Bài viết minh họa rằng cải thiện dịch vụ không nhất thiết thay hoàn toàn cách cũ; nhiều kênh có thể bổ sung nhau."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 概括 (gài kuò) nghĩa là gì?",
+          "options": [
+            "tóm tắt, khái quát",
+            "nội dung",
+            "trọng tâm, điểm chính, chú trọng"
+          ],
+          "answer": 0,
+          "explanation": "概括 · gài kuò: tóm tắt, khái quát."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 内容 (nèi róng) nghĩa là gì?",
+          "options": [
+            "tóm tắt, khái quát",
+            "trọng tâm, điểm chính, chú trọng",
+            "nội dung"
+          ],
+          "answer": 2,
+          "explanation": "内容 · nèi róng: nội dung."
+        }
+      ]
+    },
+    {
+      "id": "hsk5-08",
+      "hsk": 5,
+      "order": 8,
+      "title": "Ôn tập: Đề xuất có căn cứ",
+      "minutes": 20,
+      "review": true,
+      "objective": "Vận dụng 现状 → 目标 → 方案 → 评价 trong chủ đề ôn tập: đề xuất có căn cứ.",
+      "vocabulary": [
+        {
+          "hanzi": "方案",
+          "pinyin": "fāng àn",
+          "meaning": "phương án, kế hoạch",
+          "hsk": 5
+        },
+        {
+          "hanzi": "实施",
+          "pinyin": "shí shī",
+          "meaning": "thực hiện, thi hành",
+          "hsk": 6
+        },
+        {
+          "hanzi": "资源",
+          "pinyin": "zī yuán",
+          "meaning": "tài nguyên",
+          "hsk": 5
+        },
+        {
+          "hanzi": "评价",
+          "pinyin": "píng jià",
+          "meaning": "đánh giá, nhận xét",
+          "hsk": 5
+        },
+        {
+          "hanzi": "调整",
+          "pinyin": "tiáo zhěng",
+          "meaning": "điều chỉnh, sự điều chỉnh",
+          "hsk": 5
+        }
+      ],
+      "grammar": {
+        "pattern": "现状 → 目标 → 方案 → 评价",
+        "note": "Một đề xuất cần mục tiêu đo được, hành động khả thi và cách theo dõi. Nêu cả rủi ro hoặc điều kiện để tránh hứa hẹn kết quả tuyệt đối.",
+        "example": {
+          "hanzi": "我们先小范围实施，再根据反馈调整方案。",
+          "pinyin": "Wǒmen xiān xiǎo fànwéi shíshī, zài gēnjù fǎnkuì tiáozhěng fāng'àn.",
+          "meaning": "Chúng ta triển khai phạm vi nhỏ trước, rồi điều chỉnh theo phản hồi."
+        }
+      },
+      "reading": {
+        "hanzi": "学校想减少食物浪费，却不能只要求学生少吃。调查发现，有些学生并不知道每份饭菜的分量。学生会建议先在一个窗口试行小份菜，并清楚标明分量和价格。两周后，再比较剩菜数量、用餐满意度和工作人员的负担。如果效果不错，就逐步扩大范围；如果出现新问题，则先调整，而不是急着宣布成功。",
+        "meaning": "Trường muốn giảm lãng phí thức ăn nhưng không thể chỉ yêu cầu học sinh ăn ít. Khảo sát thấy một số em không biết khẩu phần. Hội sinh viên đề nghị thử suất nhỏ ở một quầy, ghi rõ lượng và giá. Sau hai tuần, so sánh thức ăn thừa, mức hài lòng và khối lượng việc của nhân viên. Hiệu quả tốt thì mở rộng dần; có vấn đề thì điều chỉnh thay vì vội tuyên bố thành công."
+      },
+      "task": "Viết đề xuất 120–150 chữ Hán: vấn đề, hành động thử nghiệm, tiêu chí đánh giá.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "先试行，___根据反馈调整。",
+          "options": [
+            "尽管",
+            "除非",
+            "再"
+          ],
+          "answer": 2,
+          "explanation": "Một đề xuất cần mục tiêu đo được, hành động khả thi và cách theo dõi. Nêu cả rủi ro hoặc điều kiện để tránh hứa hẹn kết quả tuyệt đối. Ví dụ: 我们先小范围实施，再根据反馈调整方案。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "方案首先采取什么行动？",
+          "options": [
+            "要求所有学生减少饭量",
+            "在一个窗口试行小份菜",
+            "立即取消所有大份菜"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Trường muốn giảm lãng phí thức ăn nhưng không thể chỉ yêu cầu học sinh ăn ít. Khảo sát thấy một số em không biết khẩu phần. Hội sinh viên đề nghị thử suất nhỏ ở một quầy, ghi rõ lượng và giá. Sau hai tuần, so sánh thức ăn thừa, mức hài lòng và khối lượng việc của nhân viên. Hiệu quả tốt thì mở rộng dần; có vấn đề thì điều chỉnh thay vì vội tuyên bố thành công."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 方案 (fāng àn) nghĩa là gì?",
+          "options": [
+            "thực hiện, thi hành",
+            "tài nguyên",
+            "phương án, kế hoạch"
+          ],
+          "answer": 2,
+          "explanation": "方案 · fāng àn: phương án, kế hoạch."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 实施 (shí shī) nghĩa là gì?",
+          "options": [
+            "tài nguyên",
+            "thực hiện, thi hành",
+            "phương án, kế hoạch"
+          ],
+          "answer": 1,
+          "explanation": "实施 · shí shī: thực hiện, thi hành."
+        }
+      ]
+    },
+    {
+      "id": "hsk6-01",
+      "hsk": 6,
+      "order": 1,
+      "title": "Luận điểm, tiền đề và suy luận",
+      "minutes": 20,
+      "review": false,
+      "objective": "Vận dụng 只有在……的前提下，才能…… trong chủ đề luận điểm, tiền đề và suy luận.",
+      "vocabulary": [
+        {
+          "hanzi": "前提",
+          "pinyin": "qián tí",
+          "meaning": "tiền đề",
+          "hsk": 6
+        },
+        {
+          "hanzi": "推理",
+          "pinyin": "tuī lǐ",
+          "meaning": "suy luận, lập luận",
+          "hsk": 6
+        },
+        {
+          "hanzi": "论证",
+          "pinyin": "lùn zhèng",
+          "meaning": "luận chứng, chứng minh",
+          "hsk": 6
+        },
+        {
+          "hanzi": "结论",
+          "pinyin": "jié lùn",
+          "meaning": "kết luận",
+          "hsk": 5
+        },
+        {
+          "hanzi": "依据",
+          "pinyin": "yī jù",
+          "meaning": "căn cứ, dựa trên",
+          "hsk": 6
+        }
+      ],
+      "grammar": {
+        "pattern": "只有在……的前提下，才能……",
+        "note": "Phân biệt điều kiện cần, dữ kiện và kết luận. Một lập luận có thể hợp hình thức nhưng kết luận vẫn thiếu chắc chắn nếu tiền đề chưa được chứng minh.",
+        "example": {
+          "hanzi": "只有在样本具有代表性的前提下，才能作出可靠判断。",
+          "pinyin": "Zhǐyǒu zài yàngběn jùyǒu dàibiǎoxìng de qiántí xià, cái néng zuò chū kěkào pànduàn.",
+          "meaning": "Chỉ khi mẫu có tính đại diện mới có thể đưa ra nhận định đáng tin."
+        }
+      },
+      "reading": {
+        "hanzi": "一份调查显示，接受访问的居民大多支持延长图书馆开放时间。有人据此断言，全市居民都有同样的需求。然而，调查只在图书馆门口进行，受访者本来就更可能使用这项服务。结果能够说明常来图书馆的人有这种愿望，却不足以直接代表所有市民。若要扩大结论的适用范围，就应补充不同地区、年龄和使用习惯的样本，并公开调查方式。这并不是否定调查的价值，而是让结论与证据保持相称。",
+        "meaning": "Khảo sát cho thấy đa số người được hỏi ủng hộ kéo dài giờ thư viện. Có người kết luận toàn thành phố có cùng nhu cầu. Nhưng khảo sát chỉ diễn ra ở cửa thư viện, nơi người được hỏi vốn dễ dùng dịch vụ hơn. Kết quả cho biết mong muốn của người hay đến, chưa đại diện mọi cư dân. Muốn mở rộng kết luận cần thêm mẫu theo khu vực, tuổi và thói quen, đồng thời công khai cách khảo sát. Đây không phải phủ nhận giá trị mà là giữ kết luận tương xứng bằng chứng."
+      },
+      "task": "Chỉ ra tiền đề còn thiếu trong một kết luận phổ biến và cách kiểm tra nó.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "“只有在样本具有代表性的前提下，才能推广结论”强调什么？",
+          "options": [
+            "样本数量多就一定能推广结论",
+            "任何样本都能代表所有人",
+            "代表性是推广结论的必要条件"
+          ],
+          "answer": 2,
+          "explanation": "Phân biệt điều kiện cần, dữ kiện và kết luận. Một lập luận có thể hợp hình thức nhưng kết luận vẫn thiếu chắc chắn nếu tiền đề chưa được chứng minh. Ví dụ: 只有在样本具有代表性的前提下，才能作出可靠判断。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "作者质疑的主要是什么？",
+          "options": [
+            "调查完全没有任何价值",
+            "从有限样本推及全体居民",
+            "图书馆存在使用需求"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Khảo sát cho thấy đa số người được hỏi ủng hộ kéo dài giờ thư viện. Có người kết luận toàn thành phố có cùng nhu cầu. Nhưng khảo sát chỉ diễn ra ở cửa thư viện, nơi người được hỏi vốn dễ dùng dịch vụ hơn. Kết quả cho biết mong muốn của người hay đến, chưa đại diện mọi cư dân. Muốn mở rộng kết luận cần thêm mẫu theo khu vực, tuổi và thói quen, đồng thời công khai cách khảo sát. Đây không phải phủ nhận giá trị mà là giữ kết luận tương xứng bằng chứng."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 前提 (qián tí) nghĩa là gì?",
+          "options": [
+            "suy luận, lập luận",
+            "luận chứng, chứng minh",
+            "tiền đề"
+          ],
+          "answer": 2,
+          "explanation": "前提 · qián tí: tiền đề."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 推理 (tuī lǐ) nghĩa là gì?",
+          "options": [
+            "luận chứng, chứng minh",
+            "suy luận, lập luận",
+            "tiền đề"
+          ],
+          "answer": 1,
+          "explanation": "推理 · tuī lǐ: suy luận, lập luận."
+        }
+      ]
+    },
+    {
+      "id": "hsk6-02",
+      "hsk": 6,
+      "order": 2,
+      "title": "Tương quan không đồng nghĩa nhân quả",
+      "minutes": 20,
+      "review": false,
+      "objective": "Vận dụng 与……相关，不等于由……引起 trong chủ đề tương quan không đồng nghĩa nhân quả.",
+      "vocabulary": [
+        {
+          "hanzi": "相关",
+          "pinyin": "xiāng guān",
+          "meaning": "liên quan",
+          "hsk": 5
+        },
+        {
+          "hanzi": "因果",
+          "pinyin": "yīnguǒ",
+          "meaning": "nhân quả",
+          "hsk": null
+        },
+        {
+          "hanzi": "干扰",
+          "pinyin": "gān rǎo",
+          "meaning": "can thiệp, gây nhiễu",
+          "hsk": 6
+        },
+        {
+          "hanzi": "验证",
+          "pinyin": "yàn zhèng",
+          "meaning": "kiểm nghiệm, xác minh",
+          "hsk": 6
+        },
+        {
+          "hanzi": "机制",
+          "pinyin": "jīzhì",
+          "meaning": "cơ chế",
+          "hsk": null
+        }
+      ],
+      "grammar": {
+        "pattern": "与……相关，不等于由……引起",
+        "note": "Hai biến thay đổi cùng nhau có thể do yếu tố thứ ba hoặc nhân quả đảo chiều. Dùng 可能、尚不能 xác định mức chắc chắn thay vì kết luận vượt dữ liệu.",
+        "example": {
+          "hanzi": "两种现象同时出现，并不意味着存在直接因果关系。",
+          "pinyin": "Liǎng zhǒng xiànxiàng tóngshí chūxiàn, bìng bù yìwèizhe cúnzài zhíjiē yīnguǒ guānxi.",
+          "meaning": "Hai hiện tượng cùng xuất hiện không có nghĩa có quan hệ nhân quả trực tiếp."
+        }
+      },
+      "reading": {
+        "hanzi": "某学校发现，经常参加社团的学生平均成绩较高，于是有人建议把参加社团作为提高成绩的唯一办法。这个建议忽略了多种可能：这些学生也许原本就更善于安排时间，家庭支持程度也可能不同。社团活动或许确有帮助，但仅凭这组数据，还无法排除其他因素。更谨慎的做法是追踪同一批学生的变化，比较相近条件下的情况，并说明研究的限制。发现相关关系可以提出问题，却不能替代对原因的验证。",
+        "meaning": "Một trường thấy học sinh thường tham gia câu lạc bộ có điểm trung bình cao hơn, nên có người đề nghị coi đó là cách duy nhất nâng điểm. Nhưng các em có thể vốn biết quản lý thời gian hơn hoặc nhận hỗ trợ gia đình khác nhau. Câu lạc bộ có thể hữu ích, song dữ liệu này chưa loại trừ yếu tố khác. Cách thận trọng hơn là theo dõi cùng nhóm theo thời gian, so điều kiện gần nhau và nêu giới hạn nghiên cứu. Tương quan giúp đặt câu hỏi chứ không thay việc xác minh nguyên nhân."
+      },
+      "task": "Viết đoạn phản biện một kết luận nhân quả, đưa ra hai giải thích thay thế.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "“并不意味着存在因果关系”表达什么？",
+          "options": [
+            "已经证明前者一定导致后者",
+            "现有信息不足以确认因果关系",
+            "已经证明两者绝不相关"
+          ],
+          "answer": 1,
+          "explanation": "Hai biến thay đổi cùng nhau có thể do yếu tố thứ ba hoặc nhân quả đảo chiều. Dùng 可能、尚不能 xác định mức chắc chắn thay vì kết luận vượt dữ liệu. Ví dụ: 两种现象同时出现，并不意味着存在直接因果关系。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "作者认为目前的数据能说明什么？",
+          "options": [
+            "两者相关，但原因尚需验证",
+            "社团是提高成绩的唯一原因",
+            "家庭支持完全没有影响"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Một trường thấy học sinh thường tham gia câu lạc bộ có điểm trung bình cao hơn, nên có người đề nghị coi đó là cách duy nhất nâng điểm. Nhưng các em có thể vốn biết quản lý thời gian hơn hoặc nhận hỗ trợ gia đình khác nhau. Câu lạc bộ có thể hữu ích, song dữ liệu này chưa loại trừ yếu tố khác. Cách thận trọng hơn là theo dõi cùng nhóm theo thời gian, so điều kiện gần nhau và nêu giới hạn nghiên cứu. Tương quan giúp đặt câu hỏi chứ không thay việc xác minh nguyên nhân."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 相关 (xiāng guān) nghĩa là gì?",
+          "options": [
+            "can thiệp, gây nhiễu",
+            "liên quan",
+            "nhân quả"
+          ],
+          "answer": 1,
+          "explanation": "相关 · xiāng guān: liên quan."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 因果 (yīnguǒ) nghĩa là gì?",
+          "options": [
+            "nhân quả",
+            "liên quan",
+            "can thiệp, gây nhiễu"
+          ],
+          "answer": 0,
+          "explanation": "因果 · yīnguǒ: nhân quả."
+        }
+      ]
+    },
+    {
+      "id": "hsk6-03",
+      "hsk": 6,
+      "order": 3,
+      "title": "Sắc thái và mức độ khẳng định",
+      "minutes": 20,
+      "review": false,
+      "objective": "Vận dụng 未必 / 不见得 + vị ngữ trong chủ đề sắc thái và mức độ khẳng định.",
+      "vocabulary": [
+        {
+          "hanzi": "未必",
+          "pinyin": "wèi bì",
+          "meaning": "chưa chắc, chưa hẳn",
+          "hsk": 5
+        },
+        {
+          "hanzi": "难免",
+          "pinyin": "nán miǎn",
+          "meaning": "khó tránh khỏi",
+          "hsk": 6
+        },
+        {
+          "hanzi": "显然",
+          "pinyin": "xiǎn rán",
+          "meaning": "rõ ràng",
+          "hsk": 5
+        },
+        {
+          "hanzi": "倾向",
+          "pinyin": "qīng xiàng",
+          "meaning": "xu hướng, khuynh hướng",
+          "hsk": 6
+        },
+        {
+          "hanzi": "判断",
+          "pinyin": "pàn duàn",
+          "meaning": "phán đoán, đánh giá",
+          "hsk": 4
+        }
+      ],
+      "grammar": {
+        "pattern": "未必 / 不见得 + vị ngữ",
+        "note": "未必 nghĩa là không nhất thiết, không phải chắc chắn phủ định. 难免 nói điều khó tránh; 显然 đánh dấu người viết cho là rõ ràng nhưng vẫn cần căn cứ.",
+        "example": {
+          "hanzi": "表达得越复杂，未必就越有说服力。",
+          "pinyin": "Biǎodá de yuè fùzá, wèibì jiù yuè yǒu shuōfúlì.",
+          "meaning": "Diễn đạt càng phức tạp chưa chắc càng thuyết phục."
+        }
+      },
+      "reading": {
+        "hanzi": "在专业讨论中，术语能够提高表达效率，但术语越多，文章未必越严谨。如果作者没有解释概念之间的关系，读者即使认识每个词，也可能无法理解论证。相反，一篇语言朴素、证据清楚的文章，往往更容易让人检验其观点。这里强调的不是排斥专业语言，而是根据读者和目的作出选择。真正的准确，不在于刻意制造理解障碍，而在于让复杂内容得到恰当说明。",
+        "meaning": "Trong thảo luận chuyên môn, thuật ngữ giúp diễn đạt hiệu quả nhưng nhiều thuật ngữ chưa chắc làm bài chặt chẽ. Không giải thích quan hệ khái niệm thì người đọc biết từng từ vẫn có thể không hiểu lập luận. Bài dùng lời giản dị, bằng chứng rõ thường dễ kiểm tra quan điểm hơn. Ý này không bài xích ngôn ngữ chuyên môn mà đòi chọn theo độc giả và mục đích. Chính xác là giải thích hợp lý nội dung phức tạp, không phải cố tạo rào cản."
+      },
+      "task": "Sửa ba câu khẳng định quá mạnh bằng từ chỉ mức độ phù hợp, giữ nguyên ý chính.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "哪句与“术语越多，文章未必越严谨”意思最接近？",
+          "options": [
+            "术语多不一定能提高严谨程度",
+            "只要使用术语，文章就不严谨",
+            "术语多少完全决定文章质量"
+          ],
+          "answer": 0,
+          "explanation": "未必 nghĩa là không nhất thiết, không phải chắc chắn phủ định. 难免 nói điều khó tránh; 显然 đánh dấu người viết cho là rõ ràng nhưng vẫn cần căn cứ. Ví dụ: 表达得越复杂，未必就越有说服力。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "文中“未必越严谨”是什么意思？",
+          "options": [
+            "一定不严谨",
+            "一定更严谨",
+            "不一定更严谨"
+          ],
+          "answer": 2,
+          "explanation": "Đối chiếu đoạn đọc: Trong thảo luận chuyên môn, thuật ngữ giúp diễn đạt hiệu quả nhưng nhiều thuật ngữ chưa chắc làm bài chặt chẽ. Không giải thích quan hệ khái niệm thì người đọc biết từng từ vẫn có thể không hiểu lập luận. Bài dùng lời giản dị, bằng chứng rõ thường dễ kiểm tra quan điểm hơn. Ý này không bài xích ngôn ngữ chuyên môn mà đòi chọn theo độc giả và mục đích. Chính xác là giải thích hợp lý nội dung phức tạp, không phải cố tạo rào cản."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 未必 (wèi bì) nghĩa là gì?",
+          "options": [
+            "chưa chắc, chưa hẳn",
+            "khó tránh khỏi",
+            "rõ ràng"
+          ],
+          "answer": 0,
+          "explanation": "未必 · wèi bì: chưa chắc, chưa hẳn."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 难免 (nán miǎn) nghĩa là gì?",
+          "options": [
+            "chưa chắc, chưa hẳn",
+            "rõ ràng",
+            "khó tránh khỏi"
+          ],
+          "answer": 2,
+          "explanation": "难免 · nán miǎn: khó tránh khỏi."
+        }
+      ]
+    },
+    {
+      "id": "hsk6-04",
+      "hsk": 6,
+      "order": 4,
+      "title": "Hàm ý và giọng điệu",
+      "minutes": 20,
+      "review": false,
+      "objective": "Vận dụng 言外之意：kết hợp lời nói + ngữ cảnh trong chủ đề hàm ý và giọng điệu.",
+      "vocabulary": [
+        {
+          "hanzi": "含义",
+          "pinyin": "hán yì",
+          "meaning": "ý nghĩa ẩn chứa, hàm ý",
+          "hsk": 6
+        },
+        {
+          "hanzi": "暗示",
+          "pinyin": "àn shì",
+          "meaning": "ám chỉ, gợi ý, ra hiệu",
+          "hsk": 6
+        },
+        {
+          "hanzi": "语气",
+          "pinyin": "yǔ qì",
+          "meaning": "ngữ khí, giọng điệu",
+          "hsk": 5
+        },
+        {
+          "hanzi": "场合",
+          "pinyin": "chǎng hé",
+          "meaning": "dịp, hoàn cảnh giao tiếp",
+          "hsk": 6
+        },
+        {
+          "hanzi": "意图",
+          "pinyin": "yì tú",
+          "meaning": "ý đồ, mưu đồ",
+          "hsk": 6
+        }
+      ],
+      "grammar": {
+        "pattern": "言外之意：kết hợp lời nói + ngữ cảnh",
+        "note": "Hàm ý cần được suy ra từ bối cảnh và quan hệ người nói. Không gán mỉa mai chỉ vì thấy một từ tích cực; nên phân biệt điều văn bản nói thẳng và điều người đọc suy luận.",
+        "example": {
+          "hanzi": "这句话表面上是询问，实际上是在提醒。",
+          "pinyin": "Zhè jù huà biǎomiàn shang shì xúnwèn, shíjì shang shì zài tíxǐng.",
+          "meaning": "Câu này bề ngoài là hỏi, thực chất là nhắc nhở."
+        }
+      },
+      "reading": {
+        "hanzi": "会议已经超过预定时间，主持人看了一眼时钟，对正在补充细节的同事说：“这些信息很有价值，我们是不是可以先确定今天的结论？”这句话并没有否定同事的工作，却把讨论重点从继续补充转向作出决定。如果只看“信息很有价值”，可能会误以为主持人在鼓励对方无限延长发言。理解这类表达，需要同时注意场合、时间压力和后半句的行动建议，也应避免把礼貌提醒轻率地解释为讽刺。",
+        "meaning": "Cuộc họp quá giờ, chủ trì nhìn đồng hồ rồi nói với đồng nghiệp đang thêm chi tiết: “Thông tin này rất có giá trị, chúng ta có thể xác định kết luận hôm nay trước không?” Câu nói không phủ nhận công việc mà chuyển trọng tâm sang quyết định. Chỉ nhìn lời khen có thể tưởng chủ trì muốn kéo dài phát biểu. Hiểu đúng cần chú ý bối cảnh, áp lực thời gian và đề nghị hành động, đồng thời không vội coi lời nhắc lịch sự là mỉa mai."
+      },
+      "task": "Phân tích một lời nhắc lịch sự: nghĩa trực tiếp, hàm ý và chứng cứ ngữ cảnh.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "“表面上是询问，实际上是在提醒”区分了什么？",
+          "options": [
+            "事情发生的先后顺序",
+            "两位说话者的年龄差异",
+            "话语的形式与交际意图"
+          ],
+          "answer": 2,
+          "explanation": "Hàm ý cần được suy ra từ bối cảnh và quan hệ người nói. Không gán mỉa mai chỉ vì thấy một từ tích cực; nên phân biệt điều văn bản nói thẳng và điều người đọc suy luận. Ví dụ: 这句话表面上是询问，实际上是在提醒。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "主持人的主要意图是什么？",
+          "options": [
+            "否定所有信息的价值",
+            "推动讨论形成结论",
+            "要求无限补充细节"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Cuộc họp quá giờ, chủ trì nhìn đồng hồ rồi nói với đồng nghiệp đang thêm chi tiết: “Thông tin này rất có giá trị, chúng ta có thể xác định kết luận hôm nay trước không?” Câu nói không phủ nhận công việc mà chuyển trọng tâm sang quyết định. Chỉ nhìn lời khen có thể tưởng chủ trì muốn kéo dài phát biểu. Hiểu đúng cần chú ý bối cảnh, áp lực thời gian và đề nghị hành động, đồng thời không vội coi lời nhắc lịch sự là mỉa mai."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 含义 (hán yì) nghĩa là gì?",
+          "options": [
+            "ám chỉ, gợi ý, ra hiệu",
+            "ngữ khí, giọng điệu",
+            "ý nghĩa ẩn chứa, hàm ý"
+          ],
+          "answer": 2,
+          "explanation": "含义 · hán yì: ý nghĩa ẩn chứa, hàm ý."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 暗示 (àn shì) nghĩa là gì?",
+          "options": [
+            "ngữ khí, giọng điệu",
+            "ám chỉ, gợi ý, ra hiệu",
+            "ý nghĩa ẩn chứa, hàm ý"
+          ],
+          "answer": 1,
+          "explanation": "暗示 · àn shì: ám chỉ, gợi ý, ra hiệu."
+        }
+      ]
+    },
+    {
+      "id": "hsk6-05",
+      "hsk": 6,
+      "order": 5,
+      "title": "Mạch liên kết và phép quy chiếu",
+      "minutes": 20,
+      "review": false,
+      "objective": "Vận dụng 这 / 此 / 其 cần có đối tượng quy chiếu rõ trong chủ đề mạch liên kết và phép quy chiếu.",
+      "vocabulary": [
+        {
+          "hanzi": "衔接",
+          "pinyin": "xián jiē",
+          "meaning": "nối liền, gắn kết",
+          "hsk": 6
+        },
+        {
+          "hanzi": "结构",
+          "pinyin": "jié gòu",
+          "meaning": "cấu trúc, kết cấu",
+          "hsk": 5
+        },
+        {
+          "hanzi": "逻辑",
+          "pinyin": "luó ji",
+          "meaning": "lô-gích, logic",
+          "hsk": 5
+        },
+        {
+          "hanzi": "指代",
+          "pinyin": "zhǐdài",
+          "meaning": "quy chiếu; chỉ thay",
+          "hsk": null
+        },
+        {
+          "hanzi": "层次",
+          "pinyin": "céng cì",
+          "meaning": "tầng lớp, cấp độ",
+          "hsk": 6
+        }
+      ],
+      "grammar": {
+        "pattern": "这 / 此 / 其 cần có đối tượng quy chiếu rõ",
+        "note": "Đại từ và từ nối giúp mạch văn liền lạc khi người đọc xác định được chúng chỉ gì. Một từ nối đúng ngữ pháp vẫn có thể sai quan hệ logic của hai vế.",
+        "example": {
+          "hanzi": "这一变化既带来了便利，也提出了新的要求。",
+          "pinyin": "Zhè yī biànhuà jì dàilái le biànlì, yě tíchū le xīn de yāoqiú.",
+          "meaning": "Thay đổi này vừa đem lại tiện lợi vừa đặt ra yêu cầu mới."
+        }
+      },
+      "reading": {
+        "hanzi": "城市越来越多地使用线上平台处理公共事务，居民不必为每一项手续都到现场排队。这一变化提高了效率，也使数字能力成为获得便利的重要条件。对于不熟悉智能设备的人，单纯增加线上功能未必能改善体验。因此，服务设计还需要保留必要的人工协助。这里的“协助”并非否定技术，而是补足技术无法独立解决的环节。只有把效率与可及性放在一起考虑，改进才不至于让部分人落在后面。",
+        "meaning": "Thành phố ngày càng dùng nền tảng trực tuyến xử lý việc công, người dân không phải đến xếp hàng cho mọi thủ tục. Thay đổi này tăng hiệu suất nhưng cũng khiến kỹ năng số thành điều kiện hưởng tiện ích. Với người không quen thiết bị, chỉ thêm chức năng mạng chưa chắc cải thiện trải nghiệm. Vì thế cần giữ hỗ trợ con người. Hỗ trợ không phủ nhận công nghệ mà bổ sung phần công nghệ chưa tự giải quyết được. Cân nhắc cả hiệu suất lẫn khả năng tiếp cận mới tránh bỏ lại một số người."
+      },
+      "task": "Rút gọn một đoạn lặp từ bằng phép quy chiếu nhưng không làm mơ hồ chủ thể.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "要让“这一变化”指代清楚，前文需要什么？",
+          "options": [
+            "完全相反且未解释的结论",
+            "一个可以明确识别的变化",
+            "尽可能多的无关例子"
+          ],
+          "answer": 1,
+          "explanation": "Đại từ và từ nối giúp mạch văn liền lạc khi người đọc xác định được chúng chỉ gì. Một từ nối đúng ngữ pháp vẫn có thể sai quan hệ logic của hai vế. Ví dụ: 这一变化既带来了便利，也提出了新的要求。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "“这一变化”主要指什么？",
+          "options": [
+            "更多公共事务转到线上处理",
+            "所有人都不使用智能设备",
+            "完全取消人工协助"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Thành phố ngày càng dùng nền tảng trực tuyến xử lý việc công, người dân không phải đến xếp hàng cho mọi thủ tục. Thay đổi này tăng hiệu suất nhưng cũng khiến kỹ năng số thành điều kiện hưởng tiện ích. Với người không quen thiết bị, chỉ thêm chức năng mạng chưa chắc cải thiện trải nghiệm. Vì thế cần giữ hỗ trợ con người. Hỗ trợ không phủ nhận công nghệ mà bổ sung phần công nghệ chưa tự giải quyết được. Cân nhắc cả hiệu suất lẫn khả năng tiếp cận mới tránh bỏ lại một số người."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 衔接 (xián jiē) nghĩa là gì?",
+          "options": [
+            "lô-gích, logic",
+            "nối liền, gắn kết",
+            "cấu trúc, kết cấu"
+          ],
+          "answer": 1,
+          "explanation": "衔接 · xián jiē: nối liền, gắn kết."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 结构 (jié gòu) nghĩa là gì?",
+          "options": [
+            "cấu trúc, kết cấu",
+            "nối liền, gắn kết",
+            "lô-gích, logic"
+          ],
+          "answer": 0,
+          "explanation": "结构 · jié gòu: cấu trúc, kết cấu."
+        }
+      ]
+    },
+    {
+      "id": "hsk6-06",
+      "hsk": 6,
+      "order": 6,
+      "title": "Phản biện công bằng",
+      "minutes": 20,
+      "review": false,
+      "objective": "Vận dụng 不可否认……，但这并不意味着…… trong chủ đề phản biện công bằng.",
+      "vocabulary": [
+        {
+          "hanzi": "反驳",
+          "pinyin": "fǎn bó",
+          "meaning": "bác bỏ, phản bác",
+          "hsk": 6
+        },
+        {
+          "hanzi": "立场",
+          "pinyin": "lì chǎng",
+          "meaning": "lập trường, quan điểm",
+          "hsk": 6
+        },
+        {
+          "hanzi": "让步",
+          "pinyin": "ràng bù",
+          "meaning": "nhượng bộ, thỏa hiệp",
+          "hsk": 6
+        },
+        {
+          "hanzi": "争议",
+          "pinyin": "zhēng yì",
+          "meaning": "tranh cãi, tranh luận, sự bất đồng",
+          "hsk": 6
+        },
+        {
+          "hanzi": "客观",
+          "pinyin": "kè guān",
+          "meaning": "khách quan",
+          "hsk": 5
+        }
+      ],
+      "grammar": {
+        "pattern": "不可否认……，但这并不意味着……",
+        "note": "Trước khi phản biện, trình bày đúng ý đối phương và thừa nhận phần có căn cứ. Bác bỏ một kết luận quá rộng không đồng nghĩa phủ nhận toàn bộ hiện tượng.",
+        "example": {
+          "hanzi": "不可否认，技术提高了效率，但这并不意味着判断可以完全交给机器。",
+          "pinyin": "Bù kě fǒurèn, jìshù tígāo le xiàolǜ, dàn zhè bìng bù yìwèizhe pànduàn kěyǐ wánquán jiāo gěi jīqì.",
+          "meaning": "Không thể phủ nhận công nghệ tăng hiệu suất, nhưng điều đó không có nghĩa giao toàn bộ phán đoán cho máy."
+        }
+      },
+      "reading": {
+        "hanzi": "有人主张用自动系统完成所有服务评价，理由是机器不会疲劳，能够保持一致。这个观点指出了自动化的优势，值得认真对待。然而，一致地执行规则不等于规则本身合理。当评价涉及特殊处境或规则尚未覆盖的情况时，仍需要解释和申诉的空间。因此，更有建设性的讨论不是简单地支持或反对自动化，而是明确哪些环节适合自动处理、哪些决定必须允许人工复核，以及出现错误时由谁负责。",
+        "meaning": "Có người muốn dùng hệ thống tự động cho mọi đánh giá dịch vụ vì máy không mệt và nhất quán. Quan điểm này nêu ưu thế thực của tự động hóa. Tuy nhiên thi hành quy tắc nhất quán không bảo đảm quy tắc hợp lý. Trường hợp đặc biệt hoặc ngoài quy tắc vẫn cần giải thích và khiếu nại. Thảo luận hữu ích hơn là xác định khâu tự động, quyết định cần con người xem lại và trách nhiệm khi có lỗi, thay vì chỉ ủng hộ hay phản đối chung chung."
+      },
+      "task": "Viết phản biện 150 chữ Hán: trình bày ý đối phương, thừa nhận ưu điểm, nêu giới hạn.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "“不可否认……，但这并不意味着……”采用哪种论证方式？",
+          "options": [
+            "先承认合理部分，再限制结论范围",
+            "先完全否定事实，再重复对方结论",
+            "不分析证据，直接扩大适用范围"
+          ],
+          "answer": 0,
+          "explanation": "Trước khi phản biện, trình bày đúng ý đối phương và thừa nhận phần có căn cứ. Bác bỏ một kết luận quá rộng không đồng nghĩa phủ nhận toàn bộ hiện tượng. Ví dụ: 不可否认，技术提高了效率，但这并不意味着判断可以完全交给机器。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "作者对自动化持什么态度？",
+          "options": [
+            "完全否定所有自动化",
+            "认为一致性足以保证合理性",
+            "承认优势，同时要求明确边界和责任"
+          ],
+          "answer": 2,
+          "explanation": "Đối chiếu đoạn đọc: Có người muốn dùng hệ thống tự động cho mọi đánh giá dịch vụ vì máy không mệt và nhất quán. Quan điểm này nêu ưu thế thực của tự động hóa. Tuy nhiên thi hành quy tắc nhất quán không bảo đảm quy tắc hợp lý. Trường hợp đặc biệt hoặc ngoài quy tắc vẫn cần giải thích và khiếu nại. Thảo luận hữu ích hơn là xác định khâu tự động, quyết định cần con người xem lại và trách nhiệm khi có lỗi, thay vì chỉ ủng hộ hay phản đối chung chung."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 反驳 (fǎn bó) nghĩa là gì?",
+          "options": [
+            "bác bỏ, phản bác",
+            "lập trường, quan điểm",
+            "nhượng bộ, thỏa hiệp"
+          ],
+          "answer": 0,
+          "explanation": "反驳 · fǎn bó: bác bỏ, phản bác."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 立场 (lì chǎng) nghĩa là gì?",
+          "options": [
+            "bác bỏ, phản bác",
+            "nhượng bộ, thỏa hiệp",
+            "lập trường, quan điểm"
+          ],
+          "answer": 2,
+          "explanation": "立场 · lì chǎng: lập trường, quan điểm."
+        }
+      ]
+    },
+    {
+      "id": "hsk6-07",
+      "hsk": 6,
+      "order": 7,
+      "title": "Văn phong và biên tập câu",
+      "minutes": 20,
+      "review": false,
+      "objective": "Vận dụng 删繁就简：giữ nghĩa, bỏ trùng lặp trong chủ đề văn phong và biên tập câu.",
+      "vocabulary": [
+        {
+          "hanzi": "简洁",
+          "pinyin": "jiǎnjié",
+          "meaning": "ngắn gọn; súc tích",
+          "hsk": null
+        },
+        {
+          "hanzi": "准确",
+          "pinyin": "zhǔn què",
+          "meaning": "chính xác",
+          "hsk": 4
+        },
+        {
+          "hanzi": "冗长",
+          "pinyin": "rǒngcháng",
+          "meaning": "dài dòng",
+          "hsk": null
+        },
+        {
+          "hanzi": "修改",
+          "pinyin": "xiū gǎi",
+          "meaning": "sửa đổi, chỉnh sửa",
+          "hsk": 5
+        },
+        {
+          "hanzi": "表达",
+          "pinyin": "biǎo dá",
+          "meaning": "biểu đạt, diễn đạt",
+          "hsk": 4
+        }
+      ],
+      "grammar": {
+        "pattern": "删繁就简：giữ nghĩa, bỏ trùng lặp",
+        "note": "Biên tập không chỉ rút ngắn: phải giữ điều kiện, phạm vi và mức chắc chắn. Cụm 可能、部分、在……情况下 có thể cần thiết, không nên xóa để câu trông mạnh hơn.",
+        "example": {
+          "hanzi": "修改的目标是表达准确，而不只是字数更少。",
+          "pinyin": "Xiūgǎi de mùbiāo shì biǎodá zhǔnquè, ér bù zhǐ shì zìshù gèng shǎo.",
+          "meaning": "Mục tiêu chỉnh sửa là diễn đạt chính xác, không chỉ giảm số chữ."
+        }
+      },
+      "reading": {
+        "hanzi": "一位编辑把“在本次调查的受访者中，部分人表示可能愿意再次参加”改成“大家都愿意再次参加”。句子虽然短了，意思却发生了明显变化：调查范围被扩大，“部分”变成“全部”，“可能”也变成了确定态度。这样的修改不能算成功。更合适的表达是“部分受访者表示可能再次参加”。它删去了可以省略的词语，却保留了范围和不确定性。由此可见，简洁必须以忠实于原意为前提，而不是用过度肯定换取表面上的有力。",
+        "meaning": "Biên tập viên đổi “Trong người tham gia khảo sát này, một số cho biết có thể muốn tham gia lại” thành “Mọi người đều muốn tham gia lại”. Câu ngắn hơn nhưng phạm vi bị mở rộng, một số thành toàn bộ, có thể thành chắc chắn. Cách sửa tốt hơn là “Một số người được hỏi cho biết có thể tham gia lại”, bỏ từ thừa mà giữ phạm vi và độ bất định. Súc tích phải trung thành ý gốc, không đổi sự thận trọng lấy vẻ mạnh mẽ."
+      },
+      "task": "Biên tập một đoạn 120 chữ xuống 80 chữ và liệt kê những giới hạn nghĩa đã giữ.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "哪项修改保留了“部分人可能再次参加”的含义？",
+          "options": [
+            "所有人一定会再次参加",
+            "没有人愿意再次参加",
+            "一些人或许会再次参加"
+          ],
+          "answer": 2,
+          "explanation": "Biên tập không chỉ rút ngắn: phải giữ điều kiện, phạm vi và mức chắc chắn. Cụm 可能、部分、在……情况下 có thể cần thiết, không nên xóa để câu trông mạnh hơn. Ví dụ: 修改的目标是表达准确，而不只是字数更少。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "原修改最主要的问题是什么？",
+          "options": [
+            "只是减少了重复词语",
+            "扩大范围并强化了确定性",
+            "保留了原文全部限制"
+          ],
+          "answer": 1,
+          "explanation": "Đối chiếu đoạn đọc: Biên tập viên đổi “Trong người tham gia khảo sát này, một số cho biết có thể muốn tham gia lại” thành “Mọi người đều muốn tham gia lại”. Câu ngắn hơn nhưng phạm vi bị mở rộng, một số thành toàn bộ, có thể thành chắc chắn. Cách sửa tốt hơn là “Một số người được hỏi cho biết có thể tham gia lại”, bỏ từ thừa mà giữ phạm vi và độ bất định. Súc tích phải trung thành ý gốc, không đổi sự thận trọng lấy vẻ mạnh mẽ."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 简洁 (jiǎnjié) nghĩa là gì?",
+          "options": [
+            "chính xác",
+            "dài dòng",
+            "ngắn gọn; súc tích"
+          ],
+          "answer": 2,
+          "explanation": "简洁 · jiǎnjié: ngắn gọn; súc tích."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 准确 (zhǔn què) nghĩa là gì?",
+          "options": [
+            "dài dòng",
+            "chính xác",
+            "ngắn gọn; súc tích"
+          ],
+          "answer": 1,
+          "explanation": "准确 · zhǔn què: chính xác."
+        }
+      ]
+    },
+    {
+      "id": "hsk6-08",
+      "hsk": 6,
+      "order": 8,
+      "title": "Ôn tập: Tổng hợp nhiều góc nhìn",
+      "minutes": 22,
+      "review": true,
+      "objective": "Vận dụng 共识 → 分歧 → 权衡 → 有条件的结论 trong chủ đề ôn tập: tổng hợp nhiều góc nhìn.",
+      "vocabulary": [
+        {
+          "hanzi": "综合",
+          "pinyin": "zōng hé",
+          "meaning": "tổng hợp",
+          "hsk": 5
+        },
+        {
+          "hanzi": "权衡",
+          "pinyin": "quán héng",
+          "meaning": "cân nhắc, đong đếm, so sánh lợi hại",
+          "hsk": 6
+        },
+        {
+          "hanzi": "长期",
+          "pinyin": "chángqī",
+          "meaning": "dài hạn",
+          "hsk": null
+        },
+        {
+          "hanzi": "可行",
+          "pinyin": "kě xíng",
+          "meaning": "khả thi, thực hiện được",
+          "hsk": 6
+        },
+        {
+          "hanzi": "反思",
+          "pinyin": "fǎn sī",
+          "meaning": "phản tư, ngẫm nghĩ lại, kiểm điểm lại",
+          "hsk": 6
+        }
+      ],
+      "grammar": {
+        "pattern": "共识 → 分歧 → 权衡 → 有条件的结论",
+        "note": "Tổng hợp không phải ghép các ý rời. Xác định điểm đồng thuận, khác biệt về tiêu chí, đánh đổi và điều kiện áp dụng. Kết luận cần nêu điều còn chưa biết.",
+        "example": {
+          "hanzi": "在权衡成本与收益之后，我们仍需检验方案的可行性。",
+          "pinyin": "Zài quánhéng chéngběn yǔ shōuyì zhīhòu, wǒmen réng xū jiǎnyàn fāng'àn de kěxíngxìng.",
+          "meaning": "Sau khi cân nhắc chi phí và lợi ích, chúng ta vẫn cần kiểm chứng tính khả thi của phương án."
+        }
+      },
+      "reading": {
+        "hanzi": "一座城市讨论是否延长公交运营时间。支持者强调夜间工作者的出行需要，反对者则担心成本增加和部分线路乘客过少。双方其实都希望公共资源得到有效使用，分歧在于如何衡量需求与投入。与其立即全面延长或彻底否决，不如先在需求较明确的线路试行，记录乘客数量、实际成本和其他交通方式的变化。评估还应关注服务是否帮助了原本出行困难的人，而不仅是平均客流。试行不能保证最终成功，却能让下一步决定建立在更充分的证据上。",
+        "meaning": "Một thành phố bàn kéo dài giờ xe buýt. Bên ủng hộ nhấn mạnh nhu cầu người làm đêm; bên phản đối lo chi phí và tuyến ít khách. Hai bên đều muốn dùng hiệu quả nguồn lực, khác nhau ở cách cân nhu cầu với đầu tư. Thay vì mở rộng ngay hoặc bác bỏ toàn bộ, có thể thử tuyến có nhu cầu rõ, ghi số khách, chi phí và thay đổi phương tiện khác. Đánh giá cần xem người vốn khó đi lại có được giúp không, ngoài lượng khách trung bình. Thử nghiệm không bảo đảm thành công nhưng cung cấp bằng chứng tốt hơn cho quyết định tiếp theo."
+      },
+      "task": "Viết 200–250 chữ Hán tổng hợp hai lập trường, một phương án thử và điều kiện đánh giá.",
+      "questions": [
+        {
+          "id": "q1",
+          "kind": "grammar",
+          "prompt": "“与其立即全面推行，不如先小范围试行”倾向哪种选择？",
+          "options": [
+            "不考虑任何条件而永久否决",
+            "先试行，再根据证据决定下一步",
+            "不经过评估就全面推行"
+          ],
+          "answer": 1,
+          "explanation": "Tổng hợp không phải ghép các ý rời. Xác định điểm đồng thuận, khác biệt về tiêu chí, đánh đổi và điều kiện áp dụng. Kết luận cần nêu điều còn chưa biết. Ví dụ: 在权衡成本与收益之后，我们仍需检验方案的可行性。"
+        },
+        {
+          "id": "q2",
+          "kind": "reading",
+          "prompt": "双方的共同目标是什么？",
+          "options": [
+            "有效使用公共资源",
+            "立即取消所有夜班公交",
+            "不考虑任何成本"
+          ],
+          "answer": 0,
+          "explanation": "Đối chiếu đoạn đọc: Một thành phố bàn kéo dài giờ xe buýt. Bên ủng hộ nhấn mạnh nhu cầu người làm đêm; bên phản đối lo chi phí và tuyến ít khách. Hai bên đều muốn dùng hiệu quả nguồn lực, khác nhau ở cách cân nhu cầu với đầu tư. Thay vì mở rộng ngay hoặc bác bỏ toàn bộ, có thể thử tuyến có nhu cầu rõ, ghi số khách, chi phí và thay đổi phương tiện khác. Đánh giá cần xem người vốn khó đi lại có được giúp không, ngoài lượng khách trung bình. Thử nghiệm không bảo đảm thành công nhưng cung cấp bằng chứng tốt hơn cho quyết định tiếp theo."
+        },
+        {
+          "id": "q3",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 综合 (zōng hé) nghĩa là gì?",
+          "options": [
+            "dài hạn",
+            "tổng hợp",
+            "cân nhắc, đong đếm, so sánh lợi hại"
+          ],
+          "answer": 1,
+          "explanation": "综合 · zōng hé: tổng hợp."
+        },
+        {
+          "id": "q4",
+          "kind": "vocabulary",
+          "prompt": "Trong bài này, 权衡 (quán héng) nghĩa là gì?",
+          "options": [
+            "cân nhắc, đong đếm, so sánh lợi hại",
+            "tổng hợp",
+            "dài hạn"
+          ],
+          "answer": 0,
+          "explanation": "权衡 · quán héng: cân nhắc, đong đếm, so sánh lợi hại."
+        }
+      ]
+    }
+  ]
+}
