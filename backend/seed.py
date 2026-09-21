@@ -123,7 +123,9 @@ WORDS = [
 
 def seed():
     init_db()
+    from vocabulary_catalog import init_catalog, refresh_search
     with database() as conn:
+        init_catalog(conn)
         for hanzi, pinyin, meaning, hsk, example, strokes in WORDS:
             conn.execute("INSERT OR IGNORE INTO vocabulary(hanzi,pinyin,meaning,hsk,example,strokes_json) VALUES(?,?,?,?,?,?)",
                          (hanzi, pinyin, meaning, hsk, example, json.dumps(strokes)))
@@ -161,6 +163,8 @@ def seed():
                 "INSERT INTO exams(title,hsk,status,duration_minutes,questions_json) VALUES(?,?,'draft',10,?)",
                 (listening_title, 1, json.dumps([listening_question], ensure_ascii=False)),
             )
+
+        refresh_search(conn)
 
 
 if __name__ == "__main__":

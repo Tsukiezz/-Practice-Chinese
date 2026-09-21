@@ -1,0 +1,2 @@
+-r backend/requirements.txt
+libsql==0.1.11

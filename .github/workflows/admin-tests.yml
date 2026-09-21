@@ -9,6 +9,11 @@ permissions:
 jobs:
   admin:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        database: [sqlite, libsql]
+    env:
+      HANZIGO_DB_DRIVER: ${{ matrix.database }}
     defaults:
       run:
         working-directory: backend

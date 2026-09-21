@@ -58,3 +58,10 @@ app.*.map.json
 **/node_modules/
 test-results/
 playwright-report/
+.vercel
+
+# Generated Vercel static build and local deployment artifacts
+/public/
+
+.agents/
+skills-lock.json

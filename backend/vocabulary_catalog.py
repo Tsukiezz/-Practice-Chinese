@@ -20,6 +20,10 @@ def normalize(text):
 
 def init_catalog(conn):
     conn.executescript('''
+        CREATE TABLE IF NOT EXISTS vocabulary_search (
+            word_id INTEGER PRIMARY KEY REFERENCES vocabulary(id) ON DELETE CASCADE,
+            search_text TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS vocabulary_catalog (
             word_id INTEGER PRIMARY KEY REFERENCES vocabulary(id) ON DELETE CASCADE,
             edition TEXT NOT NULL, hsk INTEGER NOT NULL CHECK(hsk BETWEEN 1 AND 6),
@@ -32,6 +36,16 @@ def init_catalog(conn):
         CREATE INDEX IF NOT EXISTS vocabulary_topics_topic ON vocabulary_topics(topic,word_id);
         CREATE INDEX IF NOT EXISTS vocabulary_catalog_hsk ON vocabulary_catalog(hsk,word_id);
     ''')
+
+
+
+def refresh_search(conn, word_id=None):
+    if word_id is None:
+        rows = conn.execute('SELECT v.id,v.hanzi,v.pinyin,v.meaning FROM vocabulary v LEFT JOIN vocabulary_search s ON s.word_id=v.id WHERE s.word_id IS NULL').fetchall()
+    else:
+        rows = conn.execute('SELECT id,hanzi,pinyin,meaning FROM vocabulary WHERE id=?', (word_id,)).fetchall()
+    conn.executemany('INSERT INTO vocabulary_search(word_id,search_text) VALUES(?,?) ON CONFLICT(word_id) DO UPDATE SET search_text=excluded.search_text',
+        [(r['id'], normalize(' '.join([r['hanzi'], r['pinyin'], r['pinyin'].replace(' ', ''), r['meaning']]))) for r in rows])
 
 
 def load_corpus():
@@ -84,6 +98,7 @@ def import_corpus():
             conn.execute('DELETE FROM vocabulary_topics WHERE word_id=?', (word_id,))
             conn.executemany('INSERT INTO vocabulary_topics VALUES(?,?)',
                              [(word_id, topic) for topic in sorted({r['topic'] for r in senses})])
+        refresh_search(conn)
     return {'inserted': inserted, 'headwords': len(words), 'source_entries': 5000}
 
 
@@ -95,14 +110,15 @@ def vocabulary_page(search: str = Query('', max_length=120),
     labels = json.loads((DATA / 'topics.json').read_text(encoding='utf-8'))
     # Escape wildcard characters so searching '%' doesn't fetch the whole dictionary.
     needle = '%' + normalize(search.strip()).replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
-    conditions = ["(normalize(v.hanzi||' '||v.pinyin||' '||v.meaning) LIKE ? ESCAPE '\\' OR c.search_text LIKE ? ESCAPE '\\')"]
+    conditions = ["(s.search_text LIKE ? ESCAPE '\\' OR c.search_text LIKE ? ESCAPE '\\')"]
     params = [needle, needle]
+    if not search.strip():
+        conditions, params = ['1=1'], []
     if hsk:
         conditions.append('COALESCE(c.hsk,v.hsk)=?')
         params.append(hsk)
-    base = ' FROM vocabulary v LEFT JOIN vocabulary_catalog c ON c.word_id=v.id WHERE ' + ' AND '.join(conditions)
+    base = ' FROM vocabulary v LEFT JOIN vocabulary_catalog c ON c.word_id=v.id LEFT JOIN vocabulary_search s ON s.word_id=v.id WHERE ' + ' AND '.join(conditions)
     with database() as conn:
-        conn.create_function('normalize', 1, normalize, deterministic=True)
         facets = conn.execute('SELECT t.topic,COUNT(*) AS count' + base.replace(' WHERE ', ' JOIN vocabulary_topics t ON t.word_id=v.id WHERE ') + ' GROUP BY t.topic', params).fetchall()
         if topic:
             base += ' AND EXISTS(SELECT 1 FROM vocabulary_topics t WHERE t.word_id=v.id AND t.topic=?)'

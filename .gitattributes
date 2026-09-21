@@ -1,1 +1,2 @@
 backend/data/*.json text eol=lf
+scripts/*.sh text eol=lf

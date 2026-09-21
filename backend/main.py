@@ -39,14 +39,20 @@ from services import (configured_api_key, configured_model, evaluate_with_ai,
 
 @asynccontextmanager
 async def lifespan(app):
-    init_db()
-    from vocabulary_catalog import init_catalog
-    with database() as conn:
-        init_catalog(conn)
-    from usecase_features import init_features
-    init_features()
-    from lesson_catalog import init_lessons
-    init_lessons()
+    # Cloud schema/data are provisioned once before deployment, not per cold start.
+    if os.getenv("VERCEL") and os.getenv("TURSO_DATABASE_URL"):
+        with database() as conn:
+            conn.execute("SELECT lesson_id FROM lesson_progress LIMIT 1").fetchall()
+    else:
+        init_db()
+        from vocabulary_catalog import init_catalog, refresh_search
+        with database() as conn:
+            init_catalog(conn)
+            refresh_search(conn)
+        from usecase_features import init_features
+        init_features()
+        from lesson_catalog import init_lessons
+        init_lessons()
     yield
 
 
@@ -293,6 +299,8 @@ def save_word(body, admin, word_id=None):
                 conn.execute("UPDATE vocabulary SET hanzi=?,pinyin=?,meaning=?,hsk=?,example=?,audio_url=?,strokes_json=?,version=version+1 WHERE id=?", (*data.values(), word_id))
             else:
                 word_id = conn.execute("INSERT INTO vocabulary(hanzi,pinyin,meaning,hsk,example,audio_url,strokes_json) VALUES(?,?,?,?,?,?,?)", tuple(data.values())).lastrowid
+            from vocabulary_catalog import refresh_search
+            refresh_search(conn, word_id)
             after = word_json(require_row(conn, "vocabulary", word_id))
             audit(conn, admin["id"], "update" if before else "create", "vocabulary", word_id,
                   word_json(before) if before else None, after)

@@ -15,8 +15,13 @@ DB_PATH = Path(os.environ.get("DATABASE_PATH", Path(__file__).with_name("hanzi_g
 
 @contextmanager
 def database():
-    conn = sqlite3.connect(DB_PATH, timeout=15)
-    conn.row_factory = sqlite3.Row
+    url = os.environ.get("TURSO_DATABASE_URL", "").strip()
+    if url or os.environ.get("HANZIGO_DB_DRIVER") == "libsql":
+        from cloud_database import connect
+        conn = connect(url or DB_PATH, auth_token=os.environ.get("TURSO_AUTH_TOKEN", ""))
+    else:
+        conn = sqlite3.connect(DB_PATH, timeout=15)
+        conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     try:
         yield conn

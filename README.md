@@ -1,5 +1,7 @@
 # HanziGo · Chinese Learning
 
+Bản online: **https://hanzigo-chinese-learning.vercel.app** · [Bàn giao Vercel và database Turso](docs/VERCEL_HANDOFF.md). Admin và học viên đăng nhập chung tại trang này; nhánh triển khai là `test`.
+
 Kho từ đã bổ sung đủ 5.000 mục HSK 2.0 (4.993 cách viết), nghĩa tiếng Việt và 22 chủ đề. Trong **Từ vựng**, chọn **HSK 1–6 · Chọn chủ đề** để lọc cấp/chủ đề; danh sách chia trang 40 từ. Máy mới chạy thêm `python vocabulary_catalog.py` từ `backend/` sau bước seed. Xem [nguồn dữ liệu, phạm vi và cách nhập](docs/HSK_VOCABULARY.md).
 
 Cập nhật nhánh `test` 17/09: đã tích hợp phần từ vựng của Vy trên `main` và các chức năng viết tay/ngữ pháp/bài thi viết của Trung. Trong **Từ vựng**, gõ để tìm, bấm loa để nghe và biểu tượng lưu để thêm vào **Sổ tay từ vựng**. Sổ tay lưu riêng theo tài khoản trên backend. Xem [biên bản tích hợp](docs/INTEGRATION_TEST.md) để biết dữ liệu seed, API và phạm vi kiểm chứng.
