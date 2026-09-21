@@ -3,6 +3,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import base64
 import struct
 import time
@@ -17,44 +18,59 @@ from fastapi import HTTPException
 from config import load_environment
 from database import database
 from ai_provider import gemini_grade
+from ai_errors import AIProviderError, ai_http_error, provider_error
 
 
 load_environment()
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
 
 
-def _post_gemini(url: str, headers: dict, json: dict, timeout: float):
-    """Retry transient transport/status errors and truncated JSON candidates."""
-    last_error = None
+def _post_gemini(url: str, headers: dict, json: dict, timeout: float, *, post=None, sleep=None):
+    """Bounded retries with an optional server-configured fallback model."""
+    post, sleep = post or httpx.post, sleep or time.sleep
+    deadline = time.monotonic() + 45
+    fallback = os.getenv("GEMINI_FALLBACK_MODEL", "").strip().removeprefix("models/")
+    fallback_url = None
+    if re.fullmatch(r"[A-Za-z0-9._-]+", fallback) and url.startswith("https://generativelanguage.googleapis.com/v1beta/models/"):
+        fallback_url = url.rsplit('/models/', 1)[0] + '/models/' + fallback + ':generateContent'
+    last_error = AIProviderError('timeout', 504, 'AI phản hồi chậm. Vui lòng thử lại sau.')
     for attempt in range(3):
+        remaining = deadline - time.monotonic()
+        if remaining <= 1:
+            break
         try:
-            response = httpx.post(url, headers=headers, json=json, timeout=timeout)
-            if response.status_code not in (429, 500, 502, 503, 504):
-                response.raise_for_status()
+            response = post(url, headers=headers, json=json,
+                            timeout=httpx.Timeout(min(timeout, 20, max(1, remaining - 4)), connect=min(4, remaining)),
+                            follow_redirects=False)
+            if response.status_code >= 400:
+                last_error = provider_error(response.status_code)
+                if response.status_code not in (429, 500, 502, 503, 504, 404):
+                    raise last_error
+                if fallback_url:
+                    url = fallback_url
+            else:
                 try:
                     _decode_gemini_candidate(response)
                     return response
                 except (KeyError, IndexError, TypeError, ValueError):
-                    last_error = ValueError("Gemini returned malformed JSON")
+                    last_error = AIProviderError('invalid_response', 502, 'AI trả kết quả chưa đầy đủ. Vui lòng thử lại.')
                     config = json.setdefault("generationConfig", {})
                     current_tokens = int(config.get("maxOutputTokens", 1000))
-                    config["maxOutputTokens"] = min(
-                        16000, max(2048, current_tokens * 2))
-                    continue
-            last_error = httpx.HTTPStatusError(
-                f"Transient Gemini status {response.status_code}",
-                request=response.request,
-                response=response,
-            )
-        except httpx.TransportError as error:
-            last_error = error
+                    config["maxOutputTokens"] = min(16000, max(2048, current_tokens * 2))
+        except httpx.TransportError:
+            last_error = AIProviderError('timeout', 504, 'AI phản hồi chậm hoặc tạm mất kết nối. Vui lòng thử lại sau.')
+            if fallback_url:
+                url = fallback_url
         if attempt < 2:
-            time.sleep(0.5 * (2 ** attempt))
+            sleep(0.5 * (2 ** attempt))
     raise last_error
 
 
 def _decode_gemini_candidate(response):
-    text = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+    candidate = response.json()["candidates"][0]
+    if candidate.get("finishReason") not in (None, "STOP"):
+        raise ValueError("Incomplete Gemini output")
+    text = ''.join(part.get('text', '') for part in candidate['content']['parts'] if not part.get('thought'))
     output = json.loads(text)
     if not isinstance(output, dict):
         raise ValueError("Gemini output must be an object")
@@ -129,9 +145,7 @@ def gemini_provider(settings: dict, content: str):
         timeout=15.0,
     )
     response.raise_for_status()
-    data = response.json()
-    text = data["candidates"][0]["content"]["parts"][0]["text"]
-    return json.loads(text)
+    return _decode_gemini_candidate(response)
 
 
 GRAMMAR_CACHE_VERSION = "grammar-v1"
@@ -298,12 +312,9 @@ def analyze_grammar_with_ai(
     try:
         result = _validated_grammar_output(
             provider(settings, sentence, context))
-    except Exception:
+    except Exception as error:
         record_ai_usage(user_id, "grammar_analysis", "error")
-        raise HTTPException(
-            502,
-            "Dịch vụ AI chưa phân tích được câu. Vui lòng thử lại.",
-        ) from None
+        raise ai_http_error(error, "Dịch vụ AI chưa phân tích được câu. Vui lòng thử lại.") from None
 
     with database() as conn:
         conn.execute(
@@ -481,10 +492,9 @@ def grade_essay_with_ai(
     try:
         result = _validated_essay_output(
             provider(settings, prompt, rubric, text))
-    except Exception:
+    except Exception as error:
         record_ai_usage(user_id, "essay_grading", "error")
-        raise HTTPException(
-            502, "Dịch vụ AI chưa chấm được đoạn văn. Vui lòng thử lại.") from None
+        raise ai_http_error(error, "Dịch vụ AI chưa chấm được đoạn văn. Vui lòng thử lại.") from None
 
     with database() as conn:
         conn.execute(
@@ -556,8 +566,7 @@ def gemini_exam_provider(settings: dict, content: str):
         timeout=20.0,
     )
     response.raise_for_status()
-    data = response.json()
-    return json.loads(data["candidates"][0]["content"]["parts"][0]["text"])
+    return _decode_gemini_candidate(response)
 
 
 def gemini_capability_provider(settings: dict, content: str):
@@ -593,8 +602,7 @@ def gemini_capability_provider(settings: dict, content: str):
         }, timeout=20.0,
     )
     response.raise_for_status()
-    data = response.json()
-    return json.loads(data["candidates"][0]["content"]["parts"][0]["text"])
+    return _decode_gemini_candidate(response)
 
 
 def _normalize_strokes(strokes: list[list[dict]]) -> list[list[tuple[float, float]]]:
@@ -946,12 +954,9 @@ def recognize_handwriting_with_ai(
                 "confidence": round(float(confidence), 2),
             })
         normalized.sort(key=lambda item: item["confidence"], reverse=True)
-    except Exception:
+    except Exception as error:
         record_ai_usage(user_id, "handwriting_recognition", "error")
-        raise HTTPException(
-            502,
-            "Dịch vụ AI chưa nhận dạng được chữ viết tay. Vui lòng thử lại.",
-        ) from None
+        raise ai_http_error(error, "Dịch vụ AI chưa nhận dạng được chữ viết tay. Vui lòng thử lại.") from None
 
     # Match exact entries first, then words containing the recognized character.
     with database() as conn:
@@ -1064,9 +1069,9 @@ def evaluate_with_ai(user_id: int, kind: str, content: str,
                 or not math.isfinite(float(value)) or not 0 <= float(value) <= 100
                 for key, value in section_scores.items())):
             raise ValueError("Invalid section scores")
-    except Exception:
+    except Exception as error:
         record_ai_usage(user_id, kind, "error")
-        raise HTTPException(502, "Dịch vụ AI chưa trả được kết quả hợp lệ. Vui lòng thử lại.") from None
+        raise ai_http_error(error, "Dịch vụ AI chưa trả được kết quả hợp lệ. Vui lòng thử lại.") from None
     record_ai_usage(user_id, kind, "success")
     result = {"score": score, "feedback": feedback.strip()}
     if review_items is not None:

@@ -48,7 +48,7 @@ class _CustomExamHistoryScreenState extends State<CustomExamHistoryScreen> {
               return _MessageState(
                 icon: Icons.inbox_rounded,
                 title: 'Chưa có bài làm nào',
-                message: 'Hãy tạo đề và làm bài để xem lịch sử tại đây.',
+                message: 'Chưa có lịch sử đề cũ trên thiết bị này. Hãy chọn đề do quản trị viên phát hành ở mục Nghe hoặc Đọc.',
               );
             }
 

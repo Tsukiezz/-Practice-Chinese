@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -597,7 +598,7 @@ class StudentService {
       Uri.parse('$baseUrl/translation/text'),
       requiresAuth: false,
       body: jsonEncode({'text': text, 'source': source, 'target': target}),
-      timeout: const Duration(seconds: 45),
+      timeout: const Duration(seconds: 75),
     );
     return (jsonDecode(response.body) as Map<String, dynamic>)['translation']
         as String;
@@ -619,7 +620,7 @@ class StudentService {
     final response = await _request(
       'POST',
       Uri.parse('$baseUrl/me/personalized-practice'),
-      timeout: const Duration(seconds: 60),
+      timeout: const Duration(seconds: 75),
     );
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
@@ -633,7 +634,7 @@ class StudentService {
       'POST',
       Uri.parse('$baseUrl/me/personalized-practice/$plan/$index'),
       body: jsonEncode({'text': text}),
-      timeout: const Duration(seconds: 60),
+      timeout: const Duration(seconds: 75),
     );
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
@@ -650,7 +651,7 @@ class StudentService {
       ),
       requiresAuth: !guest,
       body: jsonEncode({'sentence': sentence, 'context': context}),
-      timeout: const Duration(seconds: 30),
+      timeout: const Duration(seconds: 75),
     );
     try {
       return GrammarAnalysisResult.fromJson(
@@ -700,7 +701,7 @@ class StudentService {
       ),
       requiresAuth: !guest,
       body: jsonEncode({'strokes': strokes}),
-      timeout: const Duration(seconds: 30),
+      timeout: const Duration(seconds: 75),
     );
     try {
       return HandwritingRecognitionResult.fromJson(
@@ -732,7 +733,7 @@ class StudentService {
     Uri uri, {
     String? body,
     bool requiresAuth = true,
-    Duration timeout = const Duration(seconds: 15),
+    Duration? timeout,
   }) async {
     final token = (await tokenProvider())?.trim() ?? '';
     if (requiresAuth && token.isEmpty) {
@@ -753,13 +754,18 @@ class StudentService {
         'DELETE' => _client.delete(uri, headers: headers),
         _ => _client.get(uri, headers: headers),
       })
-          .timeout(timeout);
+          .timeout(timeout ?? Duration(seconds: method == 'POST' || uri.path.endsWith('/capability') ? 75 : 15));
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return response;
       }
       throw StudentApiException(response.statusCode, _errorMessage(response));
     } on StudentApiException {
       rethrow;
+    } on TimeoutException {
+      throw const StudentApiException(
+        null,
+        'AI đang phản hồi chậm. Hãy kiểm tra lịch sử bài làm trước khi nộp lại.',
+      );
     } on Exception {
       throw const StudentApiException(
         null,

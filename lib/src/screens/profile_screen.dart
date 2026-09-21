@@ -7,7 +7,6 @@ import '../widgets/common.dart';
 import '../services/student_service.dart';
 import '../services/auth_service.dart';
 import 'results_screen.dart';
-import 'custom_exam_screen.dart';
 import 'custom_exam_history_screen.dart';
 import 'dashboard_screen.dart';
 import 'review_screen.dart';
@@ -256,50 +255,6 @@ class ProfileScreen extends StatelessWidget {
                             ),
                             Text(
                               'Xem lại điểm và nhận xét',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.chevron_right_rounded, color: Colors.grey),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          if (CustomExamService.instance != null)
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              child: InkWell(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => CustomExamScreen(
-                        service: CustomExamService.instance!,
-                      ),
-                    ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(20),
-                child: const Padding(
-                  padding: EdgeInsets.all(18),
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit_note_rounded, color: AppTheme.jade),
-                      SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Tạo đề thi tùy chỉnh',
-                              style: TextStyle(fontWeight: FontWeight.w800),
-                            ),
-                            Text(
-                              'Tạo đề Nghe hoặc Đọc',
                               style: TextStyle(
                                 color: Colors.grey,
                                 fontSize: 11,

@@ -8,6 +8,7 @@ from fastapi import Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field, field_validator
 from database import database, audit
+from ai_errors import ai_http_error
 from services import ai_settings, _post_gemini, _decode_gemini_candidate, record_ai_usage
 
 class Profile(BaseModel):
@@ -58,8 +59,8 @@ class RecoveryConfirm(RecoveryRequest):
 
 class Translation(BaseModel):
     text: str = Field(min_length=1,max_length=5000)
-    source: str = Field(default="zh",pattern=r"^(zh|vi|en|ja|ko)$")
-    target: str = Field(default="vi",pattern=r"^(zh|vi|en|ja|ko)$")
+    source: str = Field(default="zh",pattern=r"^(zh|vi)$")
+    target: str = Field(default="vi",pattern=r"^(zh|vi)$")
 
 class PracticeAnswer(BaseModel):
     text: str = Field(min_length=1,max_length=500)
@@ -209,9 +210,9 @@ def register_features(app, current_user, hash_password):
             if not isinstance(result.get("translation"),str) or not result["translation"].strip(): raise ValueError()
             record_ai_usage(user["id"],"translation","success")
             return {"translation":result["translation"]}
-        except Exception:
+        except Exception as error:
             record_ai_usage(user["id"],"translation","error")
-            raise HTTPException(502,"Chưa dịch được văn bản. Vui lòng thử lại.") from None
+            raise ai_http_error(error,"Chưa dịch được văn bản. Vui lòng thử lại.") from None
 
     from models import GrammarAnalysisRequest,HandwritingRecognition
     from services import analyze_grammar_with_ai,gemini_grammar_provider,recognize_handwriting_with_ai,gemini_handwriting_recognition_provider
@@ -260,9 +261,9 @@ def register_features(app, current_user, hash_password):
                 if not isinstance(task,dict) or any(not isinstance(task.get(k),str) or not 1<=len(task[k])<=1000 for k in ('prompt','hint')):
                     raise ValueError()
             tasks=[{'prompt':t['prompt'],'hint':t['hint']} for t in tasks]
-        except Exception:
+        except Exception as error:
             record_ai_usage(user['id'],'personalized_practice','error')
-            raise HTTPException(502,'Chưa tạo được bài ôn. Vui lòng thử lại.') from None
+            raise ai_http_error(error,'Chưa tạo được bài ôn. Vui lòng thử lại.') from None
         with database() as c:
             pid=c.execute('INSERT INTO personalized_practice(user_id,tasks,created_at) VALUES(?,?,?)',
               (user['id'],json.dumps(tasks,ensure_ascii=False),int(time.time()))).lastrowid

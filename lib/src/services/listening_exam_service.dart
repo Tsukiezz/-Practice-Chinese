@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -129,7 +130,7 @@ class ListeningExamService implements ListeningExamRepository {
       final response = method == 'POST'
           ? await _client
               .post(uri, headers: headers, body: body)
-              .timeout(const Duration(seconds: 15))
+              .timeout(const Duration(seconds: 75))
           : await _client
               .get(uri, headers: headers)
               .timeout(const Duration(seconds: 15));
@@ -142,6 +143,11 @@ class ListeningExamService implements ListeningExamRepository {
       );
     } on ListeningApiException {
       rethrow;
+    } on TimeoutException {
+      throw const ListeningApiException(
+        null,
+        'AI đang phản hồi chậm. Hãy kiểm tra lịch sử bài làm trước khi nộp lại.',
+      );
     } on Exception {
       throw const ListeningApiException(
         null,

@@ -1,5 +1,4 @@
 """Gemini REST adapter; credentials and provider errors never leave this module."""
-import json
 import math
 import re
 import time
@@ -21,29 +20,15 @@ def gemini_grade(settings, content, *, transport=None, sleep=time.sleep):
         'generationConfig': {'temperature': settings['temperature'], 'maxOutputTokens': settings['max_tokens'],
                              'responseMimeType': 'application/json', 'responseJsonSchema': schema},
     }
-    # At most two attempts. Never forward credentials through redirects.
-    with httpx.Client(timeout=httpx.Timeout(20, connect=5), transport=transport, follow_redirects=False) as client:
-        for attempt in range(2):
-            try:
-                response = client.post(f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
-                                       headers={'x-goog-api-key': settings['api_key']}, json=payload)
-                if response.status_code in (429, 500, 502, 503, 504) and attempt == 0:
-                    sleep(0.5)
-                    continue
-                response.raise_for_status()
-                candidate = response.json()['candidates'][0]
-                if candidate.get('finishReason') != 'STOP':
-                    raise ValueError('Incomplete output')
-                output = json.loads(''.join(p.get('text', '') for p in candidate['content']['parts'] if not p.get('thought')))
-                score, feedback = output['score'], output['feedback']
-                if (isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score)
-                        or not 0 <= score <= 100 or not isinstance(feedback, str) or not 1 <= len(feedback.strip()) <= 10000):
-                    raise ValueError('Invalid grade')
-                return {'score': score, 'feedback': feedback}
-            except (httpx.TimeoutException, httpx.NetworkError):
-                if attempt == 0:
-                    sleep(0.5)
-                    continue
-                raise ValueError('AI service unavailable') from None
-            except Exception:
-                raise ValueError('AI service returned invalid response') from None
+    from services import _post_gemini, _decode_gemini_candidate
+    with httpx.Client(transport=transport, follow_redirects=False) as client:
+        response = _post_gemini(
+            f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
+            {'x-goog-api-key': settings['api_key']}, payload, 20,
+            post=client.post, sleep=sleep)
+        output = _decode_gemini_candidate(response)
+        score, feedback = output['score'], output['feedback']
+        if (isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score)
+                or not 0 <= score <= 100 or not isinstance(feedback, str) or not 1 <= len(feedback.strip()) <= 10000):
+            raise ValueError('Invalid grade')
+        return {'score': score, 'feedback': feedback}

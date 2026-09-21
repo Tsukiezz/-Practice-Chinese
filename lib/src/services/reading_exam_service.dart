@@ -192,7 +192,7 @@ class ReadingExamService implements ReadingExamRepository {
       final response = method == 'POST'
           ? await _client
               .post(uri, headers: headers, body: body)
-              .timeout(const Duration(seconds: 15))
+              .timeout(const Duration(seconds: 75))
           : await _client
               .get(uri, headers: headers)
               .timeout(const Duration(seconds: 15));
@@ -205,6 +205,11 @@ class ReadingExamService implements ReadingExamRepository {
       );
     } on ReadingApiException {
       rethrow;
+    } on TimeoutException {
+      throw const ReadingApiException(
+        null,
+        'AI đang phản hồi chậm. Hãy kiểm tra lịch sử bài làm trước khi nộp lại.',
+      );
     } on Exception {
       throw const ReadingApiException(
         null,

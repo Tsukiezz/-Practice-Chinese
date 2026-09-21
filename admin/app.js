@@ -278,9 +278,11 @@ function bindCanvas() {
 }
 
 function renderExams(content, data, params) {
-  content.innerHTML += `<section class="panel"><form id="filters" class="toolbar"><label>Cấp độ<select name="hsk"><option value="">Tất cả HSK</option>${[1,2,3,4,5,6].map(n=>`<option value="${n}">HSK ${n}</option>`).join('')}</select></label><button>Lọc</button><button type="button" class="primary" id="add">+ Tạo đề thi</button></form>${table(['Đề thi','Cấp độ','Trạng thái','Nội dung','Thao tác'],data.map(r=>`<tr><td><b>${escape(r.title)}</b><small>${r.duration_minutes} phút · Phiên bản ${r.version}</small></td><td>HSK ${r.hsk}</td><td><span class="tag ${r.status}">${statusLabel(r.status)}</span></td><td>${r.questions.length} câu</td><td><div class="actions"><button data-edit="${r.id}">Biên soạn</button><button class="danger" data-delete="${r.id}">Xóa</button></div></td></tr>`))}</section>`;
+  content.innerHTML += `<section class="panel"><form id="filters" class="toolbar"><label>Cấp độ<select name="hsk"><option value="">Tất cả HSK</option>${[1,2,3,4,5,6].map(n=>`<option value="${n}">HSK ${n}</option>`).join('')}</select></label><button>Lọc</button><button type="button" class="primary" id="add">+ Tạo đề thi</button><button type="button" id="add-listening">+ Đề Nghe</button><button type="button" id="add-reading">+ Đề Đọc</button></form>${table(['Đề thi','Cấp độ','Trạng thái','Nội dung','Thao tác'],data.map(r=>`<tr><td><b>${escape(r.title)}</b><small>${r.duration_minutes} phút · Phiên bản ${r.version}</small></td><td>HSK ${r.hsk}</td><td><span class="tag ${r.status}">${statusLabel(r.status)}</span></td><td>${r.questions.length} câu</td><td><div class="actions"><button data-edit="${r.id}">Biên soạn</button><button class="danger" data-delete="${r.id}">Xóa</button></div></td></tr>`))}</section>`;
   bindFilter(params);
   document.querySelector('#add').onclick = () => examEditor();
+  document.querySelector('#add-listening').onclick = () => examEditor(null, 'listening');
+  document.querySelector('#add-reading').onclick = () => examEditor(null, 'reading');
   document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => examEditor(data.find(r=>r.id===Number(b.dataset.edit))));
   bindDeletes(data,'exams',r=>r.title);
 }
@@ -308,8 +310,8 @@ function questionHTML(q = {}) {
   </div><button type="button" class="danger remove">Bỏ câu hỏi</button></fieldset>`;
 }
 
-function examEditor(row) {
-  const exam = row || {title:'',hsk:1,status:'draft',duration_minutes:15,questions:[{}]};
+function examEditor(row, section = 'reading') {
+  const exam = row || {title:'',hsk:1,status:'draft',duration_minutes:15,questions:[{section}]};
   openEditor(row?'Biên soạn đề thi':'Tạo đề thi', `<div class="grid"><label class="span-2">Tên đề<input name="title" required maxlength="200" value="${escape(exam.title)}"></label><label>Cấp độ${hskSelect()}</label><label>Thời lượng (phút)<input name="duration_minutes" type="number" min="1" max="240" required value="${exam.duration_minutes}"></label><label>Trạng thái<select name="status" aria-label="Trạng thái"><option value="draft">Bản nháp</option><option value="published">Phát hành</option><option value="hidden">Ẩn</option></select></label></div><p class="note">Học viên chỉ thấy đề đã phát hành. Bài viết tự do dùng rubric để module Writing chấm; trắc nghiệm chấm theo đáp án. Thay đổi đề sẽ tạo phiên bản mới.</p><div id="questions" class="questions">${exam.questions.map(questionHTML).join('')}</div><button type="button" id="add-question">+ Thêm câu hỏi</button>`, async form => {
     const questions = [...form.querySelectorAll('.question')].map(fieldset => {
       const q = {};
@@ -360,7 +362,7 @@ function renderResults(content, data, params) {
 }
 
 function renderAI(content, data) {
-  content.innerHTML += `<section class="panel"><form id="ai-form" class="dialog-body"><div class="note"><b>${data.ready?'Cấu hình sẵn sàng cho module AI':'AI chưa sẵn sàng'}</b><br>Khóa máy chủ: ${data.key_configured?'Đã cấu hình':'Chưa cấu hình'}. Trạng thái này kiểm tra cấu hình nội bộ, chưa xác minh kết nối với nhà cung cấp.</div><div class="grid"><label>Model<input name="model" required maxlength="120" value="${escape(data.model)}"></label><label>Giới hạn token<input name="max_tokens" type="number" min="1" max="16000" required value="${data.max_tokens}"></label><label>Temperature (0–2)<input name="temperature" type="number" min="0" max="2" step="0.1" required value="${data.temperature}"></label><label class="check"><input name="enabled" type="checkbox" ${data.enabled?'checked':''}> Bật AI</label><label class="span-2">Hướng dẫn hệ thống / prompt mẫu<textarea name="system_prompt" required maxlength="10000" rows="7">${escape(data.system_prompt)}</textarea></label></div><small>Khóa API được cấu hình bằng biến môi trường AI_API_KEY trên máy chủ; không nhập hoặc hiển thị khóa ở trang này.</small><div id="ai-error" role="alert"></div><div><button class="primary">Lưu cấu hình</button></div></form></section>`;
+  content.innerHTML += `<section class="panel"><form id="ai-form" class="dialog-body"><div class="note"><b>${data.ready?'Cấu hình sẵn sàng cho module AI':'AI chưa sẵn sàng'}</b><br>Khóa máy chủ: ${data.key_configured?'Đã cấu hình':'Chưa cấu hình'}. Model dự phòng: ${escape(data.fallback_model || 'Chưa cấu hình')}. Trạng thái này kiểm tra cấu hình nội bộ, chưa xác minh kết nối với nhà cung cấp.</div><div class="grid"><label>Model<input name="model" required maxlength="120" value="${escape(data.model)}"></label><label>Giới hạn token<input name="max_tokens" type="number" min="1" max="16000" required value="${data.max_tokens}"></label><label>Temperature (0–2)<input name="temperature" type="number" min="0" max="2" step="0.1" required value="${data.temperature}"></label><label class="check"><input name="enabled" type="checkbox" ${data.enabled?'checked':''}> Bật AI</label><label class="span-2">Hướng dẫn hệ thống / prompt mẫu<textarea name="system_prompt" required maxlength="10000" rows="7">${escape(data.system_prompt)}</textarea></label></div><small>Khóa API được cấu hình bằng biến môi trường GEMINI_API_KEY trên máy chủ; không nhập hoặc hiển thị khóa ở trang này.</small><div id="ai-error" role="alert"></div><div><button class="primary">Lưu cấu hình</button></div></form></section>`;
   const testButton = document.createElement('button');
   testButton.type = 'button';
   testButton.textContent = 'Kiểm tra kết nối Gemini (có thể tính phí)';

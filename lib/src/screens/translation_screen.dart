@@ -30,9 +30,6 @@ class _TranslationScreenState extends State<TranslationScreen> {
   static const _languages = {
     'zh': 'Tiếng Trung',
     'vi': 'Tiếng Việt',
-    'en': 'Tiếng Anh',
-    'ja': 'Tiếng Nhật',
-    'ko': 'Tiếng Hàn',
   };
 
   @override

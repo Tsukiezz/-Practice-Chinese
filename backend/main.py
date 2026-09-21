@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+from ai_errors import ai_http_error
 from database import audit, database, init_db
 from models import Appeal, AppealReview
 from models import (AIConfig, DictionaryLookup, Exam, ExamUpdate,
@@ -630,6 +631,7 @@ def get_ai_config(user=Depends(admin_user)):
         result = require_row(conn, "ai_config", 1)
     result["model"] = configured_model(result)
     result["key_configured"] = bool(configured_api_key())
+    result["fallback_model"] = os.getenv("GEMINI_FALLBACK_MODEL", "").strip()
     result["ready"] = bool(result["enabled"] and result["key_configured"] and result["model"])
     return result
 
@@ -655,9 +657,9 @@ def test_ai_connection(admin=Depends(admin_user)):
     settings = ai_settings()
     try:
         gemini_grade(settings, "Bài kiểm tra kết nối: 你好。")
-    except Exception:
+    except Exception as error:
         record_ai_usage(admin["id"], "connection_test", "error")
-        raise HTTPException(502, "Không nhận được phản hồi AI hợp lệ. Kiểm tra model, khóa và hạn mức trên máy chủ.") from None
+        raise ai_http_error(error, "Không nhận được phản hồi AI hợp lệ. Kiểm tra model, khóa và hạn mức trên máy chủ.") from None
     record_ai_usage(admin["id"], "connection_test", "success")
     return {"status": "ok", "message": "Đã nhận phản hồi hợp lệ từ Gemini. Không tạo điểm học viên."}
 
@@ -934,9 +936,9 @@ def my_capability(user=Depends(current_user)):
                 or any(not isinstance(value, str) or not value.strip()
                        for value in strengths + improvements)):
             raise ValueError("invalid capability report")
-    except Exception:
+    except Exception as error:
         record_ai_usage(user["id"], "capability", "error")
-        raise HTTPException(502, "AI chưa thể tạo báo cáo năng lực. Vui lòng thử lại.") from None
+        raise ai_http_error(error, "AI chưa thể tạo báo cáo năng lực. Vui lòng thử lại.") from None
     record_ai_usage(user["id"], "capability", "success")
     now = int(time.time())
     with database() as conn:
