@@ -17,15 +17,18 @@ from fastapi.staticfiles import StaticFiles
 
 from ai_errors import ai_http_error
 from database import audit, database, init_db
+from email_service import send_verification_email
 from models import Appeal, AppealReview
 from models import (AIConfig, DictionaryLookup, Exam, ExamUpdate,
                     EssayGradeRequest, EssayGradeResponse,
                     ExamCanvasGradeRequest,
+                    ForgotPasswordRequest, ForgotPasswordVerify,
                     GrammarAnalysisRequest, GrammarAnalysisResponse,
                     HandwritingGradeResponse,
                     HandwritingRetryItem,
                     HandwritingRecognition, HandwritingRecognitionResponse,
                     HandwritingSubmission, Login, Override, Register,
+                    RegisterRequest, RegisterVerify,
                     Submission, UserUpdate, Word, WordUpdate, WritingSubmission)
 from services import (configured_api_key, configured_model, evaluate_with_ai,
                       compare_handwriting_strokes,
@@ -48,6 +51,16 @@ async def lifespan(app):
             init_ai_exam_tables(conn)
             from ai_reading import init_reading_tables
             init_reading_tables(conn)
+            conn.execute("""
+            CREATE TABLE IF NOT EXISTS verification_codes (
+                id INTEGER PRIMARY KEY, email TEXT NOT NULL, code TEXT NOT NULL,
+                purpose TEXT NOT NULL CHECK(purpose IN ('register','forgot_password')),
+                temp_data_json TEXT NOT NULL DEFAULT '{}',
+                expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL,
+                used INTEGER NOT NULL DEFAULT 0
+            );
+            """)
+            conn.execute("CREATE INDEX IF NOT EXISTS verification_codes_lookup ON verification_codes(email, purpose, used);")
     else:
         init_db()
         from vocabulary_catalog import init_catalog, refresh_search
@@ -161,6 +174,107 @@ def register(body: Register):
             return session(conn, require_row(conn, "users", uid))
     except sqlite3.IntegrityError:
         raise HTTPException(409, "Email đã được sử dụng")
+
+
+@app.post("/api/auth/register-request")
+def register_request(body: RegisterRequest):
+    with database() as conn:
+        existing = conn.execute("SELECT id FROM users WHERE email=?", (body.email.lower(),)).fetchone()
+        if existing:
+            raise HTTPException(409, "Email này đã được sử dụng")
+
+        code = f"{secrets.randbelow(900000) + 100000}"
+        salt = secrets.token_hex(16)
+        password_hash = hash_password(body.password, salt)
+        temp_data = json.dumps({"name": body.name, "password_hash": password_hash, "salt": salt}, ensure_ascii=False)
+        now = int(time.time())
+        expires_at = now + 600  # 10 minutes
+
+        conn.execute("UPDATE verification_codes SET used=1 WHERE email=? AND purpose='register' AND used=0", (body.email.lower(),))
+        conn.execute(
+            "INSERT INTO verification_codes(email, code, purpose, temp_data_json, expires_at, created_at, used) VALUES(?,?,?,?,?,?,0)",
+            (body.email.lower(), code, "register", temp_data, expires_at, now),
+        )
+
+    try:
+        send_verification_email(body.email.lower(), code, "register")
+    except Exception as exc:
+        raise HTTPException(500, f"Không thể gửi mã xác thực tới email: {exc}")
+
+    return {"status": "ok", "message": "Mã xác thực đã được gửi tới email của bạn", "email": body.email.lower()}
+
+
+@app.post("/api/auth/register-verify", status_code=201)
+def register_verify(body: RegisterVerify):
+    now = int(time.time())
+    with database() as conn:
+        row = conn.execute(
+            "SELECT * FROM verification_codes WHERE email=? AND purpose='register' AND code=? AND used=0 AND expires_at > ? ORDER BY id DESC LIMIT 1",
+            (body.email.lower(), body.code, now),
+        ).fetchone()
+        if not row:
+            raise HTTPException(400, "Mã xác thực không chính xác hoặc đã hết hạn")
+
+        data = json.loads(row["temp_data_json"])
+        try:
+            uid = conn.execute(
+                "INSERT INTO users(name,email,password_hash,salt,created_at) VALUES(?,?,?,?,?)",
+                (data["name"], body.email.lower(), data["password_hash"], data["salt"], now),
+            ).lastrowid
+            conn.execute("UPDATE verification_codes SET used=1 WHERE id=?", (row["id"],))
+            return session(conn, require_row(conn, "users", uid))
+        except sqlite3.IntegrityError:
+            raise HTTPException(409, "Email đã được sử dụng")
+
+
+@app.post("/api/auth/forgot-password-request")
+def forgot_password_request(body: ForgotPasswordRequest):
+    with database() as conn:
+        user = conn.execute("SELECT id, is_active FROM users WHERE email=?", (body.email.lower(),)).fetchone()
+        if not user:
+            raise HTTPException(404, "Email này chưa được đăng ký trong hệ thống")
+        if not user["is_active"]:
+            raise HTTPException(403, "Tài khoản này đã bị khóa")
+
+        code = f"{secrets.randbelow(900000) + 100000}"
+        now = int(time.time())
+        expires_at = now + 600
+
+        conn.execute("UPDATE verification_codes SET used=1 WHERE email=? AND purpose='forgot_password' AND used=0", (body.email.lower(),))
+        conn.execute(
+            "INSERT INTO verification_codes(email, code, purpose, temp_data_json, expires_at, created_at, used) VALUES(?,?,?,?,?,?,0)",
+            (body.email.lower(), code, "forgot_password", "{}", expires_at, now),
+        )
+
+    try:
+        send_verification_email(body.email.lower(), code, "forgot_password")
+    except Exception as exc:
+        raise HTTPException(500, f"Không thể gửi mã xác thực tới email: {exc}")
+
+    return {"status": "ok", "message": "Mã xác thực đặt lại mật khẩu đã được gửi tới email của bạn"}
+
+
+@app.post("/api/auth/forgot-password-verify")
+def forgot_password_verify(body: ForgotPasswordVerify):
+    now = int(time.time())
+    with database() as conn:
+        row = conn.execute(
+            "SELECT * FROM verification_codes WHERE email=? AND purpose='forgot_password' AND code=? AND used=0 AND expires_at > ? ORDER BY id DESC LIMIT 1",
+            (body.email.lower(), body.code, now),
+        ).fetchone()
+        if not row:
+            raise HTTPException(400, "Mã xác thực không chính xác hoặc đã hết hạn")
+
+        user = conn.execute("SELECT id FROM users WHERE email=?", (body.email.lower(),)).fetchone()
+        if not user:
+            raise HTTPException(404, "Không tìm thấy tài khoản người dùng")
+
+        new_salt = secrets.token_hex(16)
+        new_hash = hash_password(body.new_password, new_salt)
+        conn.execute("UPDATE users SET password_hash=?, salt=?, version=version+1 WHERE id=?", (new_hash, new_salt, user["id"]))
+        conn.execute("DELETE FROM sessions WHERE user_id=?", (user["id"],))
+        conn.execute("UPDATE verification_codes SET used=1 WHERE id=?", (row["id"],))
+        return {"status": "ok", "message": "Đặt lại mật khẩu thành công. Vui lòng đăng nhập với mật khẩu mới."}
 
 
 @app.post("/api/auth/login")

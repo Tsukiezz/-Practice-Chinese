@@ -156,6 +156,15 @@ def init_db():
         CREATE INDEX IF NOT EXISTS dictionary_history_user ON dictionary_history(user_id,last_looked_at);
         CREATE INDEX IF NOT EXISTS review_progress_user ON review_progress(user_id,completed_at);
         CREATE INDEX IF NOT EXISTS review_attempts_source ON review_attempts(source_result_id,created_at);
+
+        CREATE TABLE IF NOT EXISTS verification_codes (
+            id INTEGER PRIMARY KEY, email TEXT NOT NULL, code TEXT NOT NULL,
+            purpose TEXT NOT NULL CHECK(purpose IN ('register','forgot_password')),
+            temp_data_json TEXT NOT NULL DEFAULT '{}',
+            expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL,
+            used INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE INDEX IF NOT EXISTS verification_codes_lookup ON verification_codes(email, purpose, used);
         """)
         # Additive, idempotent migration: preserve existing accounts and sessions.
         if 'version' not in {row['name'] for row in conn.execute('PRAGMA table_info(users)')}:

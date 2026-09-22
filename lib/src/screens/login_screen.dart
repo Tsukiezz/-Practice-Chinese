@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/auth_service.dart';
+import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -96,6 +97,19 @@ class _LoginScreenState extends State<LoginScreen> {
     if (success == true && mounted) widget.onLoginSuccess();
   }
 
+  Future<void> _openForgotPassword() async {
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ForgotPasswordScreen(
+          baseUrl: widget.baseUrl,
+          authService: widget.authService,
+          initialEmail: emailController.text.trim(),
+        ),
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     if (_submitting) return;
     final email = emailController.text.trim();
@@ -144,22 +158,37 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 10),
-                  Container(
-                    width: 68,
-                    height: 68,
-                    decoration: BoxDecoration(
-                      color: primary,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(
-                      Icons.menu_book_rounded,
-                      color: Colors.white,
-                      size: 34,
+                  Center(
+                    child: Container(
+                      width: 68,
+                      height: 68,
+                      decoration: BoxDecoration(
+                        color: primary,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: primary.withValues(alpha: .25),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Text(
+                          '汉',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 34,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 18),
                   const Text(
                     'HanziGo · Hán Ngữ Xanh',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.w800,
@@ -169,6 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 6),
                   const Text(
                     'Học tiếng Trung theo cách đơn giản và hiệu quả',
+                    textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 15, color: outline),
                   ),
                   const SizedBox(height: 28),
@@ -264,14 +294,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  if (kIsWeb)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: _submitting ? null : openRecovery,
-                        child: const Text('Quên mật khẩu?'),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _submitting ? null : _openForgotPassword,
+                      child: const Text(
+                        'Quên mật khẩu?',
+                        style: TextStyle(
+                          color: primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
+                  ),
                   CheckboxListTile(
                     value: rememberLogin,
                     activeColor: primary,

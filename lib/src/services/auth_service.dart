@@ -105,6 +105,108 @@ class AuthService {
         true);
   }
 
+  Future<String> requestRegister({
+    required String baseUrl,
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    final response = await httpClient
+        .post(
+          Uri.parse('$baseUrl/auth/register-request'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'name': name.trim(),
+            'email': email.trim(),
+            'password': password,
+          }),
+        )
+        .timeout(const Duration(seconds: 25));
+
+    final data = _parseJson(response);
+    if (response.statusCode != 200) {
+      final detail = data['detail'];
+      throw AuthException(detail is String
+          ? detail
+          : 'Không thể gửi mã xác thực. Vui lòng thử lại.');
+    }
+    return data['message'] as String? ?? 'Mã xác thực đã được gửi tới email.';
+  }
+
+  Future<AuthUser> verifyRegister({
+    required String baseUrl,
+    required String email,
+    required String code,
+    bool remember = true,
+  }) async {
+    return _authenticate(
+      baseUrl,
+      'register-verify',
+      {'email': email.trim(), 'code': code.trim()},
+      remember,
+    );
+  }
+
+  Future<String> requestForgotPassword({
+    required String baseUrl,
+    required String email,
+  }) async {
+    final response = await httpClient
+        .post(
+          Uri.parse('$baseUrl/auth/forgot-password-request'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email.trim()}),
+        )
+        .timeout(const Duration(seconds: 25));
+
+    final data = _parseJson(response);
+    if (response.statusCode != 200) {
+      final detail = data['detail'];
+      throw AuthException(detail is String
+          ? detail
+          : 'Không thể gửi mã xác thực đặt lại mật khẩu.');
+    }
+    return data['message'] as String? ?? 'Mã xác thực đã được gửi tới email.';
+  }
+
+  Future<String> verifyForgotPassword({
+    required String baseUrl,
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    final response = await httpClient
+        .post(
+          Uri.parse('$baseUrl/auth/forgot-password-verify'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'email': email.trim(),
+            'code': code.trim(),
+            'new_password': newPassword,
+          }),
+        )
+        .timeout(const Duration(seconds: 25));
+
+    final data = _parseJson(response);
+    if (response.statusCode != 200) {
+      final detail = data['detail'];
+      throw AuthException(detail is String
+          ? detail
+          : 'Không thể đặt lại mật khẩu. Vui lòng thử lại.');
+    }
+    return data['message'] as String? ?? 'Đặt lại mật khẩu thành công.';
+  }
+
+  Map<String, dynamic> _parseJson(http.Response response) {
+    try {
+      return jsonDecode(utf8.decode(response.bodyBytes))
+          as Map<String, dynamic>;
+    } on Exception {
+      throw const AuthException(
+          'Máy chủ chưa phản hồi hợp lệ. Vui lòng thử lại.');
+    }
+  }
+
   Future<AuthUser> _authenticate(String baseUrl, String action,
       Map<String, String> body, bool remember) async {
     final response = await httpClient
@@ -126,7 +228,9 @@ class AuthService {
       throw const AuthException(
           'Máy chủ chưa phản hồi hợp lệ. Vui lòng thử lại.');
     }
-    if (response.statusCode != (action == 'register' ? 201 : 200)) {
+    final expectedStatus =
+        (action == 'register' || action == 'register-verify') ? 201 : 200;
+    if (response.statusCode != expectedStatus) {
       final detail = data['detail'];
       throw AuthException(detail is String
           ? detail

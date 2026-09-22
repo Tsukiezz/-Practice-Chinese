@@ -42,6 +42,62 @@ class UserUpdate(Body):
     version: int = Field(ge=1)
 
 
+class RegisterRequest(Register):
+    pass
+
+
+class RegisterVerify(Body):
+    model_config = ConfigDict(str_strip_whitespace=False)
+    email: str = Field(min_length=3, max_length=120)
+    code: str = Field(min_length=4, max_length=8)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value):
+        return value.strip().lower() if isinstance(value, str) else value
+
+    @field_validator("code", mode="before")
+    @classmethod
+    def normalize_code(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+
+class ForgotPasswordRequest(Body):
+    model_config = ConfigDict(str_strip_whitespace=False)
+    email: str = Field(min_length=3, max_length=120)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value):
+        return value.strip().lower() if isinstance(value, str) else value
+
+    @field_validator("email")
+    @classmethod
+    def valid_email(cls, value):
+        import re
+        if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value):
+            raise ValueError("Email không hợp lệ")
+        return value.lower()
+
+
+class ForgotPasswordVerify(Body):
+    model_config = ConfigDict(str_strip_whitespace=False)
+    email: str = Field(min_length=3, max_length=120)
+    code: str = Field(min_length=4, max_length=8)
+    new_password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value):
+        return value.strip().lower() if isinstance(value, str) else value
+
+    @field_validator("code", mode="before")
+    @classmethod
+    def normalize_code(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+
+
 class Point(Body):
     x: float = Field(ge=0, le=1024)
     y: float = Field(ge=0, le=1024)
