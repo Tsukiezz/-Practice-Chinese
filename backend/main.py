@@ -17,7 +17,8 @@ from fastapi.staticfiles import StaticFiles
 
 from ai_errors import ai_http_error
 from database import audit, database, init_db
-from email_service import send_verification_email
+from email_service import (get_smtp_status, send_verification_email,
+                          smtp_is_configured)
 from models import Appeal, AppealReview
 from models import (AIConfig, DictionaryLookup, Exam, ExamUpdate,
                     EssayGradeRequest, EssayGradeResponse,
@@ -153,6 +154,15 @@ def health():
     with database() as conn:
         conn.execute("SELECT 1").fetchone()
     return {"status": "ok", "product": "HanziGo"}
+
+
+@app.get("/api/auth/email-status")
+def email_status():
+    return {
+        "status": "ok",
+        "smtp": get_smtp_status(),
+        "is_vercel": bool(os.getenv("VERCEL")),
+    }
 
 
 @app.post("/api/auth/register", status_code=201)

@@ -133,6 +133,44 @@ class TestAuthOtp(unittest.TestCase):
         self.assertEqual(new_login.status_code, 200)
         self.assertIn("token", new_login.json())
 
+    def test_email_status_endpoint(self):
+        res = self.client.get("/api/auth/email-status")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["status"], "ok")
+        self.assertIn("smtp", data)
+        self.assertIn("configured", data["smtp"])
+        self.assertIn("host", data["smtp"])
+        self.assertIn("is_brevo", data["smtp"])
+
+    def test_brevo_config_detection(self):
+        import os
+        from email_service import get_email_config, get_smtp_status, smtp_is_configured
+        
+        orig_env = dict(os.environ)
+        try:
+            # Test auto-detect Brevo from password and user
+            os.environ["SMTP_HOST"] = "smtp://smtp-relay.brevo.com"
+            os.environ["SMTP_PORT"] = "587"
+            os.environ["SMTP_USERNAME"] = "testuser@domain.com"
+            os.environ["SMTP_PASSWORD"] = "xsmtpsib-abcdef123456"
+            os.environ["SMTP_FROM"] = "HanziGo <verified@domain.com>"
+            
+            cfg = get_email_config()
+            self.assertEqual(cfg["host"], "smtp-relay.brevo.com")
+            self.assertEqual(cfg["port"], 587)
+            self.assertEqual(cfg["user"], "testuser@domain.com")
+            self.assertTrue(smtp_is_configured())
+            
+            status = get_smtp_status()
+            self.assertTrue(status["configured"])
+            self.assertTrue(status["is_brevo"])
+            self.assertIn("***", status["user_masked"])
+        finally:
+            os.environ.clear()
+            os.environ.update(orig_env)
+
 
 if __name__ == "__main__":
     unittest.main()
+

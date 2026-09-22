@@ -1,11 +1,115 @@
 """Email delivery service supporting standard SMTP (Gmail, Brevo, Resend, etc.) and fallback dev logging."""
+import email.utils
+import json
 import logging
 import os
 import smtplib
+import urllib.error
+import urllib.request
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 logger = logging.getLogger("hanzigo.email")
+
+
+def get_email_config() -> dict:
+    """Read and normalize email configuration from environment variables."""
+    host = (
+        os.environ.get("SMTP_HOST", "")
+        or os.environ.get("MAIL_HOST", "")
+        or os.environ.get("BREVO_SMTP_HOST", "")
+    ).strip()
+
+    # Clean protocol prefix if present
+    for prefix in ("https://", "http://", "smtp://", "smtps://"):
+        if host.lower().startswith(prefix):
+            host = host[len(prefix):]
+    host = host.rstrip("/")
+
+    user = (
+        os.environ.get("SMTP_USERNAME", "")
+        or os.environ.get("SMTP_USER", "")
+        or os.environ.get("MAIL_USERNAME", "")
+        or os.environ.get("BREVO_USERNAME", "")
+        or os.environ.get("BREVO_USER", "")
+    ).strip()
+
+    password = (
+        os.environ.get("SMTP_PASSWORD", "")
+        or os.environ.get("SMTP_PASS", "")
+        or os.environ.get("MAIL_PASSWORD", "")
+        or os.environ.get("BREVO_API_KEY", "")
+        or os.environ.get("BREVO_SMTP_KEY", "")
+        or os.environ.get("SMTP_KEY", "")
+    ).strip()
+
+    port_raw = (
+        os.environ.get("SMTP_PORT", "")
+        or os.environ.get("MAIL_PORT", "")
+        or "587"
+    ).strip()
+    try:
+        port = int(port_raw)
+    except ValueError:
+        port = 587
+
+    from_raw = (
+        os.environ.get("SMTP_FROM", "")
+        or os.environ.get("SMTP_FROM_EMAIL", "")
+        or os.environ.get("MAIL_FROM", "")
+        or user
+        or "noreply@hanzigo.app"
+    ).strip()
+
+    # Auto-detect host for Brevo or Gmail if missing
+    if not host:
+        if password.startswith("xsmtpsib-") or "brevo" in user.lower() or "sendinblue" in user.lower():
+            host = "smtp-relay.brevo.com"
+        elif user.endswith("@gmail.com"):
+            host = "smtp.gmail.com"
+
+    return {
+        "host": host,
+        "port": port,
+        "user": user,
+        "password": password,
+        "from_raw": from_raw,
+    }
+
+
+def smtp_is_configured() -> bool:
+    """Return whether all credentials required to deliver an email are present."""
+    cfg = get_email_config()
+    return bool(cfg["host"] and cfg["user"] and cfg["password"])
+
+
+def get_smtp_status() -> dict:
+    """Return safe metadata about SMTP configuration (without exposing credentials)."""
+    cfg = get_email_config()
+    user = cfg["user"]
+    masked_user = ""
+    if user:
+        if "@" in user:
+            parts = user.split("@")
+            prefix = parts[0]
+            masked_prefix = prefix[:3] + "***" if len(prefix) > 3 else prefix + "***"
+            masked_user = f"{masked_prefix}@{parts[1]}"
+        else:
+            masked_user = user[:3] + "***" if len(user) > 3 else user + "***"
+
+    return {
+        "configured": smtp_is_configured(),
+        "host": cfg["host"],
+        "port": cfg["port"],
+        "user_masked": masked_user,
+        "from_raw": cfg["from_raw"],
+        "is_brevo": (
+            "brevo" in cfg["host"].lower()
+            or "sendinblue" in cfg["host"].lower()
+            or cfg["password"].startswith("xsmtpsib-")
+            or "brevo" in user.lower()
+        ),
+    }
 
 
 def _render_html_template(email: str, code: str, purpose_label: str) -> str:
@@ -68,8 +172,80 @@ def _render_html_template(email: str, code: str, purpose_label: str) -> str:
 </html>"""
 
 
+def _send_via_smtp(cfg: dict, to_email: str, subject: str, text_content: str, html_content: str) -> bool:
+    """Send email through standard SMTP connection."""
+    host = cfg["host"]
+    port = cfg["port"]
+    user = cfg["user"]
+    password = cfg["password"]
+    from_raw = cfg["from_raw"]
+
+    parsed_name, parsed_addr = email.utils.parseaddr(from_raw)
+    clean_from_email = parsed_addr if parsed_addr else from_raw
+    from_name = parsed_name if parsed_name else "HanziGo · Hán Ngữ Xanh"
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = email.utils.formataddr((from_name, clean_from_email))
+    msg["To"] = to_email
+    msg["Reply-To"] = clean_from_email
+
+    msg.attach(MIMEText(text_content, "plain", "utf-8"))
+    msg.attach(MIMEText(html_content, "html", "utf-8"))
+
+    if port == 465:
+        with smtplib.SMTP_SSL(host, port, timeout=10) as server:
+            server.login(user, password)
+            server.send_message(msg)
+    else:
+        with smtplib.SMTP(host, port, timeout=10) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(user, password)
+            server.send_message(msg)
+    return True
+
+
+def _send_via_brevo_api(cfg: dict, to_email: str, subject: str, text_content: str, html_content: str) -> bool:
+    """Fallback sending via Brevo REST API v3 (HTTPS 443) if SMTP ports are blocked."""
+    api_key = cfg["password"]
+    if not api_key:
+        return False
+
+    parsed_name, parsed_addr = email.utils.parseaddr(cfg["from_raw"])
+    from_email = parsed_addr if parsed_addr else cfg["from_raw"]
+    from_name = parsed_name if parsed_name else "HanziGo · Hán Ngữ Xanh"
+
+    url = "https://api.brevo.com/v3/smtp/email"
+    headers = {
+        "accept": "application/json",
+        "api-key": api_key,
+        "content-type": "application/json",
+        "User-Agent": "HanziGo-Backend/1.0",
+    }
+    payload = {
+        "sender": {"name": from_name, "email": from_email},
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "htmlContent": html_content,
+        "textContent": text_content,
+    }
+
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        if 200 <= resp.status < 300:
+            return True
+    return False
+
+
 def send_verification_email(to_email: str, code: str, purpose: str = "register") -> bool:
-    """Send verification OTP to user's real email address via SMTP or log in dev mode."""
+    """Send verification OTP to user's real email address via SMTP with Brevo API fallback or log in dev mode."""
     to_email = to_email.strip().lower()
     if purpose == "register":
         subject = f"[HanziGo] Mã xác thực đăng ký tài khoản: {code}"
@@ -78,25 +254,18 @@ def send_verification_email(to_email: str, code: str, purpose: str = "register")
         subject = f"[HanziGo] Mã xác thực đặt lại mật khẩu: {code}"
         purpose_label = "Yêu cầu đặt lại mật khẩu"
 
-    smtp_host = os.environ.get("SMTP_HOST", "").strip()
-    smtp_user = os.environ.get("SMTP_USER", "").strip() or os.environ.get("SMTP_USERNAME", "").strip()
-    smtp_pass = os.environ.get("SMTP_PASSWORD", "").strip()
-    smtp_port = int(os.environ.get("SMTP_PORT", "587").strip() or 587)
-    from_email = (
-        os.environ.get("SMTP_FROM_EMAIL", "").strip()
-        or os.environ.get("SMTP_FROM", "").strip()
-        or smtp_user
-        or "noreply@hanzigo.app"
+    cfg = get_email_config()
+    html_content = _render_html_template(to_email, code, purpose_label)
+    text_content = (
+        f"{purpose_label}\n\n"
+        f"Mã xác thực HanziGo của bạn là: {code}\n"
+        f"Mã có hiệu lực trong vòng 10 phút.\n"
+        f"Không chia sẻ mã này với bất kỳ ai."
     )
 
-    # Also support auto-detecting gmail if SMTP_USER is @gmail.com
-    if not smtp_host and smtp_user.endswith("@gmail.com"):
-        smtp_host = "smtp.gmail.com"
-
-    html_content = _render_html_template(to_email, code, purpose_label)
-    text_content = f"{purpose_label}\n\nMã xác thực HanziGo của bạn là: {code}\nMã có hiệu lực trong vòng 10 phút.\nKhông chia sẻ mã này với bất kỳ ai."
-
-    if not smtp_host or not smtp_user or not smtp_pass:
+    if not smtp_is_configured():
+        if os.environ.get("VERCEL"):
+            raise RuntimeError("Dịch vụ SMTP chưa được cấu hình trên môi trường Vercel.")
         logger.warning(
             f"[EMAIL_DEV_MODE] No SMTP configured. Code for {to_email} ({purpose}): {code}"
         )
@@ -110,30 +279,31 @@ def send_verification_email(to_email: str, code: str, purpose: str = "register")
             pass
         return True
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = f"HanziGo <{from_email}>"
-    msg["To"] = to_email
-
-    msg.attach(MIMEText(text_content, "plain", "utf-8"))
-    msg.attach(MIMEText(html_content, "html", "utf-8"))
-
+    # 1. Try standard SMTP
+    smtp_err = None
     try:
-        if smtp_port == 465:
-            with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=15) as server:
-                server.login(smtp_user, smtp_pass)
-                server.send_message(msg)
-        else:
-            with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
-                server.ehlo()
-                server.starttls()
-                server.ehlo()
-                server.login(smtp_user, smtp_pass)
-                server.send_message(msg)
-        logger.info(f"Sent OTP email to {to_email}")
+        _send_via_smtp(cfg, to_email, subject, text_content, html_content)
+        logger.info(f"Successfully sent OTP email to {to_email} via SMTP ({cfg['host']}:{cfg['port']})")
         return True
     except Exception as exc:
-        logger.error(f"Failed to send email to {to_email}: {exc}")
-        # Always print fallback to console so user/tester is never stranded
-        print(f"[EMAIL ERROR - FALLBACK CODE]: {code} for {to_email}")
-        raise RuntimeError(f"Không thể gửi email xác thực: {exc}")
+        smtp_err = exc
+        logger.warning(f"SMTP send failed ({exc}), checking Brevo REST API fallback...")
+
+    # 2. Try Brevo REST API v3 fallback if applicable
+    is_brevo = (
+        "brevo" in cfg["host"].lower()
+        or "sendinblue" in cfg["host"].lower()
+        or cfg["password"].startswith("xsmtpsib-")
+        or "brevo" in cfg["user"].lower()
+    )
+    if is_brevo:
+        try:
+            if _send_via_brevo_api(cfg, to_email, subject, text_content, html_content):
+                logger.info(f"Successfully sent OTP email to {to_email} via Brevo REST API v3")
+                return True
+        except Exception as api_exc:
+            logger.error(f"Brevo REST API fallback also failed: {api_exc}")
+            raise RuntimeError(f"Gửi email qua Brevo thất bại (SMTP: {smtp_err} | REST API: {api_exc})")
+
+    raise RuntimeError(f"Không thể gửi email xác thực qua SMTP: {smtp_err}")
+
