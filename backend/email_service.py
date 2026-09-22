@@ -54,7 +54,8 @@ def get_email_config() -> dict:
         port = 587
 
     from_raw = (
-        os.environ.get("SMTP_FROM", "")
+        os.environ.get("EMAIL_FROM", "")
+        or os.environ.get("SMTP_FROM", "")
         or os.environ.get("SMTP_FROM_EMAIL", "")
         or os.environ.get("MAIL_FROM", "")
         or user
@@ -63,7 +64,13 @@ def get_email_config() -> dict:
 
     # Auto-detect host for Brevo or Gmail if missing
     if not host:
-        if password.startswith("xsmtpsib-") or "brevo" in user.lower() or "sendinblue" in user.lower():
+        if (
+            password.startswith("xsmtpsib-")
+            or password.startswith("xkeysib-")
+            or "brevo" in user.lower()
+            or "sendinblue" in user.lower()
+            or "brevosend.com" in from_raw.lower()
+        ):
             host = "smtp-relay.brevo.com"
         elif user.endswith("@gmail.com"):
             host = "smtp.gmail.com"
@@ -80,6 +87,8 @@ def get_email_config() -> dict:
 def smtp_is_configured() -> bool:
     """Return whether all credentials required to deliver an email are present."""
     cfg = get_email_config()
+    if cfg["password"].startswith("xkeysib-") or bool(os.environ.get("BREVO_API_KEY")):
+        return bool(cfg["password"] and cfg["from_raw"])
     return bool(cfg["host"] and cfg["user"] and cfg["password"])
 
 
@@ -279,7 +288,18 @@ def send_verification_email(to_email: str, code: str, purpose: str = "register")
             pass
         return True
 
-    # 1. Try standard SMTP
+    # 1. If Brevo API key is provided (starts with xkeysib- or BREVO_API_KEY env), use REST API directly (like CDTV project)
+    is_brevo_api_key = cfg["password"].startswith("xkeysib-") or bool(os.environ.get("BREVO_API_KEY"))
+    if is_brevo_api_key:
+        try:
+            if _send_via_brevo_api(cfg, to_email, subject, text_content, html_content):
+                logger.info(f"Successfully sent OTP email to {to_email} via Brevo REST API v3")
+                return True
+        except Exception as api_exc:
+            logger.error(f"Brevo REST API failed: {api_exc}")
+            raise RuntimeError(f"Gửi email qua Brevo REST API thất bại: {api_exc}")
+
+    # 2. Try standard SMTP
     smtp_err = None
     try:
         _send_via_smtp(cfg, to_email, subject, text_content, html_content)
@@ -289,12 +309,13 @@ def send_verification_email(to_email: str, code: str, purpose: str = "register")
         smtp_err = exc
         logger.warning(f"SMTP send failed ({exc}), checking Brevo REST API fallback...")
 
-    # 2. Try Brevo REST API v3 fallback if applicable
+    # 3. Fallback to Brevo REST API v3 if applicable
     is_brevo = (
         "brevo" in cfg["host"].lower()
         or "sendinblue" in cfg["host"].lower()
         or cfg["password"].startswith("xsmtpsib-")
         or "brevo" in cfg["user"].lower()
+        or "brevosend.com" in cfg["from_raw"].lower()
     )
     if is_brevo:
         try:
