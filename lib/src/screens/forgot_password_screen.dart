@@ -124,7 +124,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
     try {
       final auth = widget.authService ?? await AuthService.load(_client);
-      final msg = await auth.requestForgotPassword(
+      await auth.requestForgotPassword(
         baseUrl: widget.baseUrl,
         email: email,
       );

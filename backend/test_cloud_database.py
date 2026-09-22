@@ -9,6 +9,10 @@ from cloud_database import connect
 
 class CloudDatabaseTest(unittest.TestCase):
     def test_rows_constraints_and_rollback(self):
+        try:
+            import libsql  # noqa: F401
+        except ImportError:
+            self.skipTest("libsql is not installed")
         with tempfile.TemporaryDirectory() as folder:
             conn = connect(Path(folder) / 'bridge.db')
             try:
