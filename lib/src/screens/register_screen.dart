@@ -163,7 +163,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: emailController.text.trim(),
         code: code,
       );
-      if (mounted) Navigator.pop(context, true);
+      if (!mounted) return;
+      Navigator.pop(context, true);
     } on AuthException catch (err) {
       if (mounted) setState(() => _error = err.message);
     } on Exception {
@@ -435,7 +436,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                         child: const Text(
-                          'Tiếp tục · Gửi mã xác thực',
+                          'Tạo tài khoản',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
@@ -552,7 +553,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                         child: const Text(
-                          'Xác nhận & Hoàn tất đăng ký',
+                          'Xác nhận & Hoàn tất',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,

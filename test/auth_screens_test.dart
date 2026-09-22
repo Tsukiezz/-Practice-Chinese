@@ -20,7 +20,12 @@ void main() {
     var succeeded = false;
     final auth = await AuthService.load(MockClient((request) async {
       requests++;
-      expect(request.url.path, '/api/auth/register');
+      if (request.url.path == '/api/auth/register-request') {
+        return http.Response(
+            jsonEncode({'status': 'ok', 'message': 'Mã xác thực đã được gửi'}),
+            200);
+      }
+      expect(request.url.path, '/api/auth/register-verify');
       return http.Response(
           jsonEncode({
             'token': 'registered',
@@ -59,6 +64,14 @@ void main() {
     await tester.tap(submit);
     await tester.pumpAndSettle();
     expect(requests, 1);
+    final codeField = find.byType(TextField).first;
+    await tester.enterText(codeField, '123456');
+    final confirmBtn =
+        find.widgetWithText(ElevatedButton, 'Xác nhận & Hoàn tất');
+    await tester.ensureVisible(confirmBtn);
+    await tester.tap(confirmBtn);
+    await tester.pumpAndSettle();
+    expect(requests, 2);
     expect(succeeded, true);
     expect(auth.currentUser!.role, 'student');
     expect(tester.takeException(), isNull);

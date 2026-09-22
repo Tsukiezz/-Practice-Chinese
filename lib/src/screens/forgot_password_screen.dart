@@ -29,7 +29,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _client = http.Client();
   bool _submitting = false;
   String? _error;
-  String? _successMessage;
 
   // Step 1: Enter email; Step 2: Enter code & new password
   int _step = 1;
@@ -40,8 +39,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _obscureConfirmPassword = true;
 
   static const primary = Color(0xFF1B4D3E);
-  static const secondary = Color(0xFFE2C391);
-  static const accent = Color(0xFFD97706);
   static const background = Color(0xFFF6F7F4);
   static const textColor = Color(0xFF191C1B);
   static const outline = Color(0xFF707974);
@@ -131,7 +128,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (mounted) {
         setState(() {
           _step = 2;
-          _successMessage = msg;
         });
         _startResendTimer();
       }
@@ -178,16 +174,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         newPassword: newPass,
       );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: primary,
-            content: Text(msg),
-            duration: const Duration(seconds: 4),
-          ),
-        );
-        Navigator.pop(context, true);
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: primary,
+          content: Text(msg),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      Navigator.pop(context, true);
     } on AuthException catch (err) {
       if (mounted) setState(() => _error = err.message);
     } on Exception {

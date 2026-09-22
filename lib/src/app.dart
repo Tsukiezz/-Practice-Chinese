@@ -294,9 +294,9 @@ class _AppShellState extends State<AppShell> {
                       onTap: () => setState(() => _index = 6),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE9F3ED),
-                          borderRadius: BorderRadius.circular(20),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFE9F3ED),
+                          borderRadius: BorderRadius.all(Radius.circular(20)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
