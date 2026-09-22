@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 
 import '../services/auth_service.dart';
 import 'forgot_password_screen.dart';
+import 'guest_dictionary_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
