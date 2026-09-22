@@ -1,10 +1,12 @@
 import '../services/exam_draft_store.dart';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 import '../models/reading_exam.dart';
 import '../services/reading_exam_service.dart';
+import '../services/web_navigation.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import '../widgets/hanzi_drawing_canvas.dart';
@@ -104,14 +106,84 @@ class _PracticeScreenState extends State<PracticeScreen> {
               },
             ),
           ),
+          if (widget.title == 'Test Đọc')
+            Container(
+              margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF163F35), Color(0xFF2D6A4F)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF163F35).withOpacity(0.18),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.mic_rounded, color: Color(0xFFE2C391), size: 28),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Luyện đọc phát âm AI',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Thu âm micro, AI chấm % chính xác & sửa lỗi',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.85),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFEAD8B3),
+                      foregroundColor: const Color(0xFF163F35),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                    ),
+                    onPressed: () {
+                      if (kIsWeb) {
+                        openReading('');
+                      }
+                    },
+                    child: const Text('Bắt đầu'),
+                  ),
+                ],
+              ),
+            ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 22, 20, 10),
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
-                    'Chọn một đề để bắt đầu',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                    'Đề thi Đọc do Admin phát hành',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                   ),
                 ),
                 Text(
@@ -155,7 +227,11 @@ class _PracticeScreenState extends State<PracticeScreen> {
         title: widget.title == 'Test Đọc'
             ? 'Chưa có đề Đọc HSK $_selectedHsk'
             : 'Chưa có ${widget.title} HSK $_selectedHsk',
-        message: 'Đề cần được Admin phát hành trước khi học viên làm bài.',
+        message: widget.title == 'Test Đọc'
+            ? 'Hãy bấm "Luyện đọc phát âm AI" ở trên để thu âm qua micro và nhận AI chấm điểm trực tiếp theo từ vựng và chủ đề.'
+            : 'Đề cần được Admin phát hành trước khi học viên làm bài.',
+        actionLabel: widget.title == 'Test Đọc' && kIsWeb ? 'Mở Luyện Đọc AI' : null,
+        onAction: widget.title == 'Test Đọc' && kIsWeb ? () => openReading('') : null,
       );
     }
     return RefreshIndicator(

@@ -46,6 +46,8 @@ async def lifespan(app):
             conn.execute("SELECT lesson_id FROM lesson_progress LIMIT 1").fetchall()
             from ai_exam import init_ai_exam_tables
             init_ai_exam_tables(conn)
+            from ai_reading import init_reading_tables
+            init_reading_tables(conn)
     else:
         init_db()
         from vocabulary_catalog import init_catalog, refresh_search
@@ -57,6 +59,9 @@ async def lifespan(app):
         from ai_exam import init_ai_exam_tables
         with database() as conn:
             init_ai_exam_tables(conn)
+        from ai_reading import init_reading_tables
+        with database() as conn:
+            init_reading_tables(conn)
         from lesson_catalog import init_lessons
         init_lessons()
     yield
@@ -1081,6 +1086,8 @@ from lesson_catalog import register_lessons
 register_lessons(app, current_user)
 from ai_exam import register_ai_exam_routes
 register_ai_exam_routes(app, current_user)
+from ai_reading import register_reading_routes
+register_reading_routes(app, current_user)
 
 ADMIN_DIR = Path(__file__).resolve().parent.parent / "admin"
 WEB_DIR = Path(os.environ["WEB_APP_DIR"]).resolve() if os.getenv("WEB_APP_DIR") else None
@@ -1107,6 +1114,12 @@ def learner_review_page():
 @app.get("/exam/", include_in_schema=False)
 def learner_exam_page():
     return FileResponse(ADMIN_DIR / "exam.html")
+
+
+@app.get("/reading", include_in_schema=False)
+@app.get("/reading/", include_in_schema=False)
+def learner_reading_page():
+    return FileResponse(ADMIN_DIR / "reading.html")
 
 
 @app.middleware("http")

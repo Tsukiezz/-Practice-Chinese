@@ -144,9 +144,9 @@ class HomeScreen extends StatelessWidget {
               onOpenListening,
             ),
             _card(
-              'Luyện đọc',
-              'Đọc hiểu và kiểm tra kiến thức',
-              Icons.auto_stories_rounded,
+              'Luyện đọc phát âm AI',
+              'Đọc qua micro, HSK 1–6 & chủ đề, AI chấm và sửa lỗi',
+              Icons.record_voice_over_rounded,
               const Color(0xFFE4EAF6),
               onOpenReading,
             ),

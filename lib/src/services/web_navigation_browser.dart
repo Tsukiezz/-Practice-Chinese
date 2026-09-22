@@ -16,3 +16,8 @@ void openExam(String token) {
   web.window.sessionStorage.setItem('hanzigo_account_token', token);
   web.window.location.assign('/exam');
 }
+
+void openReading(String token) {
+  web.window.sessionStorage.setItem('hanzigo_account_token', token);
+  web.window.location.assign('/reading');
+}
