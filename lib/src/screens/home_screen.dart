@@ -11,13 +11,15 @@ class HomeScreen extends StatelessWidget {
     this.onOpenReading,
     this.onOpenDictionary,
     this.onOpenProfile,
+    this.onOpenAiExam,
   });
   final String userName;
   final VoidCallback onOpenLessons;
   final VoidCallback? onOpenListening,
       onOpenReading,
       onOpenDictionary,
-      onOpenProfile;
+      onOpenProfile,
+      onOpenAiExam;
 
   @override
   Widget build(BuildContext context) => SafeArea(
@@ -154,6 +156,13 @@ class HomeScreen extends StatelessWidget {
               Icons.search_rounded,
               const Color(0xFFF3E3DE),
               onOpenDictionary,
+            ),
+            _card(
+              'Kiểm tra AI',
+              'Tạo đề thi tùy chọn, làm bài đếm ngược và AI chấm sửa',
+              Icons.assignment_turned_in_rounded,
+              const Color(0xFFE8F0EC),
+              onOpenAiExam,
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(

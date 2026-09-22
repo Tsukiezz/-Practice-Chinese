@@ -44,6 +44,8 @@ async def lifespan(app):
     if os.getenv("VERCEL") and os.getenv("TURSO_DATABASE_URL"):
         with database() as conn:
             conn.execute("SELECT lesson_id FROM lesson_progress LIMIT 1").fetchall()
+            from ai_exam import init_ai_exam_tables
+            init_ai_exam_tables(conn)
     else:
         init_db()
         from vocabulary_catalog import init_catalog, refresh_search
@@ -52,6 +54,9 @@ async def lifespan(app):
             refresh_search(conn)
         from usecase_features import init_features
         init_features()
+        from ai_exam import init_ai_exam_tables
+        with database() as conn:
+            init_ai_exam_tables(conn)
         from lesson_catalog import init_lessons
         init_lessons()
     yield
@@ -1074,6 +1079,8 @@ from usecase_features import register_features
 register_features(app, current_user, hash_password)
 from lesson_catalog import register_lessons
 register_lessons(app, current_user)
+from ai_exam import register_ai_exam_routes
+register_ai_exam_routes(app, current_user)
 
 ADMIN_DIR = Path(__file__).resolve().parent.parent / "admin"
 WEB_DIR = Path(os.environ["WEB_APP_DIR"]).resolve() if os.getenv("WEB_APP_DIR") else None
@@ -1094,6 +1101,12 @@ def admin_page():
 @app.get("/review", include_in_schema=False)
 def learner_review_page():
     return FileResponse(ADMIN_DIR / "review.html")
+
+
+@app.get("/exam", include_in_schema=False)
+@app.get("/exam/", include_in_schema=False)
+def learner_exam_page():
+    return FileResponse(ADMIN_DIR / "exam.html")
 
 
 @app.middleware("http")

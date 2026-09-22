@@ -9,12 +9,14 @@ import 'screens/login_screen.dart';
 import 'screens/practice_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/vocabulary_screen.dart';
+import 'screens/ai_exam_screen.dart';
 import 'services/auth_service.dart';
 import 'services/web_navigation.dart';
 import 'services/reading_exam_service.dart';
 import 'services/student_service.dart';
 import 'services/listening_exam_service.dart';
 import 'services/custom_exam_service.dart';
+import 'services/ai_exam_service.dart';
 import 'theme/app_theme.dart';
 
 class HanziGoApp extends StatelessWidget {
@@ -73,6 +75,7 @@ class _AppShellState extends State<AppShell> {
   http.Client? _httpClient;
   late AuthService _authService;
   late StudentService _studentService;
+  late AIExamService _aiExamService;
   bool _loading = true;
   bool _authenticated = false;
   ReadingExamRepository? _readingRepository;
@@ -98,6 +101,10 @@ class _AppShellState extends State<AppShell> {
         baseUrl: _apiBaseUrl,
         tokenProvider: () async => _authService.token,
       );
+      _aiExamService = AIExamService(
+        baseUrl: _apiBaseUrl,
+        tokenProvider: () async => _authService.token,
+      );
       _listeningRepository =
           widget.listeningRepository ??
           ListeningExamService(
@@ -117,6 +124,11 @@ class _AppShellState extends State<AppShell> {
     _httpClient = http.Client();
     _authService = await AuthService.load(_httpClient!);
     _studentService = StudentService(
+      baseUrl: _apiBaseUrl,
+      tokenProvider: () async => _authService.token,
+      client: _httpClient,
+    );
+    _aiExamService = AIExamService(
       baseUrl: _apiBaseUrl,
       tokenProvider: () async => _authService.token,
       client: _httpClient,
@@ -211,7 +223,8 @@ class _AppShellState extends State<AppShell> {
             onOpenListening: () => setState(() => _index = 2),
             onOpenReading: () => setState(() => _index = 3),
             onOpenDictionary: () => setState(() => _index = 4),
-            onOpenProfile: () => setState(() => _index = 5),
+            onOpenAiExam: () => setState(() => _index = 5),
+            onOpenProfile: () => setState(() => _index = 6),
           ),
           LessonsScreen(service: _studentService),
           ListeningScreen(
@@ -223,6 +236,7 @@ class _AppShellState extends State<AppShell> {
             draftOwner: _authService.currentUser?.id,
           ),
           VocabularyScreen(service: _studentService),
+          AiExamScreen(service: _aiExamService),
           ProfileScreen(
             onLogout: _logout,
             studentService: _studentService,
@@ -262,6 +276,11 @@ class _AppShellState extends State<AppShell> {
             icon: Icon(Icons.style_outlined),
             selectedIcon: Icon(Icons.style_rounded),
             label: 'Từ vựng',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.assignment_turned_in_outlined),
+            selectedIcon: Icon(Icons.assignment_turned_in_rounded),
+            label: 'Kiểm tra',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline_rounded),
