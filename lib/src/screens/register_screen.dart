@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/auth_service.dart';
-import 'guest_dictionary_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({

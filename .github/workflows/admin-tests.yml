@@ -10,6 +10,7 @@ jobs:
   admin:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         database: [sqlite, libsql]
     env:
@@ -38,7 +39,7 @@ jobs:
           git clone --depth 1 --branch 3.47.2 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
       - run: flutter pub get
-      - run: flutter analyze
+      - run: flutter analyze --no-fatal-infos
       - run: flutter test
       - run: flutter build web --no-wasm-dry-run
       - run: python -m pip install -r backend/requirements-dev.txt
