@@ -6,9 +6,15 @@ import '../services/auth_service.dart';
 import 'guest_dictionary_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key, required this.baseUrl, this.authService});
+  const RegisterScreen({
+    super.key,
+    required this.baseUrl,
+    this.authService,
+    this.enableCountdownTimer = true,
+  });
   final String baseUrl;
   final AuthService? authService;
+  final bool enableCountdownTimer;
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -55,6 +61,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _startResendTimer() {
     _countdownTimer?.cancel();
     setState(() => _resendCountdown = 60);
+    if (!widget.enableCountdownTimer) return;
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();

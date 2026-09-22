@@ -51,16 +51,8 @@ async def lifespan(app):
             init_ai_exam_tables(conn)
             from ai_reading import init_reading_tables
             init_reading_tables(conn)
-            conn.execute("""
-            CREATE TABLE IF NOT EXISTS verification_codes (
-                id INTEGER PRIMARY KEY, email TEXT NOT NULL, code TEXT NOT NULL,
-                purpose TEXT NOT NULL CHECK(purpose IN ('register','forgot_password')),
-                temp_data_json TEXT NOT NULL DEFAULT '{}',
-                expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL,
-                used INTEGER NOT NULL DEFAULT 0
-            );
-            """)
-            conn.execute("CREATE INDEX IF NOT EXISTS verification_codes_lookup ON verification_codes(email, purpose, used);")
+            from database import init_auth_tables
+            init_auth_tables(conn)
     else:
         init_db()
         from vocabulary_catalog import init_catalog, refresh_search
@@ -165,6 +157,8 @@ def health():
 
 @app.post("/api/auth/register", status_code=201)
 def register(body: Register):
+    if os.getenv("VERCEL"):
+        raise HTTPException(400, "Đăng ký yêu cầu xác thực email OTP. Vui lòng sử dụng tính năng đăng ký qua email trên ứng dụng.")
     salt = secrets.token_hex(16)
     password_hash = hash_password(body.password, salt)
     try:
@@ -181,7 +175,7 @@ def register_request(body: RegisterRequest):
     with database() as conn:
         existing = conn.execute("SELECT id FROM users WHERE email=?", (body.email.lower(),)).fetchone()
         if existing:
-            raise HTTPException(409, "Email này đã được sử dụng")
+            raise HTTPException(409, "Email đã được sử dụng")
 
         code = f"{secrets.randbelow(900000) + 100000}"
         salt = secrets.token_hex(16)

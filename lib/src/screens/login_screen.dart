@@ -89,6 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
         builder: (_) => RegisterScreen(
           baseUrl: widget.baseUrl,
           authService: widget.authService,
+          enableCountdownTimer: widget.authService == null,
         ),
       ),
     );
@@ -103,6 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
           baseUrl: widget.baseUrl,
           authService: widget.authService,
           initialEmail: emailController.text.trim(),
+          enableCountdownTimer: widget.authService == null,
         ),
       ),
     );

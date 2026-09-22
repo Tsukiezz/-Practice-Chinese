@@ -41,6 +41,20 @@ def audit(conn, actor, action, entity, entity_id, before=None, after=None):
     )
 
 
+def init_auth_tables(conn):
+    """Ensure verification_codes table and index exist for OTP flows."""
+    conn.executescript("""
+    CREATE TABLE IF NOT EXISTS verification_codes (
+        id INTEGER PRIMARY KEY, email TEXT NOT NULL, code TEXT NOT NULL,
+        purpose TEXT NOT NULL CHECK(purpose IN ('register','forgot_password')),
+        temp_data_json TEXT NOT NULL DEFAULT '{}',
+        expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL,
+        used INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS verification_codes_lookup ON verification_codes(email, purpose, used);
+    """)
+
+
 def init_db():
     with database() as conn:
         conn.executescript("""

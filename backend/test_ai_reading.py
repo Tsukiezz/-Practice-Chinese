@@ -1,7 +1,7 @@
 """Automated tests for AI Reading & Pronunciation Assessment."""
 import json
 import sqlite3
-import pytest
+import unittest
 from fastapi.testclient import TestClient
 
 from main import app, hash_password
@@ -14,123 +14,117 @@ from ai_reading import (
 )
 
 
-@pytest.fixture(scope="module")
-def client():
-    with database() as conn:
-        init_reading_tables(conn)
-    return TestClient(app)
+class TestAiReading(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        with database() as conn:
+            init_reading_tables(conn)
+        cls.client = TestClient(app)
+        cls.email = "test_student_reading@example.test"
+        cls.password = "ReadingPassword123@"
+        with database() as conn:
+            row = conn.execute("SELECT id FROM users WHERE email=?", (cls.email,)).fetchone()
+            if not row:
+                salt = "11" * 16
+                pwd_hash = hash_password(cls.password, salt)
+                conn.execute(
+                    "INSERT INTO users(name, email, password_hash, salt, role, is_active, created_at) VALUES(?,?,?,?,?,?,?)",
+                    ("Reading Tester", cls.email, pwd_hash, salt, "student", 1, 1000000),
+                )
+        res = cls.client.post("/api/auth/login", json={"email": cls.email, "password": cls.password})
+        assert res.status_code == 200, res.text
+        cls.student_auth = {"Authorization": f"Bearer {res.json()['token']}"}
 
+    def test_reading_topics(self):
+        """Verify list of 22 topics is returned."""
+        res = self.client.get("/api/reading/topics")
+        self.assertEqual(res.status_code, 200)
+        topics = res.json()
+        self.assertGreaterEqual(len(topics), 20)
+        topic_ids = [t["id"] for t in topics]
+        self.assertIn("family", topic_ids)
+        self.assertIn("food", topic_ids)
+        self.assertIn("home", topic_ids)
+        self.assertIn("school", topic_ids)
+        self.assertIn("work", topic_ids)
+        self.assertIn("travel", topic_ids)
 
-@pytest.fixture(scope="module")
-def student_auth(client):
-    email = "test_student_reading@example.test"
-    password = "ReadingPassword123@"
-    # Ensure test user exists
-    with database() as conn:
-        row = conn.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
-        if not row:
-            salt = "11" * 16
-            pwd_hash = hash_password(password, salt)
-            conn.execute(
-                "INSERT INTO users(name, email, password_hash, salt, role, is_active, created_at) VALUES(?,?,?,?,?,?,?)",
-                ("Reading Tester", email, pwd_hash, salt, "student", 1, 1000000),
-            )
-    res = client.post("/api/auth/login", json={"email": email, "password": password})
-    assert res.status_code == 200, res.text
-    return {"Authorization": f"Bearer {res.json()['token']}"}
+    def test_reading_vocabulary_hsk(self):
+        """Verify vocabulary can be filtered by HSK 1 through HSK 6."""
+        for hsk in (1, 2, 3, 4, 5, 6):
+            res = self.client.get(f"/api/reading/vocabulary?hsk={hsk}&limit=10")
+            self.assertEqual(res.status_code, 200)
+            data = res.json()
+            self.assertGreater(data["total"], 0)
+            self.assertGreater(len(data["items"]), 0)
+            for item in data["items"]:
+                self.assertEqual(item["hsk"], hsk)
+                self.assertIn("hanzi", item)
+                self.assertIn("pinyin", item)
+                self.assertIn("meaning", item)
 
-
-def test_reading_topics(client):
-    """Verify list of 22 topics is returned."""
-    res = client.get("/api/reading/topics")
-    assert res.status_code == 200
-    topics = res.json()
-    assert len(topics) >= 20
-    topic_ids = [t["id"] for t in topics]
-    assert "family" in topic_ids
-    assert "food" in topic_ids
-    assert "home" in topic_ids
-    assert "school" in topic_ids
-    assert "work" in topic_ids
-    assert "travel" in topic_ids
-
-
-def test_reading_vocabulary_hsk(client):
-    """Verify vocabulary can be filtered by HSK 1 through HSK 6."""
-    for hsk in (1, 2, 3, 4, 5, 6):
-        res = client.get(f"/api/reading/vocabulary?hsk={hsk}&limit=10")
-        assert res.status_code == 200
+    def test_reading_vocabulary_topic(self):
+        """Verify vocabulary can be filtered by topic."""
+        res = self.client.get("/api/reading/vocabulary?topic=family&limit=10")
+        self.assertEqual(res.status_code, 200)
         data = res.json()
-        assert data["total"] > 0
-        assert len(data["items"]) > 0
-        for item in data["items"]:
-            assert item["hsk"] == hsk
-            assert "hanzi" in item
-            assert "pinyin" in item
-            assert "meaning" in item
+        self.assertGreater(data["total"], 0)
+        self.assertGreater(len(data["items"]), 0)
+
+    def test_pinyin_normalization(self):
+        """Verify pinyin with diacritics is accurately converted to tone numbers."""
+        self.assertEqual(normalize_pinyin_to_tone_number("nǐ hǎo"), "ni3 hao3")
+        self.assertEqual(normalize_pinyin_to_tone_number("mā ma"), "ma1 ma5")
+        self.assertEqual(normalize_pinyin_to_tone_number("xué xí"), "xue2 xi2")
+
+    def test_offline_pronunciation_evaluator(self):
+        """Verify rule-based pronunciation evaluation and error detection."""
+        # 1. Exact match
+        res_exact = evaluate_pronunciation_offline("你好", "nǐ hǎo", "你好")
+        self.assertEqual(res_exact["accuracy_percent"], 100.0)
+        self.assertEqual(res_exact["rating"], "Xuất sắc")
+        self.assertEqual(len(res_exact["errors"]), 0)
+
+        # 2. Empty speech
+        res_empty = evaluate_pronunciation_offline("你好", "nǐ hǎo", "")
+        self.assertEqual(res_empty["accuracy_percent"], 0.0)
+        self.assertEqual(res_empty["rating"], "Chưa đạt")
+        self.assertGreater(len(res_empty["errors"]), 0)
+
+        # 3. Partial or different pronunciation
+        res_diff = evaluate_pronunciation_offline("学习", "xuéxí", "xue1 xi1")
+        self.assertTrue(10.0 <= res_diff["accuracy_percent"] <= 95.0)
+        self.assertGreater(len(res_diff["corrections"]), 0)
+
+    def test_reading_evaluate_endpoint(self):
+        """Test full reading evaluation API with user authentication & history persistence."""
+        payload = {
+            "target_hanzi": "学习",
+            "target_pinyin": "xuéxí",
+            "target_meaning": "Học tập",
+            "spoken_text": "学习",
+            "save_history": True,
+        }
+        res = self.client.post("/api/reading/evaluate", json=payload, headers=self.student_auth)
+        self.assertEqual(res.status_code, 200, res.text)
+        data = res.json()
+        self.assertEqual(data["target_hanzi"], "学习")
+        self.assertTrue(0.0 <= data["accuracy_percent"] <= 100.0)
+        self.assertIn(data["rating"], ("Xuất sắc", "Tốt", "Cần cải thiện", "Chưa đạt", "Đạt"))
+        self.assertIn("tone_score", data)
+        self.assertIn("phoneme_score", data)
+        self.assertIn("errors", data)
+        self.assertIn("corrections", data)
+        self.assertIsNotNone(data["history_id"])
+
+        # Check that item appears in reading history
+        history_res = self.client.get("/api/me/reading/history", headers=self.student_auth)
+        self.assertEqual(history_res.status_code, 200)
+        history_data = history_res.json()
+        self.assertGreaterEqual(history_data["total"], 1)
+        found = any(item["id"] == data["history_id"] for item in history_data["items"])
+        self.assertTrue(found)
 
 
-def test_reading_vocabulary_topic(client):
-    """Verify vocabulary can be filtered by topic."""
-    res = client.get("/api/reading/vocabulary?topic=family&limit=10")
-    assert res.status_code == 200
-    data = res.json()
-    assert data["total"] > 0
-    assert len(data["items"]) > 0
-
-
-def test_pinyin_normalization():
-    """Verify pinyin with diacritics is accurately converted to tone numbers."""
-    assert normalize_pinyin_to_tone_number("nǐ hǎo") == "ni3 hao3"
-    assert normalize_pinyin_to_tone_number("mā ma") == "ma1 ma5"
-    assert normalize_pinyin_to_tone_number("xué xí") == "xue2 xi2"
-
-
-def test_offline_pronunciation_evaluator():
-    """Verify rule-based pronunciation evaluation and error detection."""
-    # 1. Exact match
-    res_exact = evaluate_pronunciation_offline("你好", "nǐ hǎo", "你好")
-    assert res_exact["accuracy_percent"] == 100.0
-    assert res_exact["rating"] == "Xuất sắc"
-    assert len(res_exact["errors"]) == 0
-
-    # 2. Empty speech
-    res_empty = evaluate_pronunciation_offline("你好", "nǐ hǎo", "")
-    assert res_empty["accuracy_percent"] == 0.0
-    assert res_empty["rating"] == "Chưa đạt"
-    assert len(res_empty["errors"]) > 0
-
-    # 3. Partial or different pronunciation
-    res_diff = evaluate_pronunciation_offline("学习", "xuéxí", "xue1 xi1")
-    assert 10.0 <= res_diff["accuracy_percent"] <= 95.0
-    assert len(res_diff["corrections"]) > 0
-
-
-def test_reading_evaluate_endpoint(client, student_auth):
-    """Test full reading evaluation API with user authentication & history persistence."""
-    payload = {
-        "target_hanzi": "学习",
-        "target_pinyin": "xuéxí",
-        "target_meaning": "Học tập",
-        "spoken_text": "学习",
-        "save_history": True,
-    }
-    res = client.post("/api/reading/evaluate", json=payload, headers=student_auth)
-    assert res.status_code == 200, res.text
-    data = res.json()
-    assert data["target_hanzi"] == "学习"
-    assert 0.0 <= data["accuracy_percent"] <= 100.0
-    assert data["rating"] in ("Xuất sắc", "Tốt", "Cần cải thiện", "Chưa đạt", "Đạt")
-    assert "tone_score" in data
-    assert "phoneme_score" in data
-    assert "errors" in data
-    assert "corrections" in data
-    assert data["history_id"] is not None
-
-    # Check that item appears in reading history
-    history_res = client.get("/api/me/reading/history", headers=student_auth)
-    assert history_res.status_code == 200
-    history_data = history_res.json()
-    assert history_data["total"] >= 1
-    found = any(item["id"] == data["history_id"] for item in history_data["items"])
-    assert found
+if __name__ == "__main__":
+    unittest.main()

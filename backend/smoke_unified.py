@@ -240,6 +240,17 @@ def run():
                         expect(page.get_by_text('Email đã được sử dụng',exact=True)).to_be_visible()
                         page.screenshot(path=str(artifacts/'tuyen-register-mobile.png'))
                     else:
+                        with storage.database() as conn:
+                            otp_row = conn.execute(
+                                "SELECT code FROM verification_codes WHERE email=? AND purpose='register' AND used=0 ORDER BY id DESC LIMIT 1",
+                                ('newstudent@example.test',)
+                            ).fetchone()
+                            otp_code = otp_row["code"] if otp_row else "123456"
+                        try:
+                            fill_field('Nhập mã xác thực (OTP)', otp_code)
+                        except Exception:
+                            fill_field('6 chữ số', otp_code)
+                        page.get_by_role('button', name='Xác nhận & Hoàn tất', exact=True).click()
                         expect(page.get_by_role('tab',name='Nghe',exact=True)).to_be_visible()
                         created=httpx.post(base+'/api/auth/login',json={'email':'newstudent@example.test','password':password})
                         assert created.status_code==200 and created.json()['user']['role']=='student'

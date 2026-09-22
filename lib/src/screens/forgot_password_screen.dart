@@ -10,11 +10,13 @@ class ForgotPasswordScreen extends StatefulWidget {
     required this.baseUrl,
     this.authService,
     this.initialEmail = '',
+    this.enableCountdownTimer = true,
   });
 
   final String baseUrl;
   final AuthService? authService;
   final String initialEmail;
+  final bool enableCountdownTimer;
 
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
@@ -65,6 +67,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   void _startResendTimer() {
     _countdownTimer?.cancel();
     setState(() => _resendCountdown = 60);
+    if (!widget.enableCountdownTimer) return;
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
