@@ -2,10 +2,13 @@ const root = document.querySelector('#app');
 const dialog = document.querySelector('#editor');
 const pages = {
   dashboard: ['Tổng quan', 'Bức tranh học tập toàn hệ thống, cập nhật từ cơ sở dữ liệu.'],
-  users: ['Người dùng', 'Quản lý quyền truy cập và trạng thái tài khoản học viên.'],
+  users: ['Tài khoản người dùng', 'Quản lý tài khoản học viên, quyền truy cập và đặt lại mật khẩu.'],
+  student_lessons: ['Tiến độ lộ trình học', 'Theo dõi tiến trình 48 bài học theo lộ trình HSK, giai đoạn và điểm số.'],
+  student_reading: ['Lịch sử Luyện Đọc AI', 'Chi tiết bài đọc phát âm, độ chính xác AI và phân tích lỗi phát âm của học viên.'],
+  results: ['Duyệt kết quả & Khiếu nại', 'Xem bài làm, xử lý khiếu nại và theo dõi lịch sử điều chỉnh điểm.'],
   vocabulary: ['Kho từ & nét chuẩn', 'Nguồn từ vựng và thứ tự nét dùng chung cho ứng dụng học tập.'],
   exams: ['Ngân hàng đề', 'Biên soạn bài Nghe, Đọc, Viết theo HSK 1–6.'],
-  results: ['Duyệt kết quả', 'Xem bài làm, xử lý khiếu nại và theo dõi lịch sử điều chỉnh điểm.'],
+  lessons: ['Lộ trình 48 bài học', 'Danh mục bài học giáo trình HanziGo và mục tiêu từng cấp độ.'],
   ai: ['Cấu hình AI', 'Quản lý model, hướng dẫn chấm và giới hạn xử lý tập trung.'],
   logs: ['Nhật ký quản trị', 'Các thay đổi được ghi nhận cùng người thực hiện và thời gian.'],
 };
@@ -116,7 +119,7 @@ function loginView(error = '') {
 
 function shell() {
   const navButton = key => `<button data-page="${key}">${pages[key][0]}</button>`;
-  root.innerHTML = `<div class="layout"><aside class="sidebar">${brand}<button type="button" id="menu-toggle" class="menu-toggle" aria-label="Mở menu quản trị" aria-expanded="false" aria-controls="admin-menu"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div id="admin-menu" class="sidebar-menu"><a href="/" class="app-return-link" style="display:flex;align-items:center;gap:8px;padding:9px 12px;margin:4px 8px 10px;background:#eef6ee;color:#1e5e2e;border:1px solid #cce5cc;border-radius:8px;font-weight:600;font-size:13px;text-decoration:none">← Về ứng dụng HanziGo</a><nav aria-label="Quản trị">${navButton('dashboard')}<div class="nav-group"><span class="nav-label">Học tập</span>${['vocabulary','exams','results'].map(navButton).join('')}</div><div class="nav-group"><span class="nav-label">Hệ thống</span>${['users','ai','logs'].map(navButton).join('')}</div></nav><div class="account"><div><b>${escape(user.name)}</b><small>${escape(user.email)}</small></div><a href="/">← Về trang học viên</a><button id="logout">Đăng xuất</button></div></div></aside><main class="main"><div class="topline"><span>CHINESE LEARNING / QUẢN TRỊ</span><a href="/" style="font-size:12px;color:#2c7a3f;text-decoration:none;font-weight:600;margin-right:12px">← Mở ứng dụng học tập</a><span class="pill">Không gian quản trị</span></div><div id="content"></div></main></div>`;
+  root.innerHTML = `<div class="layout"><aside class="sidebar">${brand}<button type="button" id="menu-toggle" class="menu-toggle" aria-label="Mở menu quản trị" aria-expanded="false" aria-controls="admin-menu"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div id="admin-menu" class="sidebar-menu"><a href="/" class="app-return-link" style="display:flex;align-items:center;gap:8px;padding:9px 12px;margin:4px 8px 10px;background:#eef6ee;color:#1e5e2e;border:1px solid #cce5cc;border-radius:8px;font-weight:600;font-size:13px;text-decoration:none">← Về ứng dụng HanziGo</a><nav aria-label="Quản trị">${navButton('dashboard')}<div class="nav-group"><span class="nav-label">Quản lý Học viên</span>${['users','student_lessons','student_reading','results'].map(navButton).join('')}</div><div class="nav-group"><span class="nav-label">Học liệu & Đề thi</span>${['vocabulary','exams','lessons'].map(navButton).join('')}</div><div class="nav-group"><span class="nav-label">Hệ thống & AI</span>${['ai','logs'].map(navButton).join('')}</div></nav><div class="account"><div><b>${escape(user.name)}</b><small>${escape(user.email)}</small></div><a href="/">← Về trang học viên</a><button id="logout">Đăng xuất</button></div></div></aside><main class="main"><div class="topline"><span>CHINESE LEARNING / QUẢN TRỊ</span><a href="/" style="font-size:12px;color:#2c7a3f;text-decoration:none;font-weight:600;margin-right:12px">← Mở ứng dụng học tập</a><span class="pill">Không gian quản trị</span></div><div id="content"></div></main></div>`;
   document.querySelector('#menu-toggle').onclick = event => {
     setMenu(event.currentTarget.getAttribute('aria-expanded') !== 'true');
   };
@@ -163,11 +166,33 @@ async function loadPage(params = '') {
   if (!content) return;
   content.innerHTML = heading() + '<div class="loading" role="status">Đang tải dữ liệu…</div>';
   try {
-    const endpoint = {dashboard:'/admin/dashboard',users:'/admin/users',vocabulary:'/admin/vocabulary',exams:'/admin/exams',results:'/admin/results',ai:'/admin/ai-config',logs:'/admin/audit-logs'}[page];
+    const endpoint = {
+      dashboard: '/admin/dashboard',
+      users: '/admin/users',
+      student_lessons: '/admin/student-lessons',
+      student_reading: '/admin/student-reading',
+      results: '/admin/results',
+      vocabulary: '/admin/vocabulary',
+      exams: '/admin/exams',
+      lessons: '/lessons',
+      ai: '/admin/ai-config',
+      logs: '/admin/audit-logs'
+    }[page];
     const data = await api(endpoint + params);
     if (id !== loadId) return;
     content.innerHTML = heading();
-    ({dashboard:renderDashboard, users:renderUsers, vocabulary:renderWords, exams:renderExams, results:renderResults, ai:renderAI, logs:renderLogs})[page](content, data, params);
+    ({
+      dashboard: renderDashboard,
+      users: renderUsers,
+      student_lessons: renderStudentLessons,
+      student_reading: renderStudentReading,
+      results: renderResults,
+      vocabulary: renderWords,
+      exams: renderExams,
+      lessons: renderLessonsCatalog,
+      ai: renderAI,
+      logs: renderLogs
+    })[page](content, data, params);
   } catch (err) {
     if (id !== loadId) { notify(err.message); return; }
     content.innerHTML = heading() + `<div class="error" role="alert">${escape(err.message)}</div><button id="retry">Thử lại</button>`;
@@ -213,6 +238,122 @@ function bindFilter(params) {
     const query = new URLSearchParams();
     for (const [key,value] of new FormData(form)) if (value !== '') query.set(key,value);
     loadPage(`?${query}`);
+  };
+}
+
+function renderStudentLessons(content, data) {
+  const stageLabels = {0:'Chưa bắt đầu', 1:'1. Khám phá từ vựng', 2:'2. Ngữ pháp & Mẫu câu', 3:'3. Luyện tập trắc nghiệm', 4:'4. Đã hoàn thành'};
+  content.innerHTML += `<section class="panel">
+    <div class="toolbar">
+      <input id="filter-user-lesson" placeholder="Lọc theo tên, email học viên hoặc mã bài học..." aria-label="Lọc tiến độ học viên" style="flex:1;max-width:400px">
+      <span class="pill">${data.length} tiến trình học tập</span>
+    </div>
+    <div id="lessons-table-wrap">
+      ${table(['Học viên', 'Email', 'Mã bài học', 'Giai đoạn', 'Điểm cao nhất', 'Số lần nộp', 'Hoàn thành lúc', 'Cập nhật'],
+        data.map(r => `<tr>
+          <td><b>${escape(r.name)}</b></td>
+          <td>${escape(r.email)}</td>
+          <td><code>${escape(r.lesson_id)}</code></td>
+          <td><span class="tag ${r.stage === 4 ? 'published' : 'draft'}">${stageLabels[r.stage] || ('Giai đoạn ' + r.stage)}</span></td>
+          <td><b>${r.best_score ?? 0}</b>/100</td>
+          <td>${r.attempts ?? 0}</td>
+          <td>${r.completed_at ? date(r.completed_at) : '—'}</td>
+          <td>${date(r.updated_at)}</td>
+        </tr>`))}
+    </div>
+  </section>`;
+  const input = document.querySelector('#filter-user-lesson');
+  if (input) input.oninput = e => {
+    const q = e.target.value.toLowerCase().trim();
+    const rows = data.filter(r => (r.name + ' ' + r.email + ' ' + r.lesson_id).toLowerCase().includes(q));
+    document.querySelector('#lessons-table-wrap').innerHTML = table(
+      ['Học viên', 'Email', 'Mã bài học', 'Giai đoạn', 'Điểm cao nhất', 'Số lần nộp', 'Hoàn thành lúc', 'Cập nhật'],
+      rows.map(r => `<tr>
+        <td><b>${escape(r.name)}</b></td>
+        <td>${escape(r.email)}</td>
+        <td><code>${escape(r.lesson_id)}</code></td>
+        <td><span class="tag ${r.stage === 4 ? 'published' : 'draft'}">${stageLabels[r.stage] || ('Giai đoạn ' + r.stage)}</span></td>
+        <td><b>${r.best_score ?? 0}</b>/100</td>
+        <td>${r.attempts ?? 0}</td>
+        <td>${r.completed_at ? date(r.completed_at) : '—'}</td>
+        <td>${date(r.updated_at)}</td>
+      </tr>`)
+    );
+  };
+}
+
+function renderStudentReading(content, data) {
+  content.innerHTML += `<section class="panel">
+    <div class="toolbar">
+      <input id="filter-user-reading" placeholder="Lọc theo học viên, chữ Hán hoặc pinyin..." aria-label="Lọc luyện đọc" style="flex:1;max-width:400px">
+      <span class="pill">${data.length} lượt luyện đọc AI</span>
+    </div>
+    <div id="reading-table-wrap">
+      ${table(['Học viên', 'Chữ Hán', 'Pinyin', 'Ý nghĩa', 'Độ chính xác', 'Đánh giá AI', 'Phát âm ghi nhận', 'Thời gian'],
+        data.map(r => `<tr>
+          <td><b>${escape(r.name)}</b><br><small>${escape(r.email)}</small></td>
+          <td><b style="font-size:18px">${escape(r.hanzi)}</b></td>
+          <td>${escape(r.pinyin)}</td>
+          <td>${escape(r.meaning || '—')}</td>
+          <td><b>${Number(r.accuracy_percent).toFixed(1)}%</b></td>
+          <td><span class="tag ${r.accuracy_percent >= 80 ? 'published' : (r.accuracy_percent >= 60 ? 'draft' : 'hidden')}">${escape(r.rating || 'Đã chấm')}</span></td>
+          <td>${escape(r.spoken_text || '—')}</td>
+          <td>${date(r.created_at)}</td>
+        </tr>`))}
+    </div>
+  </section>`;
+  const input = document.querySelector('#filter-user-reading');
+  if (input) input.oninput = e => {
+    const q = e.target.value.toLowerCase().trim();
+    const rows = data.filter(r => (r.name + ' ' + r.email + ' ' + r.hanzi + ' ' + r.pinyin + ' ' + (r.meaning || '')).toLowerCase().includes(q));
+    document.querySelector('#reading-table-wrap').innerHTML = table(
+      ['Học viên', 'Chữ Hán', 'Pinyin', 'Ý nghĩa', 'Độ chính xác', 'Đánh giá AI', 'Phát âm ghi nhận', 'Thời gian'],
+      rows.map(r => `<tr>
+        <td><b>${escape(r.name)}</b><br><small>${escape(r.email)}</small></td>
+        <td><b style="font-size:18px">${escape(r.hanzi)}</b></td>
+        <td>${escape(r.pinyin)}</td>
+        <td>${escape(r.meaning || '—')}</td>
+        <td><b>${Number(r.accuracy_percent).toFixed(1)}%</b></td>
+        <td><span class="tag ${r.accuracy_percent >= 80 ? 'published' : (r.accuracy_percent >= 60 ? 'draft' : 'hidden')}">${escape(r.rating || 'Đã chấm')}</span></td>
+        <td>${escape(r.spoken_text || '—')}</td>
+        <td>${date(r.created_at)}</td>
+      </tr>`)
+    );
+  };
+}
+
+function renderLessonsCatalog(content, data) {
+  const items = data.items || [];
+  content.innerHTML += `<section class="panel">
+    <div class="toolbar">
+      <input id="filter-lessons-cat" placeholder="Tìm theo tên bài học hoặc mục tiêu..." aria-label="Tìm bài học" style="flex:1;max-width:400px">
+      <span class="pill">Tổng số ${items.length} bài học lộ trình</span>
+    </div>
+    <div id="lessons-cat-wrap">
+      ${table(['Cấp độ', 'Mã bài', 'Tên bài học', 'Thời lượng', 'Mục tiêu bài học'],
+        items.map(l => `<tr>
+          <td><span class="tag published">HSK ${l.hsk}</span></td>
+          <td><code>${escape(l.id)}</code></td>
+          <td><b>${escape(l.title)}</b></td>
+          <td>${l.minutes} phút</td>
+          <td>${escape(l.objective || '—')}</td>
+        </tr>`))}
+    </div>
+  </section>`;
+  const input = document.querySelector('#filter-lessons-cat');
+  if (input) input.oninput = e => {
+    const q = e.target.value.toLowerCase().trim();
+    const rows = items.filter(l => (l.title + ' ' + l.id + ' ' + (l.objective || '')).toLowerCase().includes(q));
+    document.querySelector('#lessons-cat-wrap').innerHTML = table(
+      ['Cấp độ', 'Mã bài', 'Tên bài học', 'Thời lượng', 'Mục tiêu bài học'],
+      rows.map(l => `<tr>
+        <td><span class="tag published">HSK ${l.hsk}</span></td>
+        <td><code>${escape(l.id)}</code></td>
+        <td><b>${escape(l.title)}</b></td>
+        <td>${l.minutes} phút</td>
+        <td>${escape(l.objective || '—')}</td>
+      </tr>`)
+    );
   };
 }
 

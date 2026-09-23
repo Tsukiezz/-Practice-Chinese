@@ -384,6 +384,58 @@ def admin_reset_user_password(user_id: int, body: AdminResetPassword, admin=Depe
     return {"status": "ok", "message": f"Đặt lại mật khẩu cho {user['email']} thành công", "user": after}
 
 
+@app.get("/api/admin/student-lessons")
+def admin_student_lessons(user_id: int | None = None, stage: int | None = None, user=Depends(admin_user)):
+    query = """
+        SELECT p.user_id, p.lesson_id, p.stage, p.best_score, p.attempts, p.completed_at, p.updated_at,
+               u.name, u.email
+        FROM lesson_progress p
+        JOIN users u ON p.user_id = u.id
+        WHERE 1=1
+    """
+    params: list[Any] = []
+    if user_id is not None:
+        query += " AND p.user_id = ?"
+        params.append(user_id)
+    if stage is not None:
+        query += " AND p.stage = ?"
+        params.append(stage)
+    query += " ORDER BY p.updated_at DESC LIMIT 200"
+    with database() as conn:
+        rows = conn.execute(query, params).fetchall()
+        return [dict(r) for r in rows]
+
+
+@app.get("/api/admin/student-reading")
+def admin_student_reading(user_id: int | None = None, rating: str | None = None, user=Depends(admin_user)):
+    query = """
+        SELECT h.id, h.user_id, h.word_id, h.hanzi, h.pinyin, h.meaning,
+               h.accuracy_percent, h.rating, h.spoken_text, h.errors_json,
+               h.corrections_json, h.created_at, u.name, u.email
+        FROM student_reading_history h
+        JOIN users u ON h.user_id = u.id
+        WHERE 1=1
+    """
+    params: list[Any] = []
+    if user_id is not None:
+        query += " AND h.user_id = ?"
+        params.append(user_id)
+    if rating:
+        query += " AND h.rating = ?"
+        params.append(rating)
+    query += " ORDER BY h.created_at DESC LIMIT 200"
+    with database() as conn:
+        rows = conn.execute(query, params).fetchall()
+        items = []
+        for r in rows:
+            d = dict(r)
+            d["errors"] = json.loads(d.pop("errors_json", "[]") or "[]")
+            d["corrections"] = json.loads(d.pop("corrections_json", "[]") or "[]")
+            items.append(d)
+        return items
+
+
+
 def word_json(row: Any) -> dict[str, Any]:
     item = row_to_dict(row)
     item["strokes"] = json.loads(item.pop("strokes_json", "[]") or "[]")
