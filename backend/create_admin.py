@@ -1,12 +1,24 @@
 """Interactive, explicit administrator provisioning; no default password."""
 import getpass
+from pathlib import Path
 import secrets
 import sqlite3
+import sys
 import time
 
-from database import audit, database, init_db
-from main import hash_password
-from models import Register
+_backend_dir = Path(__file__).resolve().parent
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
+
+try:
+    from database import audit, database, init_db
+    from main import hash_password
+    from models import Register
+except ImportError:
+    from backend.database import audit, database, init_db  # type: ignore
+    from backend.main import hash_password  # type: ignore
+    from backend.models import Register  # type: ignore
+
 
 
 def main():

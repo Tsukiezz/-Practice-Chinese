@@ -2,14 +2,25 @@
 import hashlib
 import json
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 
 from fastapi.testclient import TestClient
 
-import database as storage
-from main import app
-from vocabulary_catalog import DATA, import_corpus, load_corpus
+_backend_dir = Path(__file__).resolve().parent
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
+
+try:
+    import database as storage
+    from main import app
+    from vocabulary_catalog import DATA, import_corpus, load_corpus
+except ImportError:
+    import backend.database as storage  # type: ignore
+    from backend.main import app  # type: ignore
+    from backend.vocabulary_catalog import DATA, import_corpus, load_corpus  # type: ignore
+
 
 
 class VocabularyCatalogTest(unittest.TestCase):

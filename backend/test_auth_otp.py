@@ -1,11 +1,22 @@
 """Test OTP registration and forgot-password flows."""
 import json
+from pathlib import Path
 import sqlite3
+import sys
 import unittest
 from fastapi.testclient import TestClient
 
-from database import database, init_db
-from main import app
+_backend_dir = Path(__file__).resolve().parent
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
+
+try:
+    from database import database, init_db
+    from main import app
+except ImportError:
+    from backend.database import database, init_db  # type: ignore
+    from backend.main import app  # type: ignore
+
 
 
 class TestAuthOtp(unittest.TestCase):

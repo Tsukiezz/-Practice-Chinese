@@ -435,6 +435,65 @@ def admin_student_reading(user_id: int | None = None, rating: str | None = None,
         return items
 
 
+@app.get("/api/admin/student-writing")
+def admin_student_writing(user_id: int | None = None, kind: str | None = None, user=Depends(admin_user)):
+    query = """
+        SELECT r.id, r.user_id, r.exam_id, r.kind, r.content, r.score, r.original_score,
+               r.feedback, r.graded_by, r.created_at, u.name, u.email
+        FROM results r
+        JOIN users u ON r.user_id = u.id
+        WHERE r.kind IN ('handwriting', 'writing')
+    """
+    params: list[Any] = []
+    if user_id is not None:
+        query += " AND r.user_id = ?"
+        params.append(user_id)
+    if kind:
+        query += " AND r.kind = ?"
+        params.append(kind)
+    query += " ORDER BY r.created_at DESC LIMIT 200"
+    with database() as conn:
+        rows = conn.execute(query, params).fetchall()
+        return [dict(r) for r in rows]
+
+
+@app.get("/api/admin/student-vocab")
+def admin_student_vocab(user_id: int | None = None, user=Depends(admin_user)):
+    with database() as conn:
+        saved_query = """
+            SELECT s.user_id, s.word_id, s.created_at, u.name, u.email,
+                   v.hanzi, v.pinyin, v.meaning, v.hsk
+            FROM saved_words s
+            JOIN users u ON s.user_id = u.id
+            JOIN vocabulary v ON s.word_id = v.id
+            WHERE 1=1
+        """
+        params: list[Any] = []
+        if user_id is not None:
+            saved_query += " AND s.user_id = ?"
+            params.append(user_id)
+        saved_query += " ORDER BY s.created_at DESC LIMIT 100"
+        try:
+            saved = [dict(r) for r in conn.execute(saved_query, params).fetchall()]
+        except Exception:
+            saved = []
+
+        top_query = """
+            SELECT d.word_id, v.hanzi, v.pinyin, v.meaning, v.hsk,
+                   SUM(d.lookup_count) AS total_lookups, COUNT(DISTINCT d.user_id) AS student_count
+            FROM dictionary_history d
+            JOIN vocabulary v ON d.word_id = v.id
+            GROUP BY d.word_id
+            ORDER BY total_lookups DESC LIMIT 50
+        """
+        try:
+            top_looked_up = [dict(r) for r in conn.execute(top_query).fetchall()]
+        except Exception:
+            top_looked_up = []
+
+        return {"saved_words": saved, "top_looked_up": top_looked_up}
+
+
 
 def word_json(row: Any) -> dict[str, Any]:
     item = row_to_dict(row)

@@ -5,8 +5,18 @@ No learner data or API keys are sent. Runtime playback uses bundled MP3 files.
 """
 import asyncio
 from pathlib import Path
+import sys
+
+_backend_dir = Path(__file__).resolve().parent
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
+
 import edge_tts  # type: ignore
-from seed import WORDS
+try:
+    from seed import WORDS
+except ImportError:
+    from backend.seed import WORDS  # type: ignore
+
 
 
 async def generate():

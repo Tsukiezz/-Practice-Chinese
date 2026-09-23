@@ -1,9 +1,17 @@
 """Perform a small, non-persistent Gemini connection check for AI exam grading."""
+import json
+from pathlib import Path
 import sys
 
-import json
+_backend_dir = Path(__file__).resolve().parent
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
 
-from services import ai_settings, gemini_exam_provider
+try:
+    from services import ai_settings, gemini_exam_provider
+except ImportError:
+    from backend.services import ai_settings, gemini_exam_provider  # type: ignore
+
 
 
 def verify() -> None:

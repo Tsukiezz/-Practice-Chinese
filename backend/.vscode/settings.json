@@ -1,16 +1,14 @@
 {
   "python.defaultInterpreterPath": "C:\\Users\\Admin\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
   "python.analysis.extraPaths": [
-    "./backend",
-    "${workspaceFolder}/backend",
+    ".",
     "${workspaceFolder}",
-    "."
+    ".."
   ],
   "python.autoComplete.extraPaths": [
-    "./backend",
-    "${workspaceFolder}/backend",
+    ".",
     "${workspaceFolder}",
-    "."
+    ".."
   ],
   "python.analysis.typeCheckingMode": "off",
   "python.analysis.diagnosticSeverityOverrides": {

@@ -2,15 +2,17 @@ const root = document.querySelector('#app');
 const dialog = document.querySelector('#editor');
 const pages = {
   dashboard: ['Tổng quan', 'Bức tranh học tập toàn hệ thống, cập nhật từ cơ sở dữ liệu.'],
-  users: ['Tài khoản người dùng', 'Quản lý tài khoản học viên, quyền truy cập và đặt lại mật khẩu.'],
-  student_lessons: ['Tiến độ lộ trình học', 'Theo dõi tiến trình 48 bài học theo lộ trình HSK, giai đoạn và điểm số.'],
-  student_reading: ['Lịch sử Luyện Đọc AI', 'Chi tiết bài đọc phát âm, độ chính xác AI và phân tích lỗi phát âm của học viên.'],
-  results: ['Duyệt kết quả & Khiếu nại', 'Xem bài làm, xử lý khiếu nại và theo dõi lịch sử điều chỉnh điểm.'],
-  vocabulary: ['Kho từ & nét chuẩn', 'Nguồn từ vựng và thứ tự nét dùng chung cho ứng dụng học tập.'],
-  exams: ['Ngân hàng đề', 'Biên soạn bài Nghe, Đọc, Viết theo HSK 1–6.'],
+  users: ['Tài khoản học viên', 'Quản lý tài khoản học viên, quyền truy cập và đặt lại mật khẩu.'],
+  student_lessons: ['Tiến độ 48 Bài học', 'Theo dõi tiến trình 48 bài học theo 4 giai đoạn chuẩn sư phạm và điểm số.'],
+  student_reading: ['Luyện Đọc Phát Âm AI', 'Lịch sử phát âm qua mic, độ chính xác AI và phân tích lỗi đọc của học viên.'],
+  student_writing: ['Luyện Viết Canvas & Tự luận', 'Theo dõi nét vẽ chữ Hán trên canvas và các bài tập viết tự luận của học viên.'],
+  student_vocab: ['Sổ tay & Tra từ', 'Từ vựng học viên đã lưu vào sổ tay cá nhân và các từ được tra cứu nhiều nhất.'],
+  results: ['Duyệt bài thi & Khiếu nại', 'Xem bài làm đề thi HSK 1–6, xử lý khiếu nại và lịch sử điều chỉnh điểm.'],
+  vocabulary: ['Kho 5.000 từ & nét chuẩn', 'Nguồn 5.000 từ vựng HSK 1–6 và thứ tự nét canvas chuẩn.'],
+  exams: ['Ngân hàng đề thi HSK', 'Biên soạn và quản lý đề thi Nghe, Đọc, Viết theo chuẩn HSK 1–6.'],
   lessons: ['Lộ trình 48 bài học', 'Danh mục bài học giáo trình HanziGo và mục tiêu từng cấp độ.'],
-  ai: ['Cấu hình AI', 'Quản lý model, hướng dẫn chấm và giới hạn xử lý tập trung.'],
-  logs: ['Nhật ký quản trị', 'Các thay đổi được ghi nhận cùng người thực hiện và thời gian.'],
+  ai: ['Cấu hình Trợ lý AI', 'Quản lý model Gemini, hướng dẫn chấm bài thi và giới hạn xử lý.'],
+  logs: ['Nhật ký quản trị', 'Các thay đổi được ghi nhận cùng người thực hiện và thời gian minh bạch.'],
 };
 let token = sessionStorage.getItem('hanzigo_admin_token') || '';
 let user = null;
@@ -119,7 +121,7 @@ function loginView(error = '') {
 
 function shell() {
   const navButton = key => `<button data-page="${key}">${pages[key][0]}</button>`;
-  root.innerHTML = `<div class="layout"><aside class="sidebar">${brand}<button type="button" id="menu-toggle" class="menu-toggle" aria-label="Mở menu quản trị" aria-expanded="false" aria-controls="admin-menu"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div id="admin-menu" class="sidebar-menu"><a href="/" class="app-return-link" style="display:flex;align-items:center;gap:8px;padding:9px 12px;margin:4px 8px 10px;background:#eef6ee;color:#1e5e2e;border:1px solid #cce5cc;border-radius:8px;font-weight:600;font-size:13px;text-decoration:none">← Về ứng dụng HanziGo</a><nav aria-label="Quản trị">${navButton('dashboard')}<div class="nav-group"><span class="nav-label">Quản lý Học viên</span>${['users','student_lessons','student_reading','results'].map(navButton).join('')}</div><div class="nav-group"><span class="nav-label">Học liệu & Đề thi</span>${['vocabulary','exams','lessons'].map(navButton).join('')}</div><div class="nav-group"><span class="nav-label">Hệ thống & AI</span>${['ai','logs'].map(navButton).join('')}</div></nav><div class="account"><div><b>${escape(user.name)}</b><small>${escape(user.email)}</small></div><a href="/">← Về trang học viên</a><button id="logout">Đăng xuất</button></div></div></aside><main class="main"><div class="topline"><span>CHINESE LEARNING / QUẢN TRỊ</span><a href="/" style="font-size:12px;color:#2c7a3f;text-decoration:none;font-weight:600;margin-right:12px">← Mở ứng dụng học tập</a><span class="pill">Không gian quản trị</span></div><div id="content"></div></main></div>`;
+  root.innerHTML = `<div class="layout"><aside class="sidebar">${brand}<button type="button" id="menu-toggle" class="menu-toggle" aria-label="Mở menu quản trị" aria-expanded="false" aria-controls="admin-menu"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div id="admin-menu" class="sidebar-menu"><a href="/" class="app-return-link" style="display:flex;align-items:center;gap:8px;padding:9px 12px;margin:4px 8px 10px;background:#eef6ee;color:#1e5e2e;border:1px solid #cce5cc;border-radius:8px;font-weight:600;font-size:13px;text-decoration:none">← Về ứng dụng HanziGo</a><nav aria-label="Quản trị">${navButton('dashboard')}<div class="nav-group"><span class="nav-label">🎓 Quản trị Chức năng Học viên</span>${['users','student_lessons','student_reading','student_writing','student_vocab','results'].map(navButton).join('')}</div><div class="nav-group"><span class="nav-label">📚 Kho Học liệu & Đề thi</span>${['vocabulary','exams','lessons'].map(navButton).join('')}</div><div class="nav-group"><span class="nav-label">⚙️ Hệ thống & Trí tuệ AI</span>${['ai','logs'].map(navButton).join('')}</div></nav><div class="account"><div><b>${escape(user.name)}</b><small>${escape(user.email)}</small></div><a href="/">← Về trang học viên</a><button id="logout">Đăng xuất</button></div></div></aside><main class="main"><div class="topline"><span>CHINESE LEARNING / QUẢN TRỊ</span><a href="/" style="font-size:12px;color:#2c7a3f;text-decoration:none;font-weight:600;margin-right:12px">← Mở ứng dụng học tập</a><span class="pill">Không gian quản trị</span></div><div id="content"></div></main></div>`;
   document.querySelector('#menu-toggle').onclick = event => {
     setMenu(event.currentTarget.getAttribute('aria-expanded') !== 'true');
   };
@@ -171,6 +173,8 @@ async function loadPage(params = '') {
       users: '/admin/users',
       student_lessons: '/admin/student-lessons',
       student_reading: '/admin/student-reading',
+      student_writing: '/admin/student-writing',
+      student_vocab: '/admin/student-vocab',
       results: '/admin/results',
       vocabulary: '/admin/vocabulary',
       exams: '/admin/exams',
@@ -186,6 +190,8 @@ async function loadPage(params = '') {
       users: renderUsers,
       student_lessons: renderStudentLessons,
       student_reading: renderStudentReading,
+      student_writing: renderStudentWriting,
+      student_vocab: renderStudentVocab,
       results: renderResults,
       vocabulary: renderWords,
       exams: renderExams,
@@ -317,6 +323,142 @@ function renderStudentReading(content, data) {
         <td><span class="tag ${r.accuracy_percent >= 80 ? 'published' : (r.accuracy_percent >= 60 ? 'draft' : 'hidden')}">${escape(r.rating || 'Đã chấm')}</span></td>
         <td>${escape(r.spoken_text || '—')}</td>
         <td>${date(r.created_at)}</td>
+      </tr>`)
+    );
+  };
+}
+
+function renderStudentWriting(content, data) {
+  content.innerHTML += `<section class="panel">
+    <div class="toolbar">
+      <input id="filter-user-writing" placeholder="Lọc theo học viên, email hoặc loại bài..." aria-label="Lọc luyện viết" style="flex:1;max-width:400px">
+      <span class="pill">${data.length} bài luyện viết & tự luận</span>
+    </div>
+    <div id="writing-table-wrap">
+      ${table(['Học viên', 'Kỹ năng', 'Điểm số', 'Người chấm', 'Nhận xét', 'Thời gian nộp', 'Thao tác'],
+        data.map(r => `<tr>
+          <td><b>${escape(r.name)}</b><br><small>${escape(r.email)}</small></td>
+          <td><span class="tag ${r.kind === 'handwriting' ? 'published' : 'draft'}">${r.kind === 'handwriting' ? '✍️ Nét chữ Canvas' : '📝 Viết tự luận'}</span></td>
+          <td><b style="font-size:16px">${r.score}</b>/100<br><small>Gốc: ${r.original_score}</small></td>
+          <td><span class="tag">${escape(r.graded_by || 'Tự động')}</span></td>
+          <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escape(r.feedback || '—')}</td>
+          <td>${date(r.created_at)}</td>
+          <td><button data-view-writing="${r.id}">Xem bài làm</button></td>
+        </tr>`))}
+    </div>
+  </section>`;
+  const input = document.querySelector('#filter-user-writing');
+  if (input) input.oninput = e => {
+    const q = e.target.value.toLowerCase().trim();
+    const rows = data.filter(r => (r.name + ' ' + r.email + ' ' + r.kind + ' ' + (r.feedback || '')).toLowerCase().includes(q));
+    document.querySelector('#writing-table-wrap').innerHTML = table(
+      ['Học viên', 'Kỹ năng', 'Điểm số', 'Người chấm', 'Nhận xét', 'Thời gian nộp', 'Thao tác'],
+      rows.map(r => `<tr>
+        <td><b>${escape(r.name)}</b><br><small>${escape(r.email)}</small></td>
+        <td><span class="tag ${r.kind === 'handwriting' ? 'published' : 'draft'}">${r.kind === 'handwriting' ? '✍️ Nét chữ Canvas' : '📝 Viết tự luận'}</span></td>
+        <td><b style="font-size:16px">${r.score}</b>/100<br><small>Gốc: ${r.original_score}</small></td>
+        <td><span class="tag">${escape(r.graded_by || 'Tự động')}</span></td>
+        <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escape(r.feedback || '—')}</td>
+        <td>${date(r.created_at)}</td>
+        <td><button data-view-writing="${r.id}">Xem bài làm</button></td>
+      </tr>`)
+    );
+    bindWritingView(rows);
+  };
+  bindWritingView(data);
+}
+
+function bindWritingView(rows) {
+  document.querySelectorAll('[data-view-writing]').forEach(b => b.onclick = () => {
+    const row = rows.find(r => r.id === Number(b.dataset.viewWriting));
+    if (!row) return;
+    let formattedContent;
+    try { formattedContent = JSON.stringify(JSON.parse(row.content), null, 2); }
+    catch { formattedContent = row.content; }
+    openEditor(`Chi tiết bài làm #${row.id} - ${row.kind === 'handwriting' ? 'Luyện nét chữ Canvas' : 'Bài viết tự luận'}`, `
+      <p><b>Học viên:</b> ${escape(row.name)} (${escape(row.email)})</p>
+      <p><b>Điểm số:</b> <span class="score">${row.score}</span> / 100 (Điểm gốc: ${row.original_score})</p>
+      <p><b>Người chấm:</b> ${escape(row.graded_by)}</p>
+      <details open><summary>Nội dung bài làm (Dữ liệu nét vẽ / Bài viết)</summary><pre style="max-height:220px;overflow:auto;background:#f5f7f5;padding:10px;border-radius:6px">${escape(formattedContent)}</pre></details>
+      <div class="detail-text" style="margin-top:10px"><b>Nhận xét:</b><br>${escape(row.feedback || 'Chưa có nhận xét.')}</div>
+    `, () => {}, 'Đóng');
+  });
+}
+
+function renderStudentVocab(content, data) {
+  const saved = data.saved_words || [];
+  const topWords = data.top_looked_up || [];
+  content.innerHTML += `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:20px">
+      <article class="stat"><small>Học viên đã lưu vào sổ tay</small><b>${saved.length}</b></article>
+      <article class="stat"><small>Từ tra cứu nhiều trong từ điển</small><b>${topWords.length}</b></article>
+    </div>
+    <section class="panel" style="margin-bottom:24px">
+      <h2>Sổ tay từ vựng học viên đã lưu</h2>
+      <div class="toolbar">
+        <input id="filter-saved-words" placeholder="Lọc theo học viên, chữ Hán, pinyin..." aria-label="Lọc sổ tay từ vựng" style="flex:1;max-width:400px">
+        <span class="pill">${saved.length} mục đã lưu</span>
+      </div>
+      <div id="saved-words-wrap">
+        ${table(['Học viên', 'Chữ Hán', 'Pinyin', 'Ý nghĩa', 'HSK', 'Thời gian lưu'],
+          saved.map(s => `<tr>
+            <td><b>${escape(s.name)}</b><br><small>${escape(s.email)}</small></td>
+            <td><b style="font-size:18px">${escape(s.hanzi)}</b></td>
+            <td>${escape(s.pinyin)}</td>
+            <td>${escape(s.meaning)}</td>
+            <td><span class="tag published">HSK ${s.hsk}</span></td>
+            <td>${date(s.created_at)}</td>
+          </tr>`))}
+      </div>
+    </section>
+    <section class="panel">
+      <h2>Top từ vựng học viên tra cứu nhiều nhất trong từ điển</h2>
+      <div class="toolbar">
+        <input id="filter-top-lookup" placeholder="Lọc theo chữ Hán, pinyin..." aria-label="Lọc tra cứu" style="flex:1;max-width:400px">
+        <span class="pill">${topWords.length} từ phổ biến</span>
+      </div>
+      <div id="top-lookup-wrap">
+        ${table(['Chữ Hán', 'Pinyin', 'Ý nghĩa', 'Cấp độ', 'Tổng lượt tra', 'Số học viên'],
+          topWords.map(w => `<tr>
+            <td><b style="font-size:18px">${escape(w.hanzi)}</b></td>
+            <td>${escape(w.pinyin)}</td>
+            <td>${escape(w.meaning)}</td>
+            <td><span class="tag published">HSK ${w.hsk}</span></td>
+            <td><b>${w.total_lookups}</b> lần</td>
+            <td>${w.student_count} học viên</td>
+          </tr>`))}
+      </div>
+    </section>
+  `;
+  const inputSaved = document.querySelector('#filter-saved-words');
+  if (inputSaved) inputSaved.oninput = e => {
+    const q = e.target.value.toLowerCase().trim();
+    const rows = saved.filter(s => (s.name + ' ' + s.email + ' ' + s.hanzi + ' ' + s.pinyin + ' ' + s.meaning).toLowerCase().includes(q));
+    document.querySelector('#saved-words-wrap').innerHTML = table(
+      ['Học viên', 'Chữ Hán', 'Pinyin', 'Ý nghĩa', 'HSK', 'Thời gian lưu'],
+      rows.map(s => `<tr>
+        <td><b>${escape(s.name)}</b><br><small>${escape(s.email)}</small></td>
+        <td><b style="font-size:18px">${escape(s.hanzi)}</b></td>
+        <td>${escape(s.pinyin)}</td>
+        <td>${escape(s.meaning)}</td>
+        <td><span class="tag published">HSK ${s.hsk}</span></td>
+        <td>${date(s.created_at)}</td>
+      </tr>`)
+    );
+  };
+  const inputTop = document.querySelector('#filter-top-lookup');
+  if (inputTop) inputTop.oninput = e => {
+    const q = e.target.value.toLowerCase().trim();
+    const rows = topWords.filter(w => (w.hanzi + ' ' + w.pinyin + ' ' + w.meaning).toLowerCase().includes(q));
+    document.querySelector('#top-lookup-wrap').innerHTML = table(
+      ['Chữ Hán', 'Pinyin', 'Ý nghĩa', 'Cấp độ', 'Tổng lượt tra', 'Số học viên'],
+      rows.map(w => `<tr>
+        <td><b style="font-size:18px">${escape(w.hanzi)}</b></td>
+        <td>${escape(w.pinyin)}</td>
+        <td>${escape(w.meaning)}</td>
+        <td><span class="tag published">HSK ${w.hsk}</span></td>
+        <td><b>${w.total_lookups}</b> lần</td>
+        <td>${w.student_count} học viên</td>
       </tr>`)
     );
   };
