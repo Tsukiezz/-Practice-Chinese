@@ -49,8 +49,8 @@ def ensure_default_admin(conn):
         ("nguyen.demo@example.test", "Nguyen Demo"),
         ("nguyen.admin.test@example.test", "Nguyên kiểm thử"),
     ]
-    salt = "hanzigo_admin_salt_2026"
-    pwd_hash = hashlib.pbkdf2_hmac("sha256", "Admin@HanziGo2026!".encode("utf-8"), salt.encode("utf-8"), 100_000).hex()
+    salt = "a1b2c3d4e5f60718293a4b5c6d7e8f90"
+    pwd_hash = hashlib.pbkdf2_hmac("sha256", "Admin@HanziGo2026!".encode("utf-8"), bytes.fromhex(salt), 600_000).hex()
     now = int(time.time())
     for email, name in admin_accounts:
         try:

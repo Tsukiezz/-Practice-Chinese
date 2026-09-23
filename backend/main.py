@@ -92,7 +92,11 @@ app.add_middleware(CORSMiddleware,
 
 
 def hash_password(password, salt):
-    return hashlib.pbkdf2_hmac("sha256", password.encode(), bytes.fromhex(salt), 600_000).hex()
+    try:
+        salt_bytes = bytes.fromhex(salt)
+    except (ValueError, TypeError):
+        salt_bytes = salt.encode("utf-8") if isinstance(salt, str) else b"00" * 16
+    return hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt_bytes, 600_000).hex()
 
 
 def public_user(row):
