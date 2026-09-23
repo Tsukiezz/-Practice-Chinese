@@ -185,3 +185,21 @@ def init_db():
             conn.execute('ALTER TABLE users ADD COLUMN version INTEGER NOT NULL DEFAULT 1')
         conn.execute("INSERT OR IGNORE INTO ai_config(id,model,system_prompt,temperature,max_tokens) VALUES(1,?,?,0.2,1000)",
                      ("gemini-3.5-flash", "Bạn là giáo viên tiếng Trung. Trả điểm 0–100 và nhận xét bằng tiếng Việt."))
+
+
+def init_listening_exams(conn):
+    try:
+        try:
+            from listening_hsk_data import LISTENING_EXAMS_HSK1_6
+        except ImportError:
+            from backend.listening_hsk_data import LISTENING_EXAMS_HSK1_6
+        for exam in LISTENING_EXAMS_HSK1_6:
+            row = conn.execute("SELECT id FROM exams WHERE title=?", (exam["title"],)).fetchone()
+            if not row:
+                conn.execute(
+                    "INSERT INTO exams(title, hsk, status, duration_minutes, questions_json) VALUES(?,?,'published',?,?)",
+                    (exam["title"], exam["hsk"], exam["duration_minutes"], json.dumps(exam["questions"], ensure_ascii=False))
+                )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("init_listening_exams: %s", e)

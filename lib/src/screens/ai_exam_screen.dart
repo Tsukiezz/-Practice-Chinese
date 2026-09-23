@@ -55,7 +55,6 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
       }
     });
     _loadTopics();
-    _loadHistory();
   }
 
   @override
@@ -65,6 +64,8 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
     super.dispose();
   }
 
+  String? _historyError;
+
   Future<void> _loadTopics() async {
     try {
       final topics = await widget.service.loadTopics();
@@ -73,7 +74,10 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
   }
 
   Future<void> _loadHistory() async {
-    setState(() => _loadingHistory = true);
+    setState(() {
+      _loadingHistory = true;
+      _historyError = null;
+    });
     try {
       final data = await widget.service.listExams();
       if (mounted) {
@@ -84,9 +88,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi tải đề thi: $e')),
-        );
+        setState(() => _historyError = e.toString());
       }
     } finally {
       if (mounted) setState(() => _loadingHistory = false);
@@ -549,6 +551,25 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
   Widget _buildMyExamsTab() {
     if (_loadingHistory) {
       return const Center(child: CircularProgressIndicator());
+    }
+    if (_historyError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off_rounded, size: 48, color: Colors.grey),
+              const SizedBox(height: 12),
+              const Text('Không thể tải lịch sử đề thi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 6),
+              Text(_historyError!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: _loadHistory, child: const Text('Thử lại')),
+            ],
+          ),
+        ),
+      );
     }
 
     return RefreshIndicator(

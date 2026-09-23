@@ -105,6 +105,12 @@ class _AppShellState extends State<AppShell> {
         baseUrl: _apiBaseUrl,
         tokenProvider: () async => _authService.token,
       );
+      _readingRepository =
+          widget.readingRepository ??
+          ReadingExamService(
+            baseUrl: _apiBaseUrl,
+            tokenProvider: () async => _authService.token,
+          );
       _listeningRepository =
           widget.listeningRepository ??
           ListeningExamService(
@@ -133,11 +139,20 @@ class _AppShellState extends State<AppShell> {
       tokenProvider: () async => _authService.token,
       client: _httpClient,
     );
-    _listeningRepository ??= ListeningExamService(
-      baseUrl: _apiBaseUrl,
-      tokenProvider: () async => _authService.token,
-      client: _httpClient,
-    );
+    _readingRepository =
+        widget.readingRepository ??
+        ReadingExamService(
+          baseUrl: _apiBaseUrl,
+          tokenProvider: () async => _authService.token,
+          client: _httpClient,
+        );
+    _listeningRepository =
+        widget.listeningRepository ??
+        ListeningExamService(
+          baseUrl: _apiBaseUrl,
+          tokenProvider: () async => _authService.token,
+          client: _httpClient,
+        );
     _comprehensiveRepository = ReadingExamService(
       baseUrl: _apiBaseUrl,
       tokenProvider: () async => _authService.token,
@@ -149,9 +164,13 @@ class _AppShellState extends State<AppShell> {
     } on Exception {
       // Local custom exams are optional and must not block the whole app.
     }
+    if (_authService.isSessionExpiredDueToInactivity) {
+      await _authService.clearSession();
+    }
     if (_authService.isAuthenticated) {
       try {
         await _authService.refreshUser(_apiBaseUrl);
+        await _authService.recordActivity();
       } on Exception {
         await _authService.clearSession();
       }
@@ -265,30 +284,36 @@ class _AppShellState extends State<AppShell> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'HanziGo · Hán Ngữ Xanh',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF1B4D3E),
-                          letterSpacing: 0.2,
+                  const Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'HanziGo · Hán Ngữ Xanh',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1B4D3E),
+                            letterSpacing: 0.2,
+                          ),
                         ),
-                      ),
-                      Text(
-                        'Ứng dụng học tiếng Trung',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF707974),
+                        Text(
+                          'Ứng dụng học tiếng Trung',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF707974),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   if (_authService.currentUser != null)
                     GestureDetector(
                       onTap: () => setState(() => _index = 6),

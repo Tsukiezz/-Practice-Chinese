@@ -47,6 +47,8 @@ class AuthService {
   static const _tokenKey = 'auth_token';
   static const _userKey = 'auth_user';
   static const _apiBaseUrlKey = 'api_base_url';
+  static const _lastActiveKey = 'auth_last_active_at';
+  static const int defaultInactivityTimeoutSeconds = 86400; // 24 giờ
   bool _persistSession = true;
   String? _memoryToken;
   AuthUser? _memoryUser;
@@ -61,10 +63,27 @@ class AuthService {
     return AuthUser.fromJson(jsonDecode(raw) as Map<String, dynamic>);
   }
 
+  bool get isSessionExpiredDueToInactivity {
+    final lastActive = _prefs.getInt(_lastActiveKey);
+    if (lastActive == null) return false;
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    return (now - lastActive) > defaultInactivityTimeoutSeconds;
+  }
+
   bool get isAuthenticated {
     final user = currentUser;
     if (user == null) return false;
-    return user.expiresAt > DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    if (user.expiresAt <= now) return false;
+    if (isSessionExpiredDueToInactivity) return false;
+    return true;
+  }
+
+  Future<void> recordActivity() async {
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    if (_persistSession) {
+      await _prefs.setInt(_lastActiveKey, now);
+    }
   }
 
   Future<void> saveSession(String token, AuthUser user) async {
@@ -73,6 +92,7 @@ class AuthService {
     if (_persistSession) {
       await _prefs.setString(_tokenKey, token);
       await _prefs.setString(_userKey, jsonEncode(user.toJson()));
+      await recordActivity();
     }
   }
 
@@ -81,6 +101,7 @@ class AuthService {
     _memoryUser = null;
     await _prefs.remove(_tokenKey);
     await _prefs.remove(_userKey);
+    await _prefs.remove(_lastActiveKey);
   }
 
   Future<AuthUser> login({
@@ -298,10 +319,10 @@ class AuthService {
 class _TestPrefs implements SharedPreferences {
   _TestPrefs();
 
-  final Map<String, String> _values = <String, String>{};
+  final Map<String, Object> _values = <String, Object>{};
 
   @override
-  String? getString(String key) => _values[key];
+  String? getString(String key) => _values[key] as String?;
 
   @override
   Future<bool> setString(String key, String value) async {
@@ -316,16 +337,22 @@ class _TestPrefs implements SharedPreferences {
   }
 
   @override
-  bool getBool(String key) => false;
+  bool getBool(String key) => _values[key] as bool? ?? false;
 
   @override
-  Future<bool> setBool(String key, bool value) async => false;
+  Future<bool> setBool(String key, bool value) async {
+    _values[key] = value;
+    return true;
+  }
 
   @override
-  int? getInt(String key) => null;
+  int? getInt(String key) => _values[key] as int?;
 
   @override
-  Future<bool> setInt(String key, int value) async => false;
+  Future<bool> setInt(String key, int value) async {
+    _values[key] = value;
+    return true;
+  }
 
   @override
   double? getDouble(String key) => null;

@@ -167,8 +167,18 @@ def seed():
         refresh_search(conn)
 
 
+def seed_listening_hsk(conn=None):
+    from database import init_listening_exams
+    if conn is not None:
+        init_listening_exams(conn)
+    else:
+        with database() as c:
+            init_listening_exams(c)
+
+
 if __name__ == "__main__":
     import sys
     sys.stdout.reconfigure(encoding="utf-8")
     seed()
-    print("Đã thêm nội dung mẫu HSK 1–6. Đề ở trạng thái nháp để Admin kiểm tra trước khi phát hành.")
+    seed_listening_hsk()
+    print("Đã thêm nội dung mẫu HSK 1–6 (đọc & nghe).")

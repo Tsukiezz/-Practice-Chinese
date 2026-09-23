@@ -5,6 +5,7 @@ import json
 import os
 import secrets
 import sqlite3
+import sys
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -52,8 +53,9 @@ async def lifespan(app):
             init_ai_exam_tables(conn)
             from ai_reading import init_reading_tables
             init_reading_tables(conn)
-            from database import init_auth_tables
+            from database import init_auth_tables, init_listening_exams
             init_auth_tables(conn)
+            init_listening_exams(conn)
     else:
         init_db()
         from vocabulary_catalog import init_catalog, refresh_search
@@ -70,6 +72,10 @@ async def lifespan(app):
             init_reading_tables(conn)
         from lesson_catalog import init_lessons
         init_lessons()
+        if "unittest" not in sys.modules and not os.getenv("TESTING"):
+            from database import init_listening_exams
+            with database() as conn:
+                init_listening_exams(conn)
     yield
 
 

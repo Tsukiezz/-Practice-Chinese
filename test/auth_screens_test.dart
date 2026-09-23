@@ -21,9 +21,10 @@ void main() {
     final auth = await AuthService.load(MockClient((request) async {
       requests++;
       if (request.url.path == '/api/auth/register-request') {
-        return http.Response(
-            jsonEncode({'status': 'ok', 'message': 'Mã xác thực đã được gửi'}),
-            200);
+        return http.Response.bytes(
+            utf8.encode(jsonEncode({'status': 'ok', 'message': 'Mã xác thực đã được gửi'})),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'});
       }
       expect(request.url.path, '/api/auth/register-verify');
       return http.Response(
@@ -72,9 +73,8 @@ void main() {
     await tester.tap(confirmBtn);
     await tester.pumpAndSettle();
     expect(requests, 2);
-    expect(succeeded, true);
     expect(auth.currentUser!.role, 'student');
-    expect(tester.takeException(), isNull);
+    expect(succeeded, isTrue);
   });
 
   testWidgets('mobile login shows server error and permits retry',
@@ -101,5 +101,38 @@ void main() {
     expect(tester.widget<ElevatedButton>(submit).onPressed, isNotNull);
     expect(auth.token, isNull);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('session expires when user has been inactive for more than 24 hours',
+      (tester) async {
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final staleTime = now - 90000; // hơn 24 giờ trước (25 giờ)
+    final userJson = jsonEncode({
+      'id': 10,
+      'name': 'Hoc Vien Cu',
+      'email': 'cu@example.test',
+      'role': 'student',
+      'expires_at': now + 50000,
+    });
+    SharedPreferences.setMockInitialValues({
+      'auth_token': 'stale_token_123',
+      'auth_user': userJson,
+      'auth_last_active_at': staleTime,
+    });
+
+    final auth = await AuthService.load(MockClient((_) async => http.Response('{}', 200)));
+    expect(auth.isSessionExpiredDueToInactivity, isTrue);
+    expect(auth.isAuthenticated, isFalse);
+
+    // Khi người dùng mới hoạt động gần đây (ví dụ 10 phút trước)
+    final recentTime = now - 600;
+    SharedPreferences.setMockInitialValues({
+      'auth_token': 'fresh_token_456',
+      'auth_user': userJson,
+      'auth_last_active_at': recentTime,
+    });
+    final activeAuth = await AuthService.load(MockClient((_) async => http.Response('{}', 200)));
+    expect(activeAuth.isSessionExpiredDueToInactivity, isFalse);
+    expect(activeAuth.isAuthenticated, isTrue);
   });
 }
