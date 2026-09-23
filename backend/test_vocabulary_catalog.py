@@ -45,15 +45,17 @@ class VocabularyCatalogTest(unittest.TestCase):
         with storage.database() as conn:
             word_id = conn.execute("INSERT INTO vocabulary(hanzi,pinyin,meaning,hsk,example,audio_url,strokes_json) VALUES(?,?,?,?,?,?,?)",
                                    ('一', 'yī', 'Nghĩa do Admin sửa', 1, 'Ví dụ riêng', '/media/kept.mp3', '[[{"x":1,"y":2}]]')).lastrowid
-            before = dict(conn.execute('SELECT * FROM vocabulary WHERE id=?', (word_id,)).fetchone())
+            before = storage.row_to_dict(conn.execute('SELECT * FROM vocabulary WHERE id=?', (word_id,)).fetchone())
         first = import_corpus()
         second = import_corpus()
         self.assertEqual(first['inserted'], 4992)
         self.assertEqual(second['inserted'], 0)
         with storage.database() as conn:
-            after = dict(conn.execute('SELECT * FROM vocabulary WHERE id=?', (word_id,)).fetchone())
+            after = storage.row_to_dict(conn.execute('SELECT * FROM vocabulary WHERE id=?', (word_id,)).fetchone())
             self.assertEqual(after, before)
-            self.assertEqual(conn.execute('SELECT COUNT(*) FROM vocabulary_catalog').fetchone()[0], 4993)
+            cnt = conn.execute('SELECT COUNT(*) FROM vocabulary_catalog').fetchone()
+            assert cnt is not None
+            self.assertEqual(cnt[0], 4993)
             self.assertEqual(conn.execute('PRAGMA foreign_key_check').fetchall(), [])
 
     def test_filters_search_pagination_and_polyphonic_senses(self):

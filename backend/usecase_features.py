@@ -1,4 +1,4 @@
-﻿"""Account, recovery and public learning use cases."""
+"""Account, recovery and public learning use cases."""
 import base64, hashlib, hmac, io, json, os, secrets, smtplib, ssl, time
 from datetime import date, timedelta
 from email.message import EmailMessage
@@ -7,7 +7,7 @@ from urllib.parse import quote
 from fastapi import Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field, field_validator
-from database import database, audit
+from database import database, audit, row_to_dict
 from ai_errors import ai_http_error
 from services import ai_settings, _post_gemini, _decode_gemini_candidate, record_ai_usage
 
@@ -120,7 +120,9 @@ def register_features(app, current_user, hash_password):
         with database() as c:
             p=c.execute("SELECT * FROM profiles WHERE user_id=?",(user["id"],)).fetchone()
             u=c.execute("SELECT name,email,role FROM users WHERE id=?",(user["id"],)).fetchone()
-            return {**dict(u),**(dict(p) if p else {"phone":"","birth_date":"","avatar":"","daily_goal":1,"weekly_goal":5})}
+            u_dict = row_to_dict(u)
+            p_dict = row_to_dict(p) if p else {"phone":"","birth_date":"","avatar":"","daily_goal":1,"weekly_goal":5}
+            return {**u_dict, **p_dict}
 
     @app.get("/api/me/goals")
     def goals(user=Depends(current_user)):
@@ -128,8 +130,10 @@ def register_features(app, current_user, hash_password):
         week=today-timedelta(days=today.weekday())
         with database() as c:
             profile=c.execute("SELECT daily_goal,weekly_goal FROM profiles WHERE user_id=?",(user["id"],)).fetchone()
-            day_count=c.execute("SELECT COUNT(*) FROM results WHERE user_id=? AND date(created_at,'unixepoch','localtime')=?",(user["id"],today.isoformat())).fetchone()[0]
-            week_count=c.execute("SELECT COUNT(*) FROM results WHERE user_id=? AND date(created_at,'unixepoch','localtime')>=?",(user["id"],week.isoformat())).fetchone()[0]
+            day_row=c.execute("SELECT COUNT(*) FROM results WHERE user_id=? AND date(created_at,'unixepoch','localtime')=?",(user["id"],today.isoformat())).fetchone()
+            day_count=day_row[0] if day_row else 0
+            week_row=c.execute("SELECT COUNT(*) FROM results WHERE user_id=? AND date(created_at,'unixepoch','localtime')>=?",(user["id"],week.isoformat())).fetchone()
+            week_count=week_row[0] if week_row else 0
         return {"daily_goal":profile[0] if profile else 1,"weekly_goal":profile[1] if profile else 5,
                 "daily_done":day_count,"weekly_done":week_count}
 
@@ -146,7 +150,7 @@ def register_features(app, current_user, hash_password):
     def change_password(body:PasswordChange,user=Depends(current_user)):
         with database() as c:
             row=c.execute("SELECT * FROM users WHERE id=?",(user["id"],)).fetchone()
-            if not hmac.compare_digest(hash_password(body.old_password,row["salt"]),row["password_hash"]):
+            if not row or not hmac.compare_digest(hash_password(body.old_password,row["salt"]),row["password_hash"]):
                 raise HTTPException(400,"Mật khẩu cũ không chính xác")
             salt=secrets.token_hex(16)
             c.execute("UPDATE users SET password_hash=?,salt=?,version=version+1 WHERE id=?",(hash_password(body.new_password,salt),salt,user["id"]))
@@ -160,7 +164,8 @@ def register_features(app, current_user, hash_password):
     def recovery(body:RecoveryRequest,request:Request):
         if not smtp_ready(): raise HTTPException(503,"Chưa cấu hình dịch vụ gửi email. Vui lòng liên hệ quản trị viên.")
         email=body.email.strip().lower()
-        limit("otp-ip:"+str(request.client.host),10)
+        client_host = request.client.host if request.client else "unknown"
+        limit("otp-ip:"+str(client_host),10)
         limit("otp:"+email,3)
         with database() as c:
             user=c.execute("SELECT id FROM users WHERE email=? AND is_active=1",(email,)).fetchone()

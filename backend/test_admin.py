@@ -59,7 +59,9 @@ class AdminIntegrationTest(unittest.TestCase):
         self.assertEqual((user['name'], user['email'], user['role']), ('Tuyến', 'tuyen@example.test', 'student'))
         self.assertNotIn('password_hash', user)
         with storage.database() as conn:
-            saved = conn.execute('SELECT password_hash FROM users WHERE id=?', (user['id'],)).fetchone()[0]
+            pw_row = conn.execute('SELECT password_hash FROM users WHERE id=?', (user['id'],)).fetchone()
+            assert pw_row is not None
+            saved = pw_row[0]
         self.assertNotEqual(saved, body['password'])
         self.assertEqual(self.client.post('/api/auth/register', json=body).status_code, 409)
         login = {'email': body['email'], 'password': body['password']}
@@ -105,11 +107,14 @@ class AdminIntegrationTest(unittest.TestCase):
         self.assertEqual(payload["details"]["recognized_hanzi"], "一")
         self.assertEqual(payload["details"]["candidates"][0]["words"][0]["meaning"], "một")
         with storage.database() as conn:
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM results").fetchone()[0], 0)
+            cnt_row = conn.execute("SELECT COUNT(*) FROM results").fetchone()
+            assert cnt_row is not None
+            self.assertEqual(cnt_row[0], 0)
             usage = conn.execute(
                 "SELECT module,status FROM ai_usage ORDER BY id DESC LIMIT 1"
             ).fetchone()
-        self.assertEqual(tuple(usage), ("handwriting_recognition", "success"))
+            assert usage is not None
+        self.assertEqual((usage[0], usage[1]), ("handwriting_recognition", "success"))
 
     def test_gemini_transient_failure_is_retried(self):
         request = httpx.Request("POST", "https://gemini.example.test")
@@ -595,10 +600,12 @@ class AdminIntegrationTest(unittest.TestCase):
         self.assertEqual(second.json(), output)
         provider.assert_called_once()
         with storage.database() as conn:
-            calls = conn.execute(
+            calls_row = conn.execute(
                 """SELECT COUNT(*) FROM ai_usage
                    WHERE module='grammar_analysis' AND status='success'"""
-            ).fetchone()[0]
+            ).fetchone()
+            assert calls_row is not None
+            calls = calls_row[0]
         self.assertEqual(calls, 1)
 
     def test_comprehensive_exam_saves_each_skill_score(self):

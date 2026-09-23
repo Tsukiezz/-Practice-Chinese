@@ -69,8 +69,10 @@ class GrammarAnalysisTest(unittest.TestCase):
         with storage.database() as conn:
             usage = conn.execute(
                 "SELECT module,status FROM ai_usage").fetchall()
-            cache_count = conn.execute(
-                "SELECT COUNT(*) FROM grammar_cache").fetchone()[0]
+            gc_row = conn.execute(
+                "SELECT COUNT(*) FROM grammar_cache").fetchone()
+            assert gc_row is not None
+            cache_count = gc_row[0]
         self.assertEqual([tuple(row) for row in usage],
                          [("grammar_analysis", "success")])
         self.assertEqual(cache_count, 1)
@@ -89,7 +91,8 @@ class GrammarAnalysisTest(unittest.TestCase):
         with storage.database() as conn:
             usage = conn.execute(
                 "SELECT module,status FROM ai_usage").fetchone()
-        self.assertEqual(tuple(usage), ("grammar_analysis", "error"))
+            assert usage is not None
+        self.assertEqual((usage[0], usage[1]), ("grammar_analysis", "error"))
 
     def test_request_limits_length_and_requires_han_character(self):
         with self.assertRaises(ValidationError):

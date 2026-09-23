@@ -111,7 +111,9 @@ def main():
     localized = []
     # Stop immediately on provider failure; resume from validated cache next run.
     for i in range(0, min(len(rows), args.batches * 50), 50):
-        localized.extend(generate(rows[i:i+50], cache / f'{i//50:03}.json', model, key))
+        batch = generate(rows[i:i+50], cache / f'{i//50:03}.json', model, key)
+        if batch:
+            localized.extend(batch)
         print(f'Validated {len(localized)}/{len(rows)} entries', flush=True)
     if len(localized) == len(rows):
         overrides = json.loads((data / 'hsk20_vi_overrides.json').read_text(encoding='utf-8'))

@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 
 import httpx
-from playwright.sync_api import expect, sync_playwright
+from playwright.sync_api import expect, sync_playwright  # type: ignore
 
 import database as storage
 from main import hash_password

@@ -63,8 +63,10 @@ class EssayGradingUnitTest(unittest.TestCase):
         with storage.database() as conn:
             usage = conn.execute(
                 "SELECT module,status FROM ai_usage").fetchall()
-            cache_count = conn.execute(
-                "SELECT COUNT(*) FROM essay_cache").fetchone()[0]
+            cache_row = conn.execute(
+                "SELECT COUNT(*) FROM essay_cache").fetchone()
+            assert cache_row is not None
+            cache_count = cache_row[0]
         self.assertEqual([tuple(row) for row in usage],
                          [("essay_grading", "success")])
         self.assertEqual(cache_count, 1)
@@ -77,11 +79,11 @@ class EssayGradingUnitTest(unittest.TestCase):
         self.assertEqual(legacy.weight, 1)
         with self.assertRaises(ValidationError):
             Submission(version=1, answers={
-                "q1": {"kind": "hanzi_canvas", "strokes": [[{"x": 1}] ]}
+                "q1": {"kind": "hanzi_canvas", "strokes": [[{"x": 1}]]}  # type: ignore
             })
         with self.assertRaises(ValidationError):
             Submission(version=1, answers={
-                "q1": {"kind": "essay", "text": "字" * 501}
+                "q1": {"kind": "essay", "text": "字" * 501}  # type: ignore
             })
 
 
@@ -163,8 +165,10 @@ class ExamWritingIntegrationTest(unittest.TestCase):
         with storage.database() as conn:
             usage = conn.execute(
                 "SELECT module,status FROM ai_usage").fetchall()
-            result_count = conn.execute(
-                "SELECT COUNT(*) FROM results").fetchone()[0]
+            rc_row = conn.execute(
+                "SELECT COUNT(*) FROM results").fetchone()
+            assert rc_row is not None
+            result_count = rc_row[0]
         self.assertEqual([tuple(row) for row in usage],
                          [("essay_grading", "success")])
         self.assertEqual(result_count, 2)

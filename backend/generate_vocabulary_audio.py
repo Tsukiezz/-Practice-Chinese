@@ -5,7 +5,7 @@ No learner data or API keys are sent. Runtime playback uses bundled MP3 files.
 """
 import asyncio
 from pathlib import Path
-import edge_tts
+import edge_tts  # type: ignore
 from seed import WORDS
 
 

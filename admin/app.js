@@ -92,11 +92,7 @@ function clearSession() {
 }
 
 function loginView(error = '') {
-  if (window.HANZIGO_UNIFIED_WEB) {
-    window.location.replace('/');
-    return;
-  }
-  root.innerHTML = `<div class="login"><aside class="login-art">${brand}<div><div class="character">学 · 习</div><h1>Chăm chút từng<br>hành trình học.</h1><p>Không gian quản trị dành cho đội ngũ Chinese Learning. Nội dung tốt tạo nên trải nghiệm học tốt.</p></div><small>HanziGo · Chinese Learning</small></aside><section class="login-wrap"><form id="login" class="login-form"><div><div class="eyebrow">CHÀO MỪNG TRỞ LẠI</div><h2>Đăng nhập quản trị</h2><p>Sử dụng tài khoản Admin được cấp cho dự án.</p></div><label>Email<input name="email" type="email" autocomplete="username" required maxlength="120"></label><label>Mật khẩu<input name="password" type="password" autocomplete="current-password" required maxlength="128"></label><div id="login-error" role="alert">${error ? `<div class="error">${escape(error)}</div>` : ''}</div><button class="primary">Đăng nhập →</button><small>Quyền quản trị được xác minh trên máy chủ.</small></form></section></div>`;
+  root.innerHTML = `<div class="login"><aside class="login-art">${brand}<div><div class="character">学 · 习</div><h1>Chăm chút từng<br>hành trình học.</h1><p>Không gian quản trị dành cho đội ngũ Chinese Learning. Nội dung tốt tạo nên trải nghiệm học tốt.</p></div><small>HanziGo · Chinese Learning</small></aside><section class="login-wrap"><form id="login" class="login-form"><div><div class="eyebrow">CHÀO MỪNG TRỞ LẠI</div><h2>Đăng nhập quản trị</h2><p>Sử dụng tài khoản Admin được cấp cho dự án.</p></div><label>Email<input name="email" type="email" autocomplete="username" required maxlength="120"></label><label>Mật khẩu<input name="password" type="password" autocomplete="current-password" required maxlength="128"></label><div id="login-error" role="alert">${error ? `<div class="error">${escape(error)}</div>` : ''}</div><button class="primary">Đăng nhập →</button><a href="/" style="display:inline-block;margin-top:16px;color:#2c7a3f;text-decoration:none;font-weight:600;text-align:center">← Trở về ứng dụng học tập HanziGo</a><small>Quyền quản trị được xác minh trên máy chủ.</small></form></section></div>`;
   document.querySelector('#login').onsubmit = async event => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -120,7 +116,7 @@ function loginView(error = '') {
 
 function shell() {
   const navButton = key => `<button data-page="${key}">${pages[key][0]}</button>`;
-  root.innerHTML = `<div class="layout"><aside class="sidebar">${brand}<button type="button" id="menu-toggle" class="menu-toggle" aria-label="Mở menu quản trị" aria-expanded="false" aria-controls="admin-menu"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div id="admin-menu" class="sidebar-menu"><nav aria-label="Quản trị">${navButton('dashboard')}<div class="nav-group"><span class="nav-label">Học tập</span>${['vocabulary','exams','results'].map(navButton).join('')}</div><div class="nav-group"><span class="nav-label">Hệ thống</span>${['users','ai','logs'].map(navButton).join('')}</div></nav><div class="account"><div><b>${escape(user.name)}</b><small>${escape(user.email)}</small></div><a href="/account">Thông tin cá nhân</a><button id="logout">Đăng xuất</button></div></div></aside><main class="main"><div class="topline"><span>CHINESE LEARNING / QUẢN TRỊ</span><span class="pill">Không gian quản trị</span></div><div id="content"></div></main></div>`;
+  root.innerHTML = `<div class="layout"><aside class="sidebar">${brand}<button type="button" id="menu-toggle" class="menu-toggle" aria-label="Mở menu quản trị" aria-expanded="false" aria-controls="admin-menu"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div id="admin-menu" class="sidebar-menu"><a href="/" class="app-return-link" style="display:flex;align-items:center;gap:8px;padding:9px 12px;margin:4px 8px 10px;background:#eef6ee;color:#1e5e2e;border:1px solid #cce5cc;border-radius:8px;font-weight:600;font-size:13px;text-decoration:none">← Về ứng dụng HanziGo</a><nav aria-label="Quản trị">${navButton('dashboard')}<div class="nav-group"><span class="nav-label">Học tập</span>${['vocabulary','exams','results'].map(navButton).join('')}</div><div class="nav-group"><span class="nav-label">Hệ thống</span>${['users','ai','logs'].map(navButton).join('')}</div></nav><div class="account"><div><b>${escape(user.name)}</b><small>${escape(user.email)}</small></div><a href="/">← Về trang học viên</a><button id="logout">Đăng xuất</button></div></div></aside><main class="main"><div class="topline"><span>CHINESE LEARNING / QUẢN TRỊ</span><a href="/" style="font-size:12px;color:#2c7a3f;text-decoration:none;font-weight:600;margin-right:12px">← Mở ứng dụng học tập</a><span class="pill">Không gian quản trị</span></div><div id="content"></div></main></div>`;
   document.querySelector('#menu-toggle').onclick = event => {
     setMenu(event.currentTarget.getAttribute('aria-expanded') !== 'true');
   };
@@ -188,7 +184,7 @@ function renderDashboard(content, data) {
 
 function renderUsers(content, data, params) {
   const filter = new URLSearchParams(params);
-  content.innerHTML += `<section class="panel"><form id="filters" class="toolbar"><label>Tìm tài khoản<input name="search" placeholder="Tên hoặc email" value="${escape(filter.get('search') || '')}"></label><label>Vai trò<select name="role"><option value="">Tất cả</option value="student">Học viên</option><option value="admin">Quản trị viên</option></select></label><label>Trạng thái<select name="active"><option value="">Tất cả</option><option value="true">Hoạt động</option><option value="false">Đã khóa</option></select></label><button>Tìm kiếm</button></form>${table(['Người dùng','Vai trò','Trạng thái','Thao tác'], data.map(r => `<tr><td><b>${escape(r.name)}</b><small>${escape(r.email)}</small></td><td>${statusLabel(r.role)}</td><td><span class="tag ${r.is_active?'':'locked'}">${r.is_active?'Hoạt động':'Đã khóa'}</span></td><td><button data-edit="${r.id}">Chỉnh sửa</button></td></tr>`))}</section>`;
+  content.innerHTML += `<section class="panel"><form id="filters" class="toolbar"><label>Tìm tài khoản<input name="search" placeholder="Tên hoặc email" value="${escape(filter.get('search') || '')}"></label><label>Vai trò<select name="role"><option value="">Tất cả</option><option value="student">Học viên</option><option value="admin">Quản trị viên</option></select></label><label>Trạng thái<select name="active"><option value="">Tất cả</option><option value="true">Hoạt động</option><option value="false">Đã khóa</option></select></label><button>Tìm kiếm</button></form>${table(['Người dùng','Vai trò','Trạng thái','Thao tác'], data.map(r => `<tr><td><b>${escape(r.name)}</b><small>${escape(r.email)}</small></td><td>${statusLabel(r.role)}</td><td><span class="tag ${r.is_active?'':'locked'}">${r.is_active?'Hoạt động':'Đã khóa'}</span></td><td><div class="actions"><button data-edit="${r.id}">Phân quyền</button><button data-reset-pw="${r.id}">Đặt lại MK</button></div></td></tr>`))}</section>`;
   bindFilter(params);
   document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => {
     const row = data.find(r => r.id === Number(b.dataset.edit));
@@ -196,6 +192,12 @@ function renderUsers(content, data, params) {
       await api(`/admin/users/${row.id}`, 'PATCH', {role:form.elements.role.value,is_active:form.elements.is_active.checked,version:row.version});
     });
     dialog.querySelector('[name=role]').value = row.role;
+  });
+  document.querySelectorAll('[data-reset-pw]').forEach(b => b.onclick = () => {
+    const row = data.find(r => r.id === Number(b.dataset.resetPw));
+    openEditor(`Đặt lại mật khẩu cho ${escape(row.name)}`, `<p>Tài khoản: <b>${escape(row.email)}</b></p><label>Mật khẩu mới (tối thiểu 8 ký tự)<input name="new_password" type="password" required minlength="8" maxlength="128" placeholder="Nhập mật khẩu mới"></label><p class="note">Sau khi đặt lại thành công, tài khoản này sẽ được cập nhật mật khẩu mới trên hệ thống.</p>`, async form => {
+      await api(`/admin/users/${row.id}/reset-password`, 'POST', {new_password: form.elements.new_password.value});
+    }, 'Cập nhật mật khẩu');
   });
 }
 
@@ -438,11 +440,25 @@ function openEditor(title,html,save,label='Lưu thay đổi') {
 }
 
 async function boot() {
-  if (!token) return loginView();
+  if (!token) {
+    const sharedToken = localStorage.getItem('auth_token') || localStorage.getItem('hanzigo_token');
+    if (sharedToken) {
+      token = sharedToken;
+    } else {
+      return loginView();
+    }
+  }
   try {
-    user=await api('/me');
-    if(user.role!=='admin'){clearSession();return loginView('Bạn cần tài khoản quản trị.');}
+    user = await api('/me');
+    if (user.role !== 'admin') {
+      clearSession();
+      return loginView('Tài khoản này không có quyền quản trị. Hãy đăng nhập bằng tài khoản Admin.');
+    }
+    sessionStorage.setItem('hanzigo_admin_token', token);
     shell();
-  } catch(err){clearSession();loginView(err.message);}
+  } catch (err) {
+    clearSession();
+    loginView(err.message);
+  }
 }
 boot();

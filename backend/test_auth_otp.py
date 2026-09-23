@@ -43,6 +43,7 @@ class TestAuthOtp(unittest.TestCase):
                 (self.test_email,)
             ).fetchone()
             self.assertIsNotNone(row)
+            assert row is not None
             code = row["code"]
 
         # 2. Test verify with wrong code
@@ -79,10 +80,12 @@ class TestAuthOtp(unittest.TestCase):
             "password": "OldPassword123"
         })
         with database() as conn:
-            reg_code = conn.execute(
+            rc_row = conn.execute(
                 "SELECT code FROM verification_codes WHERE email=? AND purpose='register' AND used=0",
                 (self.test_email,)
-            ).fetchone()["code"]
+            ).fetchone()
+            assert rc_row is not None
+            reg_code = rc_row["code"]
         self.client.post("/api/auth/register-verify", json={
             "email": self.test_email,
             "code": reg_code
@@ -100,6 +103,7 @@ class TestAuthOtp(unittest.TestCase):
                 (self.test_email,)
             ).fetchone()
             self.assertIsNotNone(reset_row)
+            assert reset_row is not None
             reset_code = reset_row["code"]
 
         # 2. Reset password with wrong code

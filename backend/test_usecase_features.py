@@ -1,4 +1,4 @@
-﻿import os,tempfile,unittest
+import os,tempfile,unittest
 from pathlib import Path
 from unittest.mock import patch, Mock
 from fastapi.testclient import TestClient
@@ -55,7 +55,9 @@ class AccountUseCaseTests(unittest.TestCase):
    Question(id='order',section='writing',question_type='sentence_order',prompt='Arrange',options=['学习','我','中文'],answer='我 中文')
  def test_personalized_practice_is_private_and_saves_result(self):
   with storage.database() as c:
-   uid=c.execute('SELECT id FROM users WHERE email=?',('owner@example.test',)).fetchone()[0]
+   u_row=c.execute('SELECT id FROM users WHERE email=?',('owner@example.test',)).fetchone()
+   assert u_row is not None
+   uid=u_row[0]
    c.execute("INSERT INTO results(user_id,kind,content,score,original_score,feedback,graded_by,created_at) VALUES(?,'writing','{}',50,50,'word order','ai',1)",(uid,))
   with patch('usecase_features.ai_settings',return_value={'model':'test','api_key':'not-a-key'}),patch('usecase_features._post_gemini',return_value=Mock()),patch('usecase_features._decode_gemini_candidate',return_value={'tasks':[{'prompt':'Write a sentence','hint':'Check word order'}]}):
    r=self.client.post('/api/me/personalized-practice',headers=self.headers)
@@ -66,5 +68,7 @@ class AccountUseCaseTests(unittest.TestCase):
   with patch('services.grade_essay_with_ai',return_value={'score':90,'feedback':'Good'}):
    self.assertEqual(self.client.post(f'/api/me/personalized-practice/{pid}/0',headers=self.headers,json={'text':'你好'}).status_code,201)
   with storage.database() as c:
-   self.assertEqual(c.execute('SELECT COUNT(*) FROM results WHERE user_id=?',(uid,)).fetchone()[0],2)
+   cnt_row=c.execute('SELECT COUNT(*) FROM results WHERE user_id=?',(uid,)).fetchone()
+   assert cnt_row is not None
+   self.assertEqual(cnt_row[0],2)
 if __name__=="__main__":unittest.main()

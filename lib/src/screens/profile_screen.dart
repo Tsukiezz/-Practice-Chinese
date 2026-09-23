@@ -25,6 +25,7 @@ class ProfileScreen extends StatelessWidget {
     this.comprehensiveRepository,
     this.user,
     this.onEditProfile,
+    this.onOpenAdmin,
   });
 
   final VoidCallback? onLogout;
@@ -32,6 +33,7 @@ class ProfileScreen extends StatelessWidget {
   final ReadingExamRepository? comprehensiveRepository;
   final AuthUser? user;
   final VoidCallback? onEditProfile;
+  final VoidCallback? onOpenAdmin;
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +83,35 @@ class ProfileScreen extends StatelessWidget {
                 onPressed: onEditProfile,
                 icon: const Icon(Icons.manage_accounts_outlined),
                 label: const Text('Hồ sơ, ảnh đại diện và mật khẩu'),
+              ),
+            ),
+          if (onOpenAdmin != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+              child: Card(
+                color: const Color(0xFFFBF3EA),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: Color(0xFFE0C49F), width: 1.2),
+                ),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0xFF912018),
+                    foregroundColor: Colors.white,
+                    child: Icon(Icons.admin_panel_settings, size: 20),
+                  ),
+                  title: const Text(
+                    'Không gian Quản trị viên',
+                    style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF7A271A)),
+                  ),
+                  subtitle: const Text(
+                    'Quản lý học viên, kho từ, đề thi HSK 1–6 & hệ thống AI',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_rounded, color: Color(0xFF912018)),
+                  onTap: onOpenAdmin,
+                ),
               ),
             ),
           const _SectionTitle('Kết quả học tập'),

@@ -3,7 +3,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-sys.stdout.reconfigure(encoding='utf-8')
+_reconfig = getattr(sys.stdout, "reconfigure", None)
+if callable(_reconfig):
+    _reconfig(encoding="utf-8")
 from database import init_db, database
 from main import hash_password
 import secrets

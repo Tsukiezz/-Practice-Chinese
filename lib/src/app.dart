@@ -385,6 +385,9 @@ class _AppShellState extends State<AppShell> {
             onEditProfile: kIsWeb
                 ? () => openAccount(_authService.token!)
                 : null,
+            onOpenAdmin: kIsWeb && (_authService.currentUser?.isAdmin ?? false)
+                ? () => openAdmin(_authService.token ?? '')
+                : null,
           ),
         ],
       ),

@@ -12,7 +12,7 @@ import tempfile
 import time
 from pathlib import Path
 import httpx
-from playwright.sync_api import sync_playwright, expect
+from playwright.sync_api import sync_playwright, expect  # type: ignore
 import database as storage
 from main import hash_password
 from listening_demo import seed_listening
@@ -265,7 +265,8 @@ def run():
             try:
                 folder=Path(__file__).resolve().parent.parent/'test-results'
                 folder.mkdir(exist_ok=True)
-                page.screenshot(path=str(folder/'integration-failure.png'))
+                if 'page' in locals() and locals().get('page') is not None:
+                    locals()['page'].screenshot(path=str(folder/'integration-failure.png'))
             except Exception:
                 pass
             message = str(error).replace(password, '[redacted]')
@@ -278,5 +279,7 @@ def run():
 
 
 if __name__ == '__main__':
-    sys.stdout.reconfigure(encoding='utf-8')
+    _reconfig = getattr(sys.stdout, "reconfigure", None)
+    if callable(_reconfig):
+        _reconfig(encoding='utf-8')
     run()

@@ -138,6 +138,8 @@ def seed():
             if conn.execute("SELECT 1 FROM exams WHERE title=?", (title,)).fetchone():
                 continue
             word = conn.execute("SELECT * FROM vocabulary WHERE hsk=? ORDER BY id LIMIT 1", (level,)).fetchone()
+            if word is None:
+                continue
             question = {"id": "q1", "section": "reading", "prompt": f"Chọn nghĩa của từ: {word['hanzi']}",
                         "options": [word["meaning"], "ngày mai", "màu xanh"], "answer": word["meaning"],
                         "audio_url": "", "transcript": "", "explanation": f"{word['hanzi']} ({word['pinyin']}): {word['meaning']}", "word_id": word["id"]}
@@ -148,21 +150,22 @@ def seed():
         listening_title = "HSK 1 · Nghe hiểu mẫu"
         if not conn.execute("SELECT 1 FROM exams WHERE title=?", (listening_title,)).fetchone():
             listening_word = conn.execute("SELECT * FROM vocabulary WHERE hsk=1 ORDER BY id LIMIT 1").fetchone()
-            listening_question = {
-                "id": "l1",
-                "section": "listening",
-                "prompt": "Nghe và chọn nghĩa đúng",
-                "options": [listening_word["meaning"], "ngày mai", "màu xanh"],
-                "answer": listening_word["meaning"],
-                "audio_url": "https://traffic.libsyn.com/secure/learnchinese/H10901.mp3",
-                "transcript": f"{listening_word['hanzi']} ({listening_word['pinyin']}): {listening_word['meaning']}",
-                "explanation": listening_word["example"],
-                "word_id": listening_word["id"],
-            }
-            conn.execute(
-                "INSERT INTO exams(title,hsk,status,duration_minutes,questions_json) VALUES(?,?,'draft',10,?)",
-                (listening_title, 1, json.dumps([listening_question], ensure_ascii=False)),
-            )
+            if listening_word is not None:
+                listening_question = {
+                    "id": "l1",
+                    "section": "listening",
+                    "prompt": "Nghe và chọn nghĩa đúng",
+                    "options": [listening_word["meaning"], "ngày mai", "màu xanh"],
+                    "answer": listening_word["meaning"],
+                    "audio_url": "https://traffic.libsyn.com/secure/learnchinese/H10901.mp3",
+                    "transcript": f"{listening_word['hanzi']} ({listening_word['pinyin']}): {listening_word['meaning']}",
+                    "explanation": listening_word["example"],
+                    "word_id": listening_word["id"],
+                }
+                conn.execute(
+                    "INSERT INTO exams(title,hsk,status,duration_minutes,questions_json) VALUES(?,?,'draft',10,?)",
+                    (listening_title, 1, json.dumps([listening_question], ensure_ascii=False)),
+                )
 
         refresh_search(conn)
 
@@ -178,7 +181,9 @@ def seed_listening_hsk(conn=None):
 
 if __name__ == "__main__":
     import sys
-    sys.stdout.reconfigure(encoding="utf-8")
+    _reconfig = getattr(sys.stdout, "reconfigure", None)
+    if callable(_reconfig):
+        _reconfig(encoding="utf-8")
     seed()
     seed_listening_hsk()
     print("Đã thêm nội dung mẫu HSK 1–6 (đọc & nghe).")

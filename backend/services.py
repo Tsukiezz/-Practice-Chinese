@@ -16,7 +16,7 @@ import httpx
 from fastapi import HTTPException
 
 from config import load_environment
-from database import database
+from database import database, row_to_dict
 from ai_provider import gemini_grade
 from ai_errors import AIProviderError, ai_http_error, provider_error
 
@@ -90,13 +90,14 @@ def configured_model(settings=None):
     return os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL).strip().removeprefix("models/")
 
 
-def ai_settings():
+def ai_settings() -> dict[str, Any]:
     """Credentials returned here stay on the server, not in HTTP responses/logs."""
     with database() as conn:
-        settings = dict(conn.execute("SELECT * FROM ai_config WHERE id=1").fetchone())
+        row = conn.execute("SELECT * FROM ai_config WHERE id=1").fetchone()
+        settings: dict[str, Any] = row_to_dict(row)
     key = configured_api_key()
     settings["model"] = configured_model(settings)
-    if not settings["enabled"] or not key or not settings["model"]:
+    if not settings.get("enabled") or not key or not settings["model"]:
         raise HTTPException(503, "AI chưa được cấu hình. Vui lòng thử lại sau.")
     settings["api_key"] = key
     return settings
@@ -765,7 +766,7 @@ def grade_handwriting_offline(
             (user_id, "handwriting", content, grade["score"], grade["score"],
              grade["feedback"], int(time.time())),
         ).lastrowid
-        result = dict(conn.execute(
+        result = row_to_dict(conn.execute(
             "SELECT * FROM results WHERE id=?", (result_id,)
         ).fetchone())
     return grade, result
@@ -1095,4 +1096,4 @@ def grade_with_ai(user_id: int, kind: str, content: str,
     with database() as conn:
         rid = conn.execute("INSERT INTO results(user_id,kind,content,score,original_score,feedback,graded_by,created_at) VALUES(?,?,?,?,?,?,'ai',?)",
                            (user_id, kind, content, grade["score"], grade["score"], grade["feedback"], int(time.time()))).lastrowid
-        return dict(conn.execute("SELECT * FROM results WHERE id=?", (rid,)).fetchone())
+        return row_to_dict(conn.execute("SELECT * FROM results WHERE id=?", (rid,)).fetchone())

@@ -1,9 +1,9 @@
-﻿"""Browser verification with a disposable database inside project test-results."""
+"""Browser verification with a disposable database inside project test-results."""
 import os,socket,subprocess,sys,tempfile,time,io
 from pathlib import Path
 import httpx
 from PIL import Image
-from playwright.sync_api import sync_playwright,expect
+from playwright.sync_api import sync_playwright,expect  # type: ignore
 
 def run():
  artifacts=Path(__file__).resolve().parent.parent/'test-results'

@@ -6,9 +6,9 @@ Subset a local OFL font, keeping all characters in the bundled corpus and source
 from pathlib import Path
 import sys
 
-from fontTools import subset
-from fontTools.ttLib import TTFont
-from fontTools.varLib.instancer import instantiateVariableFont
+from fontTools import subset  # type: ignore
+from fontTools.ttLib import TTFont  # type: ignore
+from fontTools.varLib.instancer import instantiateVariableFont  # type: ignore
 
 ROOT = Path(__file__).resolve().parents[2]
 font = TTFont(sys.argv[1])

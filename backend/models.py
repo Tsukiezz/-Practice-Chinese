@@ -42,6 +42,11 @@ class UserUpdate(Body):
     version: int = Field(ge=1)
 
 
+class AdminResetPassword(Body):
+    model_config = ConfigDict(str_strip_whitespace=False)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class RegisterRequest(Register):
     pass
 

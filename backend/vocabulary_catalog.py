@@ -5,9 +5,11 @@ from pathlib import Path
 import sqlite3
 import unicodedata
 
+from typing import Any
+
 from fastapi import APIRouter, Query
 
-from database import database, init_db, DB_PATH
+from database import database, init_db, DB_PATH, row_to_dict
 
 DATA = Path(__file__).with_name('data')
 router = APIRouter()
@@ -111,7 +113,7 @@ def vocabulary_page(search: str = Query('', max_length=120),
     # Escape wildcard characters so searching '%' doesn't fetch the whole dictionary.
     needle = '%' + normalize(search.strip()).replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
     conditions = ["(s.search_text LIKE ? ESCAPE '\\' OR c.search_text LIKE ? ESCAPE '\\')"]
-    params = [needle, needle]
+    params: list[Any] = [needle, needle]
     if not search.strip():
         conditions, params = ['1=1'], []
     if hsk:
@@ -123,12 +125,13 @@ def vocabulary_page(search: str = Query('', max_length=120),
         if topic:
             base += ' AND EXISTS(SELECT 1 FROM vocabulary_topics t WHERE t.word_id=v.id AND t.topic=?)'
             params.append(topic)
-        total = conn.execute('SELECT COUNT(*)' + base, params).fetchone()[0]
+        total_row = conn.execute('SELECT COUNT(*)' + base, params).fetchone()
+        total = total_row[0] if total_row else 0
         rows = conn.execute('SELECT v.*,c.hsk AS catalog_hsk,c.senses_json' + base +
                             ' ORDER BY COALESCE(c.hsk,v.hsk),v.id LIMIT ? OFFSET ?', [*params, limit, offset]).fetchall()
         items = []
         for row in rows:
-            item = dict(row)
+            item = row_to_dict(row)
             item['hsk'] = item.pop('catalog_hsk') or item['hsk']
             item['senses'] = json.loads(item.pop('senses_json') or '[]')
             item['strokes'] = json.loads(item.pop('strokes_json'))

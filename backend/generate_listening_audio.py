@@ -1,7 +1,7 @@
 """Optional content authoring: pip install edge-tts; python generate_listening_audio.py."""
 import asyncio
 from pathlib import Path
-import edge_tts
+import edge_tts  # type: ignore
 from listening_demo import LESSONS
 
 

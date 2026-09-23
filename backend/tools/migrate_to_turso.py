@@ -18,7 +18,7 @@ from dotenv import dotenv_values
 def migrate(source, env_file):
     secrets = dotenv_values(env_file)
     from cloud_database import connect
-    remote = connect(secrets['TURSO_DATABASE_URL'], secrets['TURSO_AUTH_TOKEN'])
+    remote = connect(str(secrets.get('TURSO_DATABASE_URL') or ''), str(secrets.get('TURSO_AUTH_TOKEN') or ''))
     try:
         if remote.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").fetchall():
             raise RuntimeError('Destination is not empty; refusing to overwrite it')
@@ -45,14 +45,14 @@ def migrate(source, env_file):
                     conn.execute(f'DELETE FROM {table}')
             with closing(sqlite3.connect(snapshot)) as local:
                 tables = [r[0] for r in local.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")]
-                expected = {t: local.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0] for t in tables}
+                expected = {t: (local.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone() or [0])[0] for t in tables}
                 script = '\n'.join(local.iterdump())
                 print(f'Migrating {len(tables)} tables, {len(script.encode())} bytes; sessions excluded', flush=True)
                 remote.execute('PRAGMA foreign_keys=OFF')
                 # iterdump wraps all schema and rows in one transaction.
                 remote.executescript(script)
                 remote.execute('PRAGMA foreign_keys=ON')
-                actual = {t: remote.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone()[0] for t in tables}
+                actual = {t: (remote.execute(f'SELECT COUNT(*) FROM "{t}"').fetchone() or [0])[0] for t in tables}
                 assert actual == expected, 'Cloud row counts differ from snapshot'
                 assert not remote.execute('PRAGMA foreign_key_check').fetchall(), 'Foreign key check failed'
                 print('Verified table counts:', actual)

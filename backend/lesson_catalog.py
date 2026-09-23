@@ -1,4 +1,4 @@
-﻿"""Original short lessons, deterministic grading and per-account progress."""
+"""Original short lessons, deterministic grading and per-account progress."""
 from functools import lru_cache
 import json
 from pathlib import Path
@@ -8,7 +8,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
-from database import database
+from database import database, row_to_dict
 from vocabulary_catalog import normalize
 
 
@@ -103,8 +103,8 @@ def register_lessons(app, current_user):
                 ON CONFLICT(user_id,lesson_id) DO UPDATE SET
                 stage=MAX(stage,excluded.stage),updated_at=excluded.updated_at''',
                 (user['id'], lesson_id, body.stage, int(time.time())))
-            return dict(conn.execute('SELECT * FROM lesson_progress WHERE user_id=? AND lesson_id=?',
-                                    (user['id'], lesson_id)).fetchone())
+            return row_to_dict(conn.execute('SELECT * FROM lesson_progress WHERE user_id=? AND lesson_id=?',
+                                     (user['id'], lesson_id)).fetchone())
 
     @app.post('/api/me/lessons/{lesson_id}/submit')
     def submit(lesson_id: str, body: LessonAnswers, user=Depends(current_user)):
@@ -117,6 +117,6 @@ def register_lessons(app, current_user):
                 stage=MAX(stage,excluded.stage),best_score=MAX(best_score,excluded.best_score),
                 attempts=attempts+1,completed_at=COALESCE(completed_at,excluded.completed_at),updated_at=excluded.updated_at''',
                 (user['id'], lesson_id, 4 if result['passed'] else 3, result['score'], now if result['passed'] else None, now))
-            result['progress'] = dict(conn.execute('SELECT * FROM lesson_progress WHERE user_id=? AND lesson_id=?',
-                                                   (user['id'], lesson_id)).fetchone())
+            result['progress'] = row_to_dict(conn.execute('SELECT * FROM lesson_progress WHERE user_id=? AND lesson_id=?',
+                                                           (user['id'], lesson_id)).fetchone())
         return result

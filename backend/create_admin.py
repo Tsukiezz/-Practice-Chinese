@@ -29,5 +29,7 @@ def main():
 
 if __name__ == "__main__":
     import sys
-    sys.stdout.reconfigure(encoding="utf-8")
+    _reconfig = getattr(sys.stdout, "reconfigure", None)
+    if callable(_reconfig):
+        _reconfig(encoding="utf-8")
     main()

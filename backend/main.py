@@ -9,7 +9,7 @@ import sys
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,11 +17,11 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from ai_errors import ai_http_error
-from database import audit, database, init_db
+from database import audit, database, init_db, row_to_dict, ensure_default_admin
 from email_service import (get_smtp_status, send_verification_email,
                           smtp_is_configured)
 from models import Appeal, AppealReview
-from models import (AIConfig, DictionaryLookup, Exam, ExamUpdate,
+from models import (AIConfig, AdminResetPassword, DictionaryLookup, Exam, ExamUpdate,
                     EssayGradeRequest, EssayGradeResponse,
                     ExamCanvasGradeRequest,
                     ForgotPasswordRequest, ForgotPasswordVerify,
@@ -53,9 +53,10 @@ async def lifespan(app):
             init_ai_exam_tables(conn)
             from ai_reading import init_reading_tables
             init_reading_tables(conn)
-            from database import init_auth_tables, init_listening_exams
+            from database import init_auth_tables, init_listening_exams, ensure_default_admin
             init_auth_tables(conn)
             init_listening_exams(conn)
+            ensure_default_admin(conn)
     else:
         init_db()
         from vocabulary_catalog import init_catalog, refresh_search
@@ -73,9 +74,10 @@ async def lifespan(app):
         from lesson_catalog import init_lessons
         init_lessons()
         if "unittest" not in sys.modules and not os.getenv("TESTING"):
-            from database import init_listening_exams
+            from database import init_listening_exams, ensure_default_admin
             with database() as conn:
                 init_listening_exams(conn)
+                ensure_default_admin(conn)
     yield
 
 
@@ -116,7 +118,7 @@ def current_user(authorization: Annotated[str | None, Header()] = None):
         raise HTTPException(401, "Phiên đăng nhập không hợp lệ hoặc đã hết hạn")
     if not row["is_active"]:
         raise HTTPException(403, "Tài khoản đã bị khóa")
-    return dict(row)
+    return row_to_dict(row)
 
 
 def admin_user(user=Depends(current_user)):
@@ -125,12 +127,12 @@ def admin_user(user=Depends(current_user)):
     return user
 
 
-def require_row(conn, table, row_id):
+def require_row(conn, table, row_id) -> dict[str, Any]:
     # table is always an internal constant, never request input.
     row = conn.execute(f"SELECT * FROM {table} WHERE id=?", (row_id,)).fetchone()
     if row is None:
         raise HTTPException(404, "Không tìm thấy dữ liệu")
-    return dict(row)
+    return row_to_dict(row)
 
 
 def check_version(row, version):
@@ -314,13 +316,17 @@ def me(user=Depends(current_user)):
 @app.get("/api/admin/dashboard")
 def dashboard(user=Depends(admin_user)):
     with database() as conn:
-        totals = dict(conn.execute("SELECT COUNT(*) users, COALESCE(SUM(is_active),0) active_users, COALESCE(SUM(role='admin'),0) admins FROM users").fetchone())
+        totals: dict[str, Any] = row_to_dict(conn.execute("SELECT COUNT(*) users, COALESCE(SUM(is_active),0) active_users, COALESCE(SUM(role='admin'),0) admins FROM users").fetchone())
         for table in ("vocabulary", "exams", "results"):
-            totals[table] = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-        totals["average_score"] = conn.execute("SELECT COALESCE(ROUND(AVG(score),1),0) FROM results").fetchone()[0]
-        totals["ai_success"] = conn.execute("SELECT COUNT(*) FROM ai_usage WHERE status='success'").fetchone()[0]
-        totals["ai_errors"] = conn.execute("SELECT COUNT(*) FROM ai_usage WHERE status='error'").fetchone()[0]
-        activity = [dict(row) for row in conn.execute("SELECT a.id,u.name,a.action,a.entity,a.entity_id,a.created_at FROM audit_logs a JOIN users u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT 10")]
+            t_row = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
+            totals[table] = t_row[0] if t_row else 0
+        avg_row = conn.execute("SELECT COALESCE(ROUND(AVG(score),1),0) FROM results").fetchone()
+        totals["average_score"] = avg_row[0] if avg_row else 0
+        succ_row = conn.execute("SELECT COUNT(*) FROM ai_usage WHERE status='success'").fetchone()
+        totals["ai_success"] = succ_row[0] if succ_row else 0
+        err_row = conn.execute("SELECT COUNT(*) FROM ai_usage WHERE status='error'").fetchone()
+        totals["ai_errors"] = err_row[0] if err_row else 0
+        activity = [row_to_dict(row) for row in conn.execute("SELECT a.id,u.name,a.action,a.entity,a.entity_id,a.created_at FROM audit_logs a JOIN users u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT 10")]
     return {"totals": totals, "recent_activity": activity}
 
 
@@ -328,7 +334,7 @@ def dashboard(user=Depends(admin_user)):
 def users(search: str = Query(default="", max_length=120), role: Literal["student", "admin"] | None = None,
           active: bool | None = None, user=Depends(admin_user)):
     query = "SELECT * FROM users WHERE (name LIKE ? OR email LIKE ?)"
-    values = [f"%{search}%", f"%{search}%"]
+    values: list[Any] = [f"%{search}%", f"%{search}%"]
     if role:
         query += " AND role=?"
         values.append(role)
@@ -348,7 +354,8 @@ def update_user(user_id: int, body: UserUpdate, admin=Depends(admin_user)):
         before = require_row(conn, "users", user_id)
         check_version(before, body.version)
         if before["role"] == "admin" and before["is_active"] and (not body.is_active or body.role != "admin"):
-            if conn.execute("SELECT COUNT(*) FROM users WHERE role='admin' AND is_active=1").fetchone()[0] <= 1:
+            admin_count = conn.execute("SELECT COUNT(*) FROM users WHERE role='admin' AND is_active=1").fetchone()
+            if admin_count and admin_count[0] <= 1:
                 raise HTTPException(409, "Phải giữ ít nhất một quản trị viên hoạt động")
         conn.execute("UPDATE users SET role=?,is_active=?,version=version+1 WHERE id=?", (body.role, int(body.is_active), user_id))
         if not body.is_active or body.role != before["role"]:
@@ -358,16 +365,31 @@ def update_user(user_id: int, body: UserUpdate, admin=Depends(admin_user)):
     return after
 
 
-def word_json(row):
-    item = dict(row)
-    item["strokes"] = json.loads(item.pop("strokes_json"))
+@app.post("/api/admin/users/{user_id}/reset-password")
+def admin_reset_user_password(user_id: int, body: AdminResetPassword, admin=Depends(admin_user)):
+    with database() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        user = require_row(conn, "users", user_id)
+        new_salt = secrets.token_hex(16)
+        new_hash = hash_password(body.new_password, new_salt)
+        conn.execute("UPDATE users SET password_hash=?,salt=?,version=version+1 WHERE id=?",
+                     (new_hash, new_salt, user_id))
+        conn.execute("DELETE FROM sessions WHERE user_id=?", (user_id,))
+        after = public_user(require_row(conn, "users", user_id))
+        audit(conn, admin["id"], "reset_password", "user", user_id, {"email": user["email"]}, {"email": user["email"]})
+    return {"status": "ok", "message": f"Đặt lại mật khẩu cho {user['email']} thành công", "user": after}
+
+
+def word_json(row: Any) -> dict[str, Any]:
+    item = row_to_dict(row)
+    item["strokes"] = json.loads(item.pop("strokes_json", "[]") or "[]")
     return item
 
 
 @app.get("/api/vocabulary")
 def vocabulary(search: str = Query(default="", max_length=120), hsk: int | None = Query(default=None, ge=1, le=6)):
     query = "SELECT * FROM vocabulary WHERE (hanzi LIKE ? OR pinyin LIKE ? OR meaning LIKE ?)"
-    values = [f"%{search}%"] * 3
+    values: list[Any] = [f"%{search}%"] * 3
     if hsk:
         query += " AND hsk=?"
         values.append(hsk)
@@ -394,9 +416,7 @@ def record_dictionary_lookup(word_id: int, body: DictionaryLookup, user=Depends(
                WHERE h.user_id=? AND h.word_id=?""",
             (user["id"], word_id),
         ).fetchone()
-    item = dict(row)
-    item["strokes"] = json.loads(item.pop("strokes_json"))
-    return item
+    return word_json(row)
 
 
 @app.get("/api/me/dictionary-history")
@@ -739,7 +759,7 @@ def submit(exam_id: int, body: Submission, user=Depends(current_user), grader=De
         ai_review_items = grade.get("review_items", [])
         section_scores = grade.get("section_scores", {section: score for section in sections})
     else:
-        score = round(100 * sum(body.answers[q["id"]].strip() == q["answer"] for q in questions) / len(questions), 2)
+        score = round(100 * sum(str(body.answers.get(q["id"], "")).strip() == str(q["answer"]).strip() for q in questions) / len(questions), 2)
         feedback, graded_by = "", "automatic"
         ai_review_items = []
         section_scores = {}
@@ -961,18 +981,19 @@ def my_results(user=Depends(current_user)):
     with database() as conn:
         rows = [dict(row) for row in conn.execute("SELECT * FROM results WHERE user_id=? ORDER BY id DESC", (user["id"],))]
         for row in rows:
-            row["overrides"] = [dict(h) for h in conn.execute("SELECT old_score,new_score,reason,created_at FROM score_overrides WHERE result_id=? ORDER BY id", (row["id"],))]
+            row["overrides"] = [row_to_dict(h) for h in conn.execute("SELECT old_score,new_score,reason,created_at FROM score_overrides WHERE result_id=? ORDER BY id", (row["id"],))]
         return rows
 
 
 @app.get("/api/me/dashboard")
 def my_dashboard(user=Depends(current_user)):
     with database() as conn:
-        results = [dict(row) for row in conn.execute(
+        results = [row_to_dict(row) for row in conn.execute(
             "SELECT * FROM results WHERE user_id=? ORDER BY created_at", (user["id"],))]
-        vocabulary_count = conn.execute(
-            "SELECT COUNT(*) FROM dictionary_history WHERE user_id=?", (user["id"],)).fetchone()[0]
-        needs_review = conn.execute(
+        v_row = conn.execute(
+            "SELECT COUNT(*) FROM dictionary_history WHERE user_id=?", (user["id"],)).fetchone()
+        vocabulary_count = v_row[0] if v_row else 0
+        nr_row = conn.execute(
             """SELECT COUNT(*) FROM results r
                LEFT JOIN review_progress p ON p.source_result_id=r.id
                WHERE r.user_id=? AND r.score<80
@@ -981,7 +1002,8 @@ def my_dashboard(user=Depends(current_user)):
                  )
                  AND (r.kind='exam' OR p.completed_at IS NULL)""",
             (user["id"],),
-        ).fetchone()[0]
+        ).fetchone()
+        needs_review = nr_row[0] if nr_row else 0
         activity_days = [row[0] for row in conn.execute(
             """SELECT DISTINCT date(created_at,'unixepoch','localtime') day FROM results
                WHERE user_id=? UNION SELECT DISTINCT date(last_looked_at,'unixepoch','localtime')
@@ -1223,9 +1245,6 @@ app.mount("/media", StaticFiles(directory=Path(__file__).parent / "media", check
 @app.get("/admin/", include_in_schema=False)
 def admin_page():
     # The shell shows login only. Every administrative data route requires admin_user.
-    if WEB_DIR is not None:
-        html = (ADMIN_DIR / "index.html").read_text(encoding="utf-8")
-        return HTMLResponse(html.replace('<head>', '<head><script>window.HANZIGO_UNIFIED_WEB=true;</script>'))
     return FileResponse(ADMIN_DIR / "index.html")
 
 
@@ -1297,13 +1316,15 @@ def update_app():
 </script></body></html>""")
 
 
-if WEB_DIR is not None:
-    WEB_VERSION = hashlib.sha256((WEB_DIR / "main.dart.js").read_bytes()).hexdigest()[:16]
+web_root = WEB_DIR
+if web_root is not None:
+    WEB_VERSION = hashlib.sha256((web_root / "main.dart.js").read_bytes()).hexdigest()[:16]
 
     @app.get("/", include_in_schema=False)
     @app.get("/index.html", include_in_schema=False)
     def versioned_web_index():
-        html = (WEB_DIR / "index.html").read_text(encoding="utf-8")
+        assert web_root is not None
+        html = (web_root / "index.html").read_text(encoding="utf-8")
         return HTMLResponse(html.replace('src="flutter_bootstrap.js"',
             f'src="/_app/{WEB_VERSION}/flutter_bootstrap.js"'))
 
@@ -1311,7 +1332,8 @@ if WEB_DIR is not None:
     def versioned_bootstrap(version: str):
         if version != WEB_VERSION:
             raise HTTPException(404, "Build no longer available")
-        script = (WEB_DIR / "flutter_bootstrap.js").read_text(encoding="utf-8")
+        assert web_root is not None
+        script = (web_root / "flutter_bootstrap.js").read_text(encoding="utf-8")
         script = script.replace('"mainJsPath":"main.dart.js"',
             f'"mainJsPath":"/_app/{WEB_VERSION}/main.dart.js"')
         return HTMLResponse(script, media_type="application/javascript")
@@ -1320,6 +1342,7 @@ if WEB_DIR is not None:
     def versioned_main_js(version: str):
         if version != WEB_VERSION:
             raise HTTPException(404, "Build no longer available")
-        return FileResponse(WEB_DIR / "main.dart.js", media_type="application/javascript")
+        assert web_root is not None
+        return FileResponse(web_root / "main.dart.js", media_type="application/javascript")
 
-    app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="learner-web")
+    app.mount("/", StaticFiles(directory=web_root, html=True), name="learner-web")
