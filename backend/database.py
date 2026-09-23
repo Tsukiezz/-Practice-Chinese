@@ -228,7 +228,9 @@ def init_listening_exams(conn):
         try:
             from listening_hsk_data import LISTENING_EXAMS_HSK1_6
         except ImportError:
-            from backend.listening_hsk_data import LISTENING_EXAMS_HSK1_6
+            import importlib
+            mod = importlib.import_module("backend.listening_hsk_data")
+            LISTENING_EXAMS_HSK1_6 = getattr(mod, "LISTENING_EXAMS_HSK1_6", [])
         for exam in LISTENING_EXAMS_HSK1_6:
             row = conn.execute("SELECT id FROM exams WHERE title=?", (exam["title"],)).fetchone()
             if not row:

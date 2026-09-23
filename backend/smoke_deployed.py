@@ -47,7 +47,7 @@ def run():
         print('PASS: public pages, API, audio, credentials, role isolation and requested write check', flush=True)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, **({'channel': os.environ['PLAYWRIGHT_CHANNEL']} if os.getenv('PLAYWRIGHT_CHANNEL') else {}))
+        browser = p.chromium.launch(headless=True, channel=os.getenv('PLAYWRIGHT_CHANNEL') or None)
         expect.set_options(timeout=60000)
         for role in ('admin', 'student'):
             page = browser.new_page(viewport={'width': 390, 'height': 844})

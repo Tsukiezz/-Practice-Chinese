@@ -60,7 +60,7 @@ def run():
                 time.sleep(.1)
             with sync_playwright() as p:
                 channel = os.getenv('PLAYWRIGHT_CHANNEL')
-                browser = p.chromium.launch(headless=True, **({'channel': channel} if channel else {}))
+                browser = p.chromium.launch(headless=True, channel=channel or None)
                 page = browser.new_page(viewport={'width': 1100, 'height': 900})
                 font_responses = []
                 page.on('response', lambda r: font_responses.append(r.status) if '/fonts/HanziGoHSK-Regular.ttf' in r.url else None)

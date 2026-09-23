@@ -106,7 +106,11 @@ class Connection:
 def connect(path: Any, auth_token: str = '') -> Connection:
     try:
         import libsql  # type: ignore[import-untyped,import-not-found]
-        raw = libsql.connect(str(path), auth_token=auth_token, timeout=15)
+        libsql_connect = getattr(libsql, "connect", None)
+        if callable(libsql_connect):
+            raw = libsql_connect(str(path), auth_token=auth_token, timeout=15)
+        else:
+            raise sqlite3.OperationalError("libsql driver does not expose connect")
         return Connection(raw)
     except ImportError as error:
         raise sqlite3.OperationalError("libsql driver is not installed") from error

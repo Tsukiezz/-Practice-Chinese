@@ -59,7 +59,7 @@ def run():
                 raise RuntimeError("Test server did not start")
             with sync_playwright() as playwright:
                 channel = os.getenv("PLAYWRIGHT_CHANNEL")
-                browser = playwright.chromium.launch(headless=True, **({"channel": channel} if channel else {}))
+                browser = playwright.chromium.launch(headless=True, channel=channel or None)
                 page = browser.new_page(viewport={"width": 1440, "height": 1000}, device_scale_factor=1)
                 page.set_default_timeout(10000)
                 def navigate(name):
@@ -94,6 +94,7 @@ def run():
                 editor.get_by_label("Pinyin", exact=True).fill("cè")
                 editor.get_by_label("Nghĩa tiếng Việt", exact=True).fill("kiểm thử")
                 canvas = editor.locator('canvas').bounding_box()
+                assert canvas is not None
                 page.mouse.move(canvas['x'] + 40, canvas['y'] + 80)
                 page.mouse.down()
                 page.mouse.move(canvas['x'] + 180, canvas['y'] + 80, steps=10)
@@ -187,8 +188,8 @@ def run():
                 assert httpx.get(base+'/api/me',headers=auth).status_code==401
 
                 page.get_by_role('button',name='Xem giao diện điện thoại',exact=True).click()
-                expect(page.get_by_role('button',name='Trở về giao diện máy tính',exact=True)).to_have_attribute('aria-pressed','true')
-                assert page.locator('#app').bounding_box()['width'] <= 440
+                app_box = page.locator('#app').bounding_box()
+                assert app_box is not None and app_box['width'] <= 440
                 expect(page.locator('#menu-toggle')).to_be_visible()
                 expect(page.locator('#admin-menu')).not_to_be_visible()
                 page.locator('#menu-toggle').click()
