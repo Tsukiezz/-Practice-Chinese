@@ -1132,46 +1132,55 @@ def review_items(kind: str = Query(default="writing"),
 @app.get("/api/me/review-summary")
 def review_summary(below: float = Query(default=80, gt=0, le=100), user=Depends(current_user)):
     with database() as conn:
-        hw_count = conn.execute(
+        hw_row = conn.execute(
             """SELECT COUNT(*) FROM results r
                LEFT JOIN review_progress p ON p.source_result_id=r.id
                WHERE r.user_id=? AND r.kind='handwriting' AND r.score<? AND p.completed_at IS NULL
                  AND NOT EXISTS (SELECT 1 FROM review_attempts retry WHERE retry.result_id=r.id)""",
             (user["id"], below),
-        ).fetchone()[0]
-        wt_count = conn.execute(
+        ).fetchone()
+        hw_count = int(hw_row[0]) if hw_row else 0
+        wt_row = conn.execute(
             """SELECT COUNT(*) FROM results r
                LEFT JOIN review_progress p ON p.source_result_id=r.id
                WHERE r.user_id=? AND r.kind='writing' AND r.score<? AND p.completed_at IS NULL
                  AND NOT EXISTS (SELECT 1 FROM review_attempts retry WHERE retry.result_id=r.id)""",
             (user["id"], below),
-        ).fetchone()[0]
-        ls_count = conn.execute(
+        ).fetchone()
+        wt_count = int(wt_row[0]) if wt_row else 0
+        ls_row = conn.execute(
             "SELECT COUNT(*) FROM results WHERE user_id=? AND kind='listening' AND score<?",
             (user["id"], below),
-        ).fetchone()[0]
+        ).fetchone()
+        ls_count = int(ls_row[0]) if ls_row else 0
         rd_count = 0
         try:
-            rd_count = conn.execute(
+            rd_row = conn.execute(
                 "SELECT COUNT(*) FROM student_reading_history WHERE user_id=? AND accuracy_percent<?",
                 (user["id"], below),
-            ).fetchone()[0]
+            ).fetchone()
+            if rd_row:
+                rd_count = int(rd_row[0])
         except Exception:
             pass
         ex_count = 0
         try:
-            ex_count = conn.execute(
+            ex_row = conn.execute(
                 "SELECT COUNT(*) FROM student_ai_exams WHERE user_id=? AND status='completed' AND score<?",
                 (user["id"], below),
-            ).fetchone()[0]
+            ).fetchone()
+            if ex_row:
+                ex_count = int(ex_row[0])
         except Exception:
             pass
         vc_count = 0
         try:
-            vc_count = conn.execute(
+            vc_row = conn.execute(
                 "SELECT COUNT(*) FROM dictionary_history WHERE user_id=? AND lookup_count>=2",
                 (user["id"],),
-            ).fetchone()[0]
+            ).fetchone()
+            if vc_row:
+                vc_count = int(vc_row[0])
         except Exception:
             pass
 

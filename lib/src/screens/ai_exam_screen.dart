@@ -370,52 +370,57 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9F8),
       body: SafeArea(
-        child: Column(
-          children: [
-            ScreenHeader(
-              eyebrow: 'Khảo thí AI · Đề thi tiếng Trung',
-              title: 'Kiểm tra',
-              showBackButton: widget.onBack != null || Navigator.of(context).canPop(),
-              onBack: widget.onBack ?? (Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null),
-              trailing: const Icon(Icons.assignment_turned_in_rounded, color: AppTheme.jade),
-            ),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE5EDE8),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicatorSize: TabBarIndicatorSize.tab,
-                dividerColor: Colors.transparent,
-                indicator: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
-                  ],
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 860),
+            child: Column(
+              children: [
+                ScreenHeader(
+                  eyebrow: 'Khảo thí AI · Đề thi tiếng Trung',
+                  title: 'Kiểm tra',
+                  showBackButton: widget.onBack != null || Navigator.of(context).canPop(),
+                  onBack: widget.onBack ?? (Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null),
+                  trailing: const Icon(Icons.assignment_turned_in_rounded, color: AppTheme.jade),
                 ),
-                labelColor: AppTheme.jade,
-                unselectedLabelColor: const Color(0xFF60736A),
-                labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                tabs: const [
-                  Tab(text: '✨ Tạo đề thi mới'),
-                  Tab(text: '📚 Đề thi của tôi'),
-                ],
-              ),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5EDE8),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    dividerColor: Colors.transparent,
+                    indicator: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                      ],
+                    ),
+                    labelColor: AppTheme.jade,
+                    unselectedLabelColor: const Color(0xFF60736A),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                    tabs: const [
+                      Tab(text: '✨ Tạo đề thi mới'),
+                      Tab(text: '📚 Đề thi của tôi'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildCreateExamTab(),
+                      _buildMyExamsTab(),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildCreateExamTab(),
-                  _buildMyExamsTab(),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -424,7 +429,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
   Widget _buildStandardHskPresetSection() {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF0F382E), Color(0xFF1E5646)],
@@ -444,19 +449,19 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.school_rounded, color: Color(0xFFEAD8B3), size: 22),
+                child: const Icon(Icons.school_rounded, color: Color(0xFFEAD8B3), size: 20),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       '🎯 6 Đề Thi Chuẩn HSK 1 - HSK 6',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                     Text(
                       'Mỗi cấp độ 1 đề 40 câu · 40 phút · AI chấm điểm & sửa bài',
@@ -467,79 +472,84 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 2.2,
-            ),
-            itemCount: 6,
-            itemBuilder: (context, idx) {
-              final level = idx + 1;
-              final standardExam = _getStandardExamForLevel(level);
-              final isDone = standardExam?.status == 'completed';
-              final score = standardExam?.score;
-
-              return InkWell(
-                onTap: () {
-                  if (standardExam != null) {
-                    _startExam(standardExam);
-                  } else {
-                    _loadHistory();
-                  }
-                },
-                borderRadius: BorderRadius.circular(14),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isDone ? const Color(0xFF68D391) : Colors.white.withOpacity(0.2),
-                      width: isDone ? 1.5 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: isDone ? const Color(0xFF38A169) : Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          'HSK $level',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              isDone ? '${score?.toStringAsFixed(1)}đ' : '40 câu',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                            ),
-                            Text(
-                              isDone ? 'Làm lại ↺' : 'Làm ngay →',
-                              style: TextStyle(
-                                color: isDone ? const Color(0xFFC7E0D6) : const Color(0xFFF6E05E),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth > 520;
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: isWide ? 3 : 2,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  mainAxisExtent: 58,
                 ),
+                itemCount: 6,
+                itemBuilder: (context, idx) {
+                  final level = idx + 1;
+                  final standardExam = _getStandardExamForLevel(level);
+                  final isDone = standardExam?.status == 'completed';
+                  final score = standardExam?.score;
+
+                  return InkWell(
+                    onTap: () {
+                      if (standardExam != null) {
+                        _startExam(standardExam);
+                      } else {
+                        _loadHistory();
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDone ? const Color(0xFF68D391) : Colors.white.withValues(alpha: 0.2),
+                          width: isDone ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isDone ? const Color(0xFF38A169) : Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(7),
+                            ),
+                            child: Text(
+                              'HSK $level',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  isDone ? '${score?.toStringAsFixed(1)}đ' : '40 câu',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                ),
+                                Text(
+                                  isDone ? 'Làm lại ↺' : 'Làm ngay →',
+                                  style: TextStyle(
+                                    color: isDone ? const Color(0xFFC7E0D6) : const Color(0xFFF6E05E),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -1294,9 +1304,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
 
   Widget _buildResultView() {
     final feedback = _currentFeedback!;
-    final exam = _reviewedExam!;
     final score = feedback.score;
-    final scoreColor = score >= 80 ? Colors.green : (score >= 50 ? Colors.orange : Colors.red);
 
     return Scaffold(
       appBar: AppBar(

@@ -241,10 +241,8 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9F8),
-      body: LayoutBuilder(builder: (context, constraints) {
-        final compact = constraints.maxWidth < 600;
-        return SafeArea(
-          child: Column(
+      body: SafeArea(
+        child: Column(
             children: [
               ScreenHeader(
                 eyebrow: 'Tra cứu và ghi nhớ',
@@ -525,10 +523,9 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
             ),
           ],
         ),
-      );
-    }),
-  );
-}
+      ),
+    );
+  }
 
   Future<void> _openWord(VocabularyEntry word) async {
     try {
