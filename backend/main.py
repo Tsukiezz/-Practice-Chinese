@@ -53,9 +53,10 @@ async def lifespan(app):
             init_ai_exam_tables(conn)
             from ai_reading import init_reading_tables
             init_reading_tables(conn)
-            from database import init_auth_tables, init_listening_exams, ensure_default_admin
+            from database import init_auth_tables, init_listening_exams, init_comprehensive_exams, ensure_default_admin
             init_auth_tables(conn)
             init_listening_exams(conn)
+            init_comprehensive_exams(conn)
             ensure_default_admin(conn)
     else:
         init_db()
@@ -74,9 +75,10 @@ async def lifespan(app):
         from lesson_catalog import init_lessons
         init_lessons()
         if "unittest" not in sys.modules and not os.getenv("TESTING"):
-            from database import init_listening_exams, ensure_default_admin
+            from database import init_listening_exams, init_comprehensive_exams, ensure_default_admin
             with database() as conn:
                 init_listening_exams(conn)
+                init_comprehensive_exams(conn)
                 ensure_default_admin(conn)
     yield
 
@@ -625,8 +627,16 @@ def admin_exams(hsk: int | None = Query(default=None, ge=1, le=6), user=Depends(
 @app.get("/api/exams")
 def learner_exams(hsk: int | None = Query(default=None, ge=1, le=6), user=Depends(current_user)):
     with database() as conn:
-        rows = conn.execute("SELECT * FROM exams WHERE status='published'" + (" AND hsk=?" if hsk else "") + " ORDER BY hsk,id", (hsk,) if hsk else ())
+        rows = conn.execute("SELECT * FROM exams WHERE status='published'" + (" AND hsk=?" if hsk else "") + " ORDER BY hsk,id", (hsk,) if hsk else ()).fetchall()
+        # Ensure comprehensive exams exist if not yet seeded
+        has_comp = any("Toàn diện" in (r["title"] if hasattr(r, "__getitem__") else "") for r in rows)
+        if not has_comp and "unittest" not in sys.modules and not os.getenv("TESTING"):
+            from database import init_comprehensive_exams
+            init_comprehensive_exams(conn)
+            rows = conn.execute("SELECT * FROM exams WHERE status='published'" + (" AND hsk=?" if hsk else "") + " ORDER BY hsk,id", (hsk,) if hsk else ()).fetchall()
         return [exam_json(row, learner=True) for row in rows]
+
+
 
 
 def save_exam(body, admin, exam_id=None):

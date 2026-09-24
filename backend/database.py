@@ -241,3 +241,19 @@ def init_listening_exams(conn):
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning("init_listening_exams: %s", e)
+
+
+def init_comprehensive_exams(conn):
+    try:
+        try:
+            from comprehensive_hsk_data import init_comprehensive_exams as _init
+            _init(conn)
+        except ImportError:
+            import importlib
+            mod = importlib.import_module("backend.comprehensive_hsk_data")
+            mod.init_comprehensive_exams(conn)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("init_comprehensive_exams: %s", e)
+
+
