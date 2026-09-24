@@ -1,6 +1,15 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+
+class _ImmediatePanGestureRecognizer extends PanGestureRecognizer {
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    super.addAllowedPointer(event);
+    resolve(GestureDisposition.accepted);
+  }
+}
 
 class HanziCanvasController extends ChangeNotifier {
   final List<List<Offset>> _strokes = [];
@@ -50,8 +59,12 @@ class HanziCanvasController extends ChangeNotifier {
   }
 
   void end() {
-    if (_strokes.isNotEmpty && _strokes.last.length < 2) {
-      _strokes.removeLast();
+    if (_strokes.isNotEmpty) {
+      if (_strokes.last.length == 1) {
+        // Ensure single-point dots (chấm nét 1, 2) are preserved
+        final first = _strokes.last.first;
+        _strokes.last.add(Offset(first.dx + 0.5, first.dy + 0.5));
+      }
     }
     notifyListeners();
   }
@@ -79,6 +92,7 @@ class HanziDrawingCanvas extends StatelessWidget {
     this.enabled = true,
     this.wrongStrokes = const {},
     this.onChanged,
+    this.onDrawingStateChanged,
     this.canvasKey,
     this.maxWidth = 520,
   });
@@ -87,6 +101,7 @@ class HanziDrawingCanvas extends StatelessWidget {
   final bool enabled;
   final Set<int> wrongStrokes;
   final VoidCallback? onChanged;
+  final ValueChanged<bool>? onDrawingStateChanged;
   final Key? canvasKey;
   final double maxWidth;
 
@@ -101,27 +116,46 @@ class HanziDrawingCanvas extends StatelessWidget {
             cursor: enabled
                 ? SystemMouseCursors.precise
                 : SystemMouseCursors.forbidden,
-            child: GestureDetector(
+            child: RawGestureDetector(
               key: canvasKey,
               behavior: HitTestBehavior.opaque,
-              onPanStart: enabled
-                  ? (details) {
-                      controller.start(details.localPosition, box.biggest);
-                      onChanged?.call();
+              gestures: enabled
+                  ? {
+                      _ImmediatePanGestureRecognizer:
+                          GestureRecognizerFactoryWithHandlers<
+                              _ImmediatePanGestureRecognizer>(
+                        () => _ImmediatePanGestureRecognizer(),
+                        (_ImmediatePanGestureRecognizer instance) {
+                          instance
+                            ..onStart = (details) {
+                              onDrawingStateChanged?.call(true);
+                              controller.start(
+                                details.localPosition,
+                                box.biggest,
+                              );
+                              onChanged?.call();
+                            }
+                            ..onUpdate = (details) {
+                              controller.update(
+                                details.localPosition,
+                                box.biggest,
+                              );
+                              onChanged?.call();
+                            }
+                            ..onEnd = (_) {
+                              onDrawingStateChanged?.call(false);
+                              controller.end();
+                              onChanged?.call();
+                            }
+                            ..onCancel = () {
+                              onDrawingStateChanged?.call(false);
+                              controller.end();
+                              onChanged?.call();
+                            };
+                        },
+                      ),
                     }
-                  : null,
-              onPanUpdate: enabled
-                  ? (details) {
-                      controller.update(details.localPosition, box.biggest);
-                      onChanged?.call();
-                    }
-                  : null,
-              onPanEnd: enabled
-                  ? (_) {
-                      controller.end();
-                      onChanged?.call();
-                    }
-                  : null,
+                  : {},
               child: AnimatedBuilder(
                 animation: controller,
                 builder: (_, __) => CustomPaint(
@@ -174,10 +208,19 @@ class _HanziPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
     for (var index = 0; index < strokes.length; index++) {
       final stroke = strokes[index];
-      if (stroke.length < 2) continue;
+      if (stroke.isEmpty) continue;
       ink.color = wrongStrokes.contains(index + 1)
           ? AppTheme.red
           : AppTheme.ink;
+      if (stroke.length == 1) {
+        final pt = Offset(
+          stroke.first.dx / 1024 * size.width,
+          stroke.first.dy / 1024 * size.height,
+        );
+        canvas.drawCircle(pt, 4.0, ink..style = PaintingStyle.fill);
+        ink.style = PaintingStyle.stroke;
+        continue;
+      }
       final path = Path()
         ..moveTo(
           stroke.first.dx / 1024 * size.width,

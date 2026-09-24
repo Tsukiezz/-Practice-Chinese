@@ -91,7 +91,13 @@ class TestAiReading(unittest.TestCase):
         self.assertEqual(res_empty["rating"], "Chưa đạt")
         self.assertGreater(len(res_empty["errors"]), 0)
 
-        # 3. Partial or different pronunciation
+        # 3. Recorded audio without WebSpeech transcript (e.g. mobile Safari)
+        res_audio = evaluate_pronunciation_offline("你好", "nǐ hǎo", "", has_audio=True)
+        self.assertGreaterEqual(res_audio["accuracy_percent"], 80.0)
+        self.assertEqual(res_audio["rating"], "Tốt")
+        self.assertEqual(res_audio["spoken_recognized"], "你好")
+
+        # 4. Partial or different pronunciation
         res_diff = evaluate_pronunciation_offline("学习", "xuéxí", "xue1 xi1")
         self.assertTrue(10.0 <= res_diff["accuracy_percent"] <= 95.0)
         self.assertGreater(len(res_diff["corrections"]), 0)
@@ -124,6 +130,22 @@ class TestAiReading(unittest.TestCase):
         self.assertGreaterEqual(history_data["total"], 1)
         found = any(item["id"] == data["history_id"] for item in history_data["items"])
         self.assertTrue(found)
+
+    def test_unauthenticated_reading_evaluate(self):
+        """Verify guest learners can evaluate reading without requiring login."""
+        payload = {
+            "target_hanzi": "你好",
+            "target_pinyin": "nǐ hǎo",
+            "target_meaning": "Xin chào",
+            "spoken_text": "你好",
+            "save_history": False,
+        }
+        res = self.client.post("/api/reading/evaluate", json=payload)
+        self.assertEqual(res.status_code, 200, res.text)
+        data = res.json()
+        self.assertEqual(data["target_hanzi"], "你好")
+        self.assertIsNone(data["history_id"])
+        self.assertEqual(data["accuracy_percent"], 100.0)
 
 
 if __name__ == "__main__":

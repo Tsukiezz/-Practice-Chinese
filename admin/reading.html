@@ -550,7 +550,13 @@
   </main>
 
   <script>
-    let token = sessionStorage.getItem('hanzigo_account_token') || localStorage.getItem('token') || '';
+    let token = sessionStorage.getItem('hanzigo_account_token') ||
+                sessionStorage.getItem('hanzigo_token') ||
+                sessionStorage.getItem('hanzigo_admin_token') ||
+                sessionStorage.getItem('hanzigo_learner_token') ||
+                localStorage.getItem('token') ||
+                localStorage.getItem('auth_token') ||
+                localStorage.getItem('hanzigo_token') || '';
     let words = [];
     let currentIndex = 0;
     let selectedHsk = null;
@@ -559,6 +565,8 @@
     let isRecording = false;
     let mediaRecorder = null;
     let audioChunks = [];
+    let actualAudioMime = 'audio/webm';
+    let recordingStartTime = 0;
     let userAudioBlob = null;
     let userAudioUrl = null;
     let speechRecognition = null;
@@ -705,23 +713,53 @@
       }
     }
 
+    function getBestSupportedAudioMimeType() {
+      const candidates = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/aac',
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+        'audio/wav'
+      ];
+      if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) {
+        return '';
+      }
+      for (const mime of candidates) {
+        if (MediaRecorder.isTypeSupported(mime)) {
+          return mime;
+        }
+      }
+      return '';
+    }
+
     // Web Speech Recognition
     function initSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognition) {
-        speechRecognition = new SpeechRecognition();
-        speechRecognition.lang = 'zh-CN';
-        speechRecognition.continuous = false;
-        speechRecognition.interimResults = false;
-        speechRecognition.onresult = (e) => {
-          if (e.results.length > 0) {
-            transcribedText = e.results[0][0].transcript;
-            console.log('Recognized speech:', transcribedText);
-          }
-        };
-        speechRecognition.onerror = (e) => {
-          console.warn('Speech recognition error:', e.error);
-        };
+        try {
+          speechRecognition = new SpeechRecognition();
+          speechRecognition.lang = 'zh-CN';
+          speechRecognition.continuous = false;
+          speechRecognition.interimResults = true;
+          speechRecognition.maxAlternatives = 1;
+          speechRecognition.onresult = (e) => {
+            let resText = '';
+            for (let i = 0; i < e.results.length; ++i) {
+              resText += e.results[i][0].transcript;
+            }
+            if (resText.trim()) {
+              transcribedText = resText.trim();
+              console.log('Recognized speech:', transcribedText);
+            }
+          };
+          speechRecognition.onerror = (e) => {
+            console.warn('Speech recognition notice:', e.error);
+          };
+        } catch (e) {
+          console.warn('SpeechRecognition init error:', e);
+        }
       }
     }
 
@@ -738,19 +776,26 @@
       if (!words || words.length === 0) return;
       audioChunks = [];
       transcribedText = '';
+      recordingStartTime = Date.now();
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
+        const preferredMime = getBestSupportedAudioMimeType();
+        const options = preferredMime ? { mimeType: preferredMime } : {};
+        mediaRecorder = new MediaRecorder(stream, options);
+        actualAudioMime = (mediaRecorder.mimeType || preferredMime || 'audio/webm').split(';')[0].trim().toLowerCase();
+
         mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) audioChunks.push(e.data);
+          if (e.data && e.data.size > 0) audioChunks.push(e.data);
         };
         mediaRecorder.onstop = () => {
           stream.getTracks().forEach(track => track.stop());
           finishRecordingAndEvaluate();
         };
 
-        mediaRecorder.start();
+        // 200ms slice guarantees chunks are continually flushed
+        mediaRecorder.start(200);
+
         if (speechRecognition) {
           try { speechRecognition.start(); } catch (_) {}
         }
@@ -772,16 +817,26 @@
       document.getElementById('recordingWave').style.display = 'none';
       document.getElementById('micStatus').textContent = 'Đang gửi bản đọc tới AI thẩm định...';
 
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
-      }
-      if (speechRecognition) {
-        try { speechRecognition.stop(); } catch (_) {}
-      }
+      const durationMs = Date.now() - recordingStartTime;
+      const delay = durationMs < 500 ? (500 - durationMs) : 0;
+
+      setTimeout(() => {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+        if (speechRecognition) {
+          try { speechRecognition.stop(); } catch (_) {}
+        }
+      }, delay);
     }
 
     async function finishRecordingAndEvaluate() {
-      userAudioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      if (!audioChunks || audioChunks.length === 0) {
+        document.getElementById('micStatus').textContent = 'Chưa thu được âm thanh. Hãy bấm micro và thử đọc lại.';
+        return;
+      }
+
+      userAudioBlob = new Blob(audioChunks, { type: actualAudioMime });
       userAudioUrl = URL.createObjectURL(userAudioBlob);
       document.getElementById('userAudioBtn').style.display = 'inline-flex';
 
@@ -803,7 +858,7 @@
         target_meaning: word.meaning,
         spoken_text: transcribedText || null,
         audio_base64: audioBase64,
-        audio_mime_type: 'audio/webm',
+        audio_mime_type: actualAudioMime,
         save_history: !!token
       };
 
@@ -818,9 +873,10 @@
         });
 
         if (!res.ok) {
-          const err = await res.json();
-          alert('Lỗi đánh giá: ' + (err.detail || 'Không thể chấm điểm'));
-          document.getElementById('micStatus').textContent = 'Có lỗi xảy ra. Hãy thử lại.';
+          const err = await res.json().catch(() => ({}));
+          const msg = err.detail || 'Không thể chấm điểm lúc này';
+          alert('Lỗi đánh giá: ' + msg);
+          document.getElementById('micStatus').textContent = 'Có lỗi xảy ra: ' + msg;
           return;
         }
 

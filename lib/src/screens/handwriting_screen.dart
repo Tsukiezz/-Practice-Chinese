@@ -31,6 +31,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
 
   late _HandwritingMode _mode;
   bool _submitting = false;
+  bool _isDrawing = false;
   HandwritingGradeResult? _practiceResult;
   HandwritingRecognitionResult? _recognitionResult;
   String? _error;
@@ -71,6 +72,15 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
             ? 'Viết tay chữ Hán'
             : 'Viết lại chữ dưới 80 điểm',
       ),
+      actions: [
+        if (_isLookup)
+          TextButton.icon(
+            key: const Key('switch-to-keyboard'),
+            onPressed: () => Navigator.pop(context, 'focus_keyboard'),
+            icon: const Icon(Icons.keyboard),
+            label: const Text('Gõ phím'),
+          ),
+      ],
     ),
     body: SafeArea(
       child: Center(
@@ -78,6 +88,9 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
           constraints: const BoxConstraints(maxWidth: 760),
           child: ListView(
             padding: const EdgeInsets.all(20),
+            physics: _isDrawing
+                ? const NeverScrollableScrollPhysics()
+                : const ClampingScrollPhysics(),
             children: [
               if (widget.source == null && !widget.guest) ...[
                 SegmentedButton<_HandwritingMode>(
@@ -108,6 +121,17 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey.shade700),
               ),
+              if (_isLookup) ...[
+                const SizedBox(height: 8),
+                Center(
+                  child: OutlinedButton.icon(
+                    key: const Key('switch-to-keyboard-btn'),
+                    onPressed: () => Navigator.pop(context, 'focus_keyboard'),
+                    icon: const Icon(Icons.keyboard_alt_outlined),
+                    label: const Text('Chuyển sang gõ bàn phím'),
+                  ),
+                ),
+              ],
               if (!_isLookup) ...[
                 const SizedBox(height: 12),
                 TextField(
@@ -138,6 +162,11 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                       _practiceResult?.wrongStrokes.toSet() ?? const {},
                   canvasKey: const Key('handwriting-canvas'),
                   onChanged: () => setState(_clearResults),
+                  onDrawingStateChanged: (drawing) {
+                    if (_isDrawing != drawing) {
+                      setState(() => _isDrawing = drawing);
+                    }
+                  },
                 ),
               ),
               const Padding(

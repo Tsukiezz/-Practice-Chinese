@@ -28,6 +28,7 @@ class VocabularyScreen extends StatefulWidget {
 
 class _VocabularyScreenState extends State<VocabularyScreen> {
   final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
   bool _historyMode = false;
   late Future<VocabularyPage> _future;
   int? _hsk;
@@ -113,9 +114,28 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   void dispose() {
     _listController.dispose();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _debounce?.cancel();
     _audio.dispose();
     super.dispose();
+  }
+
+  Future<void> _openHandwriting() async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => HandwritingScreen(
+          service: widget.service,
+          guest: widget.guest,
+        ),
+      ),
+    );
+    if (result == 'focus_keyboard' && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _searchFocusNode.requestFocus();
+        }
+      });
+    }
   }
 
   void _load({bool reset = true}) {
@@ -222,53 +242,52 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      final compact = constraints.maxHeight < 520;
+      final compact = constraints.maxWidth < 600;
       return SafeArea(
         child: Column(
           children: [
-            if (!compact)
-              ScreenHeader(
-                eyebrow: 'Tra cứu và ghi nhớ',
-                title: widget.notebook ? 'Sổ tay' : 'Từ điển',
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (!widget.notebook && !widget.guest)
-                      IconButton(
-                        tooltip: 'Sổ tay từ vựng',
-                        icon: const Icon(Icons.bookmark_rounded),
-                        onPressed: () async {
-                          await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => Scaffold(
-                                appBar:
-                                    AppBar(title: const Text('Sổ tay từ vựng')),
-                                body: VocabularyScreen(
-                                  service: widget.service,
-                                  notebook: true,
-                                ),
+            ScreenHeader(
+              eyebrow: 'Tra cứu và ghi nhớ',
+              title: widget.notebook ? 'Sổ tay' : 'Từ điển',
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!widget.notebook && !widget.guest)
+                    IconButton(
+                      tooltip: 'Sổ tay từ vựng',
+                      icon: const Icon(Icons.bookmark_rounded),
+                      onPressed: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => Scaffold(
+                              appBar:
+                                  AppBar(title: const Text('Sổ tay từ vựng')),
+                              body: VocabularyScreen(
+                                service: widget.service,
+                                notebook: true,
                               ),
                             ),
-                          );
-                          if (mounted) _loadSaved();
-                        },
-                      ),
-                    IconButton(
-                      tooltip: 'Dịch & sửa câu',
-                      icon: const Icon(Icons.translate_rounded),
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => TranslationScreen(
-                            service: widget.service,
-                            guest: widget.guest,
                           ),
+                        );
+                        if (mounted) _loadSaved();
+                      },
+                    ),
+                  IconButton(
+                    tooltip: 'Dịch & sửa câu',
+                    icon: const Icon(Icons.translate_rounded),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => TranslationScreen(
+                          service: widget.service,
+                          guest: widget.guest,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            if (!widget.notebook && !widget.guest && !compact)
+            ),
+            if (!widget.notebook && !widget.guest)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: SegmentedButton<bool>(
@@ -299,6 +318,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                 child: TextField(
                   key: const Key('dictionary-search'),
                   controller: _searchController,
+                  focusNode: _searchFocusNode,
                   textInputAction: TextInputAction.search,
                   onSubmitted: (_) => _reload(),
                   onChanged: (_) {
@@ -310,14 +330,34 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                   decoration: InputDecoration(
                     hintText: 'Hán tự, pinyin hoặc nghĩa tiếng Việt',
                     prefixIcon: const Icon(Icons.search),
-                    suffixIcon: IconButton(
-                      onPressed: _reload,
-                      icon: const Icon(Icons.arrow_forward),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_searchController.text.isNotEmpty)
+                          IconButton(
+                            tooltip: 'Xóa tìm kiếm',
+                            icon: const Icon(Icons.clear, size: 20),
+                            onPressed: () {
+                              _searchController.clear();
+                              _reload();
+                            },
+                          ),
+                        IconButton(
+                          tooltip: 'Chuyển sang viết tay',
+                          icon: const Icon(Icons.draw_outlined),
+                          onPressed: _openHandwriting,
+                        ),
+                        IconButton(
+                          tooltip: 'Tìm kiếm',
+                          onPressed: _reload,
+                          icon: const Icon(Icons.arrow_forward),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
-            if (!_historyMode && !widget.notebook && !compact)
+            if (!_historyMode && !widget.notebook)
               Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: SizedBox(
@@ -395,14 +435,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                               ),
                               OutlinedButton.icon(
                                 key: const Key('open-handwriting'),
-                                onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => HandwritingScreen(
-                                      service: widget.service,
-                                      guest: widget.guest,
-                                    ),
-                                  ),
-                                ),
+                                onPressed: _openHandwriting,
                                 icon: const Icon(Icons.draw_outlined),
                                 label: const Text('Viết tay'),
                               ),
