@@ -5,9 +5,14 @@ import '../widgets/common.dart';
 import '../services/student_service.dart';
 
 class ResultsScreen extends StatefulWidget {
-  const ResultsScreen({super.key, required this.service});
+  const ResultsScreen({
+    super.key,
+    required this.service,
+    this.onBack,
+  });
 
   final StudentService service;
+  final VoidCallback? onBack;
 
   @override
   State<ResultsScreen> createState() => _ResultsScreenState();
@@ -25,16 +30,21 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        children: [
-          ScreenHeader(
-            eyebrow: 'Tiến độ học tập',
-            title: 'Kết quả của bạn',
-            trailing: Icon(Icons.bar_chart_rounded, color: AppTheme.jade),
-          ),
-          Expanded(child: _buildBody()),
-        ],
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F9F8),
+      body: SafeArea(
+        child: Column(
+          children: [
+            ScreenHeader(
+              eyebrow: 'Tiến độ học tập',
+              title: 'Kết quả của bạn',
+              showBackButton: widget.onBack != null || Navigator.of(context).canPop(),
+              onBack: widget.onBack ?? (Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null),
+              trailing: const Icon(Icons.bar_chart_rounded, color: AppTheme.jade),
+            ),
+            Expanded(child: _buildBody()),
+          ],
+        ),
       ),
     );
   }

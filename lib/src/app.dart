@@ -366,22 +366,34 @@ class _AppShellState extends State<AppShell> {
             onOpenAiExam: () => setState(() => _index = 5),
             onOpenProfile: () => setState(() => _index = 6),
           ),
-          LessonsScreen(service: _studentService),
+          LessonsScreen(
+            service: _studentService,
+            onBack: () => setState(() => _index = 0),
+          ),
           ListeningScreen(
             repository: _listeningRepository!,
             draftOwner: _authService.currentUser?.id,
+            onBack: () => setState(() => _index = 0),
           ),
           PracticeScreen(
             repository: _readingRepository!,
             draftOwner: _authService.currentUser?.id,
+            onBack: () => setState(() => _index = 0),
           ),
-          VocabularyScreen(service: _studentService),
-          AiExamScreen(service: _aiExamService),
+          VocabularyScreen(
+            service: _studentService,
+            onBack: () => setState(() => _index = 0),
+          ),
+          AiExamScreen(
+            service: _aiExamService,
+            onBack: () => setState(() => _index = 0),
+          ),
           ProfileScreen(
             onLogout: _logout,
             studentService: _studentService,
             comprehensiveRepository: _comprehensiveRepository,
             user: _authService.currentUser,
+            onBack: () => setState(() => _index = 0),
             onEditProfile: kIsWeb
                 ? () => openAccount(_authService.token!)
                 : null,

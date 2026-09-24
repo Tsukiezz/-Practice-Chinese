@@ -6,13 +6,20 @@ import 'package:audioplayers/audioplayers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import '../services/listening_exam_service.dart';
+import '../services/pronunciation_service.dart';
 import '../models/reading_exam.dart';
 
 class ListeningScreen extends StatefulWidget {
-  const ListeningScreen({super.key, required this.repository, this.draftOwner});
+  const ListeningScreen({
+    super.key,
+    required this.repository,
+    this.draftOwner,
+    this.onBack,
+  });
 
   final ListeningExamRepository repository;
   final int? draftOwner;
+  final VoidCallback? onBack;
 
   @override
   State<ListeningScreen> createState() => _ListeningScreenState();
@@ -45,19 +52,30 @@ class _ListeningScreenState extends State<ListeningScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_result != null) return _buildResult();
-    if (_activeExam != null) return _buildQuestion();
-    return _buildExamList();
+    Widget content;
+    if (_result != null) {
+      content = _buildResult();
+    } else if (_activeExam != null) {
+      content = _buildQuestion();
+    } else {
+      content = _buildExamList();
+    }
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F9F8),
+      body: content,
+    );
   }
 
   Widget _buildExamList() {
     return SafeArea(
       child: Column(
         children: [
-          const ScreenHeader(
+          ScreenHeader(
             eyebrow: 'Bài luyện · Kỹ năng nghe',
             title: 'Test Nghe',
-            trailing: Icon(Icons.headphones_rounded, color: AppTheme.jade),
+            showBackButton: widget.onBack != null || Navigator.of(context).canPop(),
+            onBack: widget.onBack ?? (Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null),
+            trailing: const Icon(Icons.headphones_rounded, color: AppTheme.jade),
           ),
           SizedBox(
             height: 48,
@@ -165,6 +183,8 @@ class _ListeningScreenState extends State<ListeningScreen> {
           ScreenHeader(
             eyebrow: 'HSK ${exam.hsk} · ${exam.title}',
             title: 'Câu ${_currentQuestion + 1}',
+            showBackButton: true,
+            onBack: _submitting ? null : _confirmExit,
             trailing: IconButton(
               key: const Key('close-listening'),
               tooltip: 'Thoát bài',
@@ -292,6 +312,8 @@ class _ListeningScreenState extends State<ListeningScreen> {
           ScreenHeader(
             eyebrow: 'Kết quả đã được lưu',
             title: 'Bài Test Nghe',
+            showBackButton: true,
+            onBack: _returnToExamList,
             trailing: Icon(
               passed ? Icons.emoji_events_rounded : Icons.headphones_rounded,
               color: passed ? AppTheme.orange : AppTheme.jade,
@@ -831,6 +853,11 @@ class _ReviewCard extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
+                IconButton(
+                  tooltip: 'Nghe phát âm',
+                  icon: const Icon(Icons.volume_up_rounded, size: 20, color: AppTheme.jade),
+                  onPressed: () => PronunciationService.playWord(item.prompt),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -843,9 +870,19 @@ class _ReviewCard extends StatelessWidget {
             if (!item.isCorrect) Text('Đáp án đúng: ${item.answer}'),
             if (item.transcript.isNotEmpty) ...[
               const SizedBox(height: 10),
-              const Text(
-                'Transcript',
-                style: TextStyle(fontWeight: FontWeight.w800),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Transcript',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  IconButton(
+                    tooltip: 'Nghe transcript',
+                    icon: const Icon(Icons.volume_up_rounded, size: 18, color: AppTheme.jade),
+                    onPressed: () => PronunciationService.playWord(item.transcript),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               SelectableText(

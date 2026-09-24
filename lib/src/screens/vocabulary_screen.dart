@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 
 import '../services/student_service.dart';
+import '../services/pronunciation_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import 'handwriting_screen.dart';
@@ -16,9 +17,11 @@ class VocabularyScreen extends StatefulWidget {
     required this.service,
     this.notebook = false,
     this.guest = false,
+    this.onBack,
   });
   final bool notebook;
   final bool guest;
+  final VoidCallback? onBack;
 
   final StudentService service;
 
@@ -85,19 +88,14 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   }
 
   Future<void> _playAudio(VocabularyEntry word) async {
-    if (word.audioUrl.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Chưa có audio phát âm cho từ này.')),
-      );
-      return;
-    }
     setState(() => _playing = word.id);
     try {
-      final url =
-          Uri.parse(widget.service.baseUrl).resolve(word.audioUrl).toString();
-      await _audio.stop();
-      await _audio.play(UrlSource(url)).timeout(const Duration(seconds: 15));
-    } on Exception {
+      await PronunciationService.playWord(
+        word.hanzi,
+        audioUrl: word.audioUrl,
+        baseUrl: widget.service.baseUrl,
+      );
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -241,15 +239,19 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final compact = constraints.maxWidth < 600;
-      return SafeArea(
-        child: Column(
-          children: [
-            ScreenHeader(
-              eyebrow: 'Tra cứu và ghi nhớ',
-              title: widget.notebook ? 'Sổ tay' : 'Từ điển',
-              trailing: Row(
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F9F8),
+      body: LayoutBuilder(builder: (context, constraints) {
+        final compact = constraints.maxWidth < 600;
+        return SafeArea(
+          child: Column(
+            children: [
+              ScreenHeader(
+                eyebrow: 'Tra cứu và ghi nhớ',
+                title: widget.notebook ? 'Sổ tay' : 'Từ điển',
+                showBackButton: widget.onBack != null || Navigator.of(context).canPop(),
+                onBack: widget.onBack ?? (Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null),
+                trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (!widget.notebook && !widget.guest)
@@ -524,8 +526,9 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
           ],
         ),
       );
-    });
-  }
+    }),
+  );
+}
 
   Future<void> _openWord(VocabularyEntry word) async {
     try {
@@ -539,7 +542,25 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
       await showDialog<void>(
         context: context,
         builder: (_) => AlertDialog(
-          title: Text('${word.hanzi}  ${word.pinyin}'),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${word.hanzi}  ${word.pinyin}',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Nghe phát âm',
+                icon: const Icon(Icons.volume_up_rounded, color: AppTheme.jade),
+                onPressed: () => PronunciationService.playWord(
+                  word.hanzi,
+                  audioUrl: word.audioUrl,
+                  baseUrl: widget.service.baseUrl,
+                ),
+              ),
+            ],
+          ),
           scrollable: true,
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -557,7 +578,26 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                     padding: const EdgeInsets.only(top: 8),
                     child: Text('${sense['pinyin']}: ${sense['meaning']}')),
               const SizedBox(height: 12),
-              Text(word.example.isEmpty ? 'Chưa có câu ví dụ.' : word.example),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      word.example.isEmpty ? 'Chưa có câu ví dụ.' : word.example,
+                      style: const TextStyle(height: 1.4),
+                    ),
+                  ),
+                  if (word.example.isNotEmpty)
+                    IconButton(
+                      tooltip: 'Nghe câu ví dụ',
+                      icon: const Icon(Icons.volume_up_rounded, size: 20, color: AppTheme.jade),
+                      onPressed: () => PronunciationService.playWord(
+                        word.example,
+                        baseUrl: widget.service.baseUrl,
+                      ),
+                    ),
+                ],
+              ),
               const SizedBox(height: 8),
               Text(
                 'HSK ${word.hsk}',
@@ -623,14 +663,12 @@ class _WordCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 IconButton(
-                  tooltip: word.audioUrl.isEmpty
-                      ? 'Chưa có bản thu âm'
-                      : 'Nghe phát âm',
-                  onPressed: word.audioUrl.isEmpty ? null : onPlay,
-                  icon: Icon(Icons.volume_up_rounded,
-                      color: word.audioUrl.isEmpty
-                          ? Colors.grey
-                          : AppTheme.orange),
+                  tooltip: 'Nghe phát âm',
+                  onPressed: onPlay,
+                  icon: const Icon(
+                    Icons.volume_up_rounded,
+                    color: AppTheme.orange,
+                  ),
                 ),
                 IconButton(
                   tooltip: saved ? 'Bỏ lưu' : 'Lưu vào sổ tay',
@@ -689,6 +727,15 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
                             style: const TextStyle(
                               fontSize: 72,
                               fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          IconButton.filledTonal(
+                            tooltip: 'Nghe phát âm',
+                            icon: const Icon(Icons.volume_up_rounded, color: AppTheme.jade),
+                            onPressed: () => PronunciationService.playWord(
+                              word.hanzi,
+                              audioUrl: word.audioUrl,
                             ),
                           ),
                           if (_revealed) ...[

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/student_service.dart';
+import '../services/pronunciation_service.dart';
 import '../theme/app_theme.dart';
 
 class LessonStudyScreen extends StatefulWidget {
@@ -294,13 +295,28 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
         for (final word
             in (lesson['vocabulary'] as List).cast<Map<String, dynamic>>())
           _panel([
-            SelectableText(
-              word['hanzi'] as String,
-              style: const TextStyle(
-                fontSize: 30,
-                color: AppTheme.jade,
-                fontWeight: FontWeight.w700,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: SelectableText(
+                    word['hanzi'] as String,
+                    style: const TextStyle(
+                      fontSize: 30,
+                      color: AppTheme.jade,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                IconButton.filledTonal(
+                  tooltip: 'Nghe phát âm',
+                  icon: const Icon(Icons.volume_up_rounded, color: AppTheme.jade),
+                  onPressed: () => PronunciationService.playWord(
+                    word['hanzi'] as String,
+                    baseUrl: widget.service.baseUrl,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 6),
             Text(
@@ -357,13 +373,26 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
         ),
       ], color: const Color(0xFFE6F0EB)),
       _panel([
-        const Text(
-          'VÍ DỤ',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.jade,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'VÍ DỤ',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.jade,
+              ),
+            ),
+            IconButton(
+              tooltip: 'Nghe câu mẫu',
+              icon: const Icon(Icons.volume_up_rounded, size: 20, color: AppTheme.jade),
+              onPressed: () => PronunciationService.playWord(
+                example['hanzi'] as String,
+                baseUrl: widget.service.baseUrl,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 10),
         SelectableText(
@@ -407,9 +436,25 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
       ),
       const SizedBox(height: 16),
       _panel([
-        SelectableText(
-          reading['hanzi'] as String,
-          style: const TextStyle(fontSize: 23, height: 1.9),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: SelectableText(
+                reading['hanzi'] as String,
+                style: const TextStyle(fontSize: 23, height: 1.9),
+              ),
+            ),
+            IconButton.filledTonal(
+              tooltip: 'Nghe bài đọc',
+              icon: const Icon(Icons.volume_up_rounded, color: AppTheme.jade),
+              onPressed: () => PronunciationService.playWord(
+                reading['hanzi'] as String,
+                baseUrl: widget.service.baseUrl,
+              ),
+            ),
+          ],
         ),
       ]),
       Align(

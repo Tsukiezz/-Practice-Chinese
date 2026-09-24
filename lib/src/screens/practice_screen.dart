@@ -9,6 +9,7 @@ import 'package:audioplayers/audioplayers.dart';
 import '../models/reading_exam.dart';
 import '../services/reading_exam_service.dart';
 import '../services/web_navigation.dart';
+import '../services/pronunciation_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import '../widgets/hanzi_drawing_canvas.dart';
@@ -21,11 +22,13 @@ class PracticeScreen extends StatefulWidget {
     this.title = 'Test Đọc',
     this.eyebrow = 'Bài luyện · Kỹ năng đọc',
     this.skillLabel = 'ĐỌC',
+    this.onBack,
   });
 
   final ReadingExamRepository repository;
   final int? draftOwner;
   final String title, eyebrow, skillLabel;
+  final VoidCallback? onBack;
 
   @override
   State<PracticeScreen> createState() => _PracticeScreenState();
@@ -135,9 +138,18 @@ class _PracticeScreenState extends State<PracticeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_result != null) return _buildResult();
-    if (_activeExam != null) return _buildQuestion();
-    return _buildExamList();
+    Widget content;
+    if (_result != null) {
+      content = _buildResult();
+    } else if (_activeExam != null) {
+      content = _buildQuestion();
+    } else {
+      content = _buildExamList();
+    }
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F9F8),
+      body: content,
+    );
   }
 
   Widget _buildExamList() {
@@ -147,6 +159,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
           ScreenHeader(
             eyebrow: widget.eyebrow,
             title: widget.title,
+            showBackButton: widget.onBack != null || Navigator.of(context).canPop(),
+            onBack: widget.onBack ?? (Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null),
             trailing: const Icon(
               Icons.chrome_reader_mode_outlined,
               color: AppTheme.jade,
@@ -412,6 +426,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
           ScreenHeader(
             eyebrow: 'HSK ${exam.hsk} · ${exam.title}',
             title: 'Câu ${_currentQuestion + 1}/${exam.questions.length}',
+            showBackButton: true,
+            onBack: _submitting ? null : _confirmExit,
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -551,14 +567,30 @@ class _PracticeScreenState extends State<PracticeScreen> {
                       color: const Color(0xFFE9F3ED),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text(
-                      question.prompt,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 19,
-                        height: 1.55,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          question.prompt,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 19,
+                            height: 1.55,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (question.prompt.trim().isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: IconButton.filledTonal(
+                              tooltip: 'Nghe phát âm',
+                              icon: const Icon(Icons.volume_up_rounded, size: 20, color: AppTheme.jade),
+                              onPressed: () => PronunciationService.playWord(question.prompt),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   if (question.section == 'listening' &&
@@ -729,6 +761,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
           ScreenHeader(
             eyebrow: 'Kết quả đã được lưu',
             title: widget.title,
+            showBackButton: true,
+            onBack: _returnToExamList,
             trailing: Icon(
               passed ? Icons.emoji_events_rounded : Icons.auto_stories_rounded,
               color: passed ? AppTheme.orange : AppTheme.jade,
@@ -1704,6 +1738,11 @@ class _ReviewCard extends StatelessWidget {
                         : 'Chưa đúng'}',
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
+                ),
+                IconButton(
+                  tooltip: 'Nghe phát âm',
+                  icon: const Icon(Icons.volume_up_rounded, size: 20, color: AppTheme.jade),
+                  onPressed: () => PronunciationService.playWord(item.prompt),
                 ),
               ],
             ),

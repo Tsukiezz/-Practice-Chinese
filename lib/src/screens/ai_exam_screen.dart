@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../services/ai_exam_service.dart';
+import '../services/pronunciation_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 
@@ -9,9 +10,11 @@ class AiExamScreen extends StatefulWidget {
   const AiExamScreen({
     super.key,
     required this.service,
+    this.onBack,
   });
 
   final AIExamService service;
+  final VoidCallback? onBack;
 
   @override
   State<AiExamScreen> createState() => _AiExamScreenState();
@@ -364,51 +367,56 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
       return _buildExamTakingView();
     }
 
-    return SafeArea(
-      child: Column(
-        children: [
-          const ScreenHeader(
-            eyebrow: 'Khảo thí AI · Đề thi tiếng Trung',
-            title: 'Kiểm tra',
-            trailing: Icon(Icons.assignment_turned_in_rounded, color: AppTheme.jade),
-          ),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE5EDE8),
-              borderRadius: BorderRadius.circular(14),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F9F8),
+      body: SafeArea(
+        child: Column(
+          children: [
+            ScreenHeader(
+              eyebrow: 'Khảo thí AI · Đề thi tiếng Trung',
+              title: 'Kiểm tra',
+              showBackButton: widget.onBack != null || Navigator.of(context).canPop(),
+              onBack: widget.onBack ?? (Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null),
+              trailing: const Icon(Icons.assignment_turned_in_rounded, color: AppTheme.jade),
             ),
-            child: TabBar(
-              controller: _tabController,
-              indicatorSize: TabBarIndicatorSize.tab,
-              dividerColor: Colors.transparent,
-              indicator: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE5EDE8),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
+                indicator: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                  ],
+                ),
+                labelColor: AppTheme.jade,
+                unselectedLabelColor: const Color(0xFF60736A),
+                labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                tabs: const [
+                  Tab(text: '✨ Tạo đề thi mới'),
+                  Tab(text: '📚 Đề thi của tôi'),
                 ],
               ),
-              labelColor: AppTheme.jade,
-              unselectedLabelColor: const Color(0xFF60736A),
-              labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-              tabs: const [
-                Tab(text: '✨ Tạo đề thi mới'),
-                Tab(text: '📚 Đề thi của tôi'),
-              ],
             ),
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildCreateExamTab(),
-                _buildMyExamsTab(),
-              ],
+            const SizedBox(height: 12),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildCreateExamTab(),
+                  _buildMyExamsTab(),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1037,6 +1045,253 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
     );
   }
 
+  Widget _buildExamTakingView() {
+    final exam = _activeExam!;
+    final total = exam.questions.length;
+    final q = exam.questions[_currentQuestionIndex];
+
+    final minutes = _remainingSeconds ~/ 60;
+    final seconds = _remainingSeconds % 60;
+    final timeStr = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+
+    final timerColor = _remainingSeconds <= 60
+        ? Colors.red
+        : (_remainingSeconds <= 120 ? Colors.orange : AppTheme.jade);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(exam.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Thoát bài thi',
+          onPressed: () async {
+            final exit = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Tạm dừng bài thi?'),
+                content: const Text(
+                  'Bạn có thể lưu đề thi này và tiếp tục làm sau trong mục "Đề thi của tôi".',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: const Text('Ở lại'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: const Text('Lưu & Để làm sau'),
+                  ),
+                ],
+              ),
+            );
+            if (exit == true) {
+              _countdownTimer?.cancel();
+              setState(() => _activeExam = null);
+              _loadHistory();
+            }
+          },
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Bảng 40 câu hỏi',
+            icon: const Icon(Icons.grid_view_rounded, color: AppTheme.jade),
+            onPressed: () => _showQuestionMatrixSheet(context, total),
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: timerColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.timer_outlined, size: 18, color: timerColor),
+                const SizedBox(width: 4),
+                Text(
+                  timeStr,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: timerColor),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppTheme.jade),
+              onPressed: _submitting ? null : _confirmSubmit,
+              child: _submitting
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('Nộp bài'),
+            ),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            LinearProgressIndicator(
+              value: (_currentQuestionIndex + 1) / total,
+              backgroundColor: const Color(0xFFE5EDE8),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.jade),
+            ),
+            SizedBox(
+              height: 48,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                itemCount: total,
+                separatorBuilder: (_, __) => const SizedBox(width: 6),
+                itemBuilder: (context, i) {
+                  final isCurrent = i == _currentQuestionIndex;
+                  final isAnswered = _userAnswers.containsKey(exam.questions[i].id);
+                  return ChoiceChip(
+                    label: Text('${i + 1}'),
+                    selected: isCurrent,
+                    onSelected: (_) => setState(() => _currentQuestionIndex = i),
+                    selectedColor: AppTheme.jade,
+                    labelStyle: TextStyle(
+                      color: isCurrent ? Colors.white : (isAnswered ? AppTheme.jade : Colors.black87),
+                      fontWeight: (isCurrent || isAnswered) ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    backgroundColor: isAnswered ? const Color(0xFFE5EDE8) : Colors.white,
+                  );
+                },
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      side: const BorderSide(color: Color(0xFFDDE5E0)),
+                    ),
+                    color: Colors.white,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'CÂU HỎI ${_currentQuestionIndex + 1} / $total',
+                                style: const TextStyle(
+                                  color: AppTheme.jade,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              IconButton.filledTonal(
+                                tooltip: 'Nghe phát âm',
+                                icon: const Icon(Icons.volume_up_rounded, size: 20, color: AppTheme.jade),
+                                onPressed: () => PronunciationService.playWord(q.prompt),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            q.prompt,
+                            style: const TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.ink,
+                              height: 1.4,
+                            ),
+                          ),
+                          if (q.pinyin.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              q.pinyin,
+                              style: const TextStyle(fontSize: 14, color: Color(0xFF5C6F64), fontStyle: FontStyle.italic),
+                            ),
+                          ],
+                          const SizedBox(height: 24),
+                          ...q.options.map((opt) {
+                            final selected = _userAnswers[q.id] == opt;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () => setState(() => _userAnswers[q.id] = opt),
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: selected ? const Color(0xFFE8F0EC) : Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: selected ? AppTheme.jade : const Color(0xFFDDE5E0),
+                                      width: selected ? 2 : 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        selected ? Icons.radio_button_checked : Icons.radio_button_off,
+                                        color: selected ? AppTheme.jade : Colors.grey,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          opt,
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                                            color: selected ? AppTheme.jade : AppTheme.ink,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      OutlinedButton(
+                        onPressed: _currentQuestionIndex > 0
+                            ? () => setState(() => _currentQuestionIndex--)
+                            : null,
+                        child: const Text('← Câu trước'),
+                      ),
+                      FilledButton(
+                        style: FilledButton.styleFrom(backgroundColor: AppTheme.jade),
+                        onPressed: () {
+                          if (_currentQuestionIndex < total - 1) {
+                            setState(() => _currentQuestionIndex++);
+                          } else {
+                            _confirmSubmit();
+                          }
+                        },
+                        child: Text(_currentQuestionIndex < total - 1 ? 'Câu tiếp theo →' : 'Kiểm tra & Nộp bài'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildResultView() {
     final feedback = _currentFeedback!;
     final exam = _reviewedExam!;
@@ -1147,8 +1402,19 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                           Text('Câu ${idx + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      Text(item.prompt, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.3)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(item.prompt, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.3)),
+                          ),
+                          IconButton(
+                            tooltip: 'Nghe phát âm',
+                            icon: const Icon(Icons.volume_up_rounded, size: 20, color: AppTheme.jade),
+                            onPressed: () => PronunciationService.playWord(item.prompt),
+                          ),
+                        ],
+                      ),
                       if (item.pinyin.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(item.pinyin, style: const TextStyle(fontSize: 13, color: Color(0xFF5C6F64), fontStyle: FontStyle.italic)),

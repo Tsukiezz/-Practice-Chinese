@@ -26,6 +26,7 @@ class ProfileScreen extends StatelessWidget {
     this.user,
     this.onEditProfile,
     this.onOpenAdmin,
+    this.onBack,
   });
 
   final VoidCallback? onLogout;
@@ -34,17 +35,25 @@ class ProfileScreen extends StatelessWidget {
   final AuthUser? user;
   final VoidCallback? onEditProfile;
   final VoidCallback? onOpenAdmin;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 24),
-        children: [
-          ScreenHeader(
-            eyebrow: 'Hồ sơ học tập',
-            title: 'Cá nhân',
-            trailing: IconButton(
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F9F8),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.only(bottom: 24),
+          children: [
+            ScreenHeader(
+              eyebrow: 'Hồ sơ học tập',
+              title: 'Cá nhân',
+              showBackButton: onBack != null || Navigator.of(context).canPop(),
+              onBack: onBack ??
+                  (Navigator.of(context).canPop()
+                      ? () => Navigator.of(context).pop()
+                      : null),
+              trailing: IconButton(
               icon: const Icon(Icons.logout_rounded),
               tooltip: 'Đăng xuất',
               onPressed: () async {
@@ -362,8 +371,9 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _ProfileStat extends StatelessWidget {

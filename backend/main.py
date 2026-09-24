@@ -1565,6 +1565,47 @@ register_ai_exam_routes(app, current_user)
 from ai_reading import register_reading_routes
 register_reading_routes(app, current_user)
 
+
+@app.get("/api/tts")
+async def text_to_speech(text: str = Query(..., min_length=1, max_length=120)):
+    clean = text.strip()
+    slug = '-'.join(f'{ord(c):x}' for c in clean[:24])
+    media_dir = Path(__file__).parent / "media"
+    bundled_file = media_dir / f"word-{slug}.mp3"
+    if bundled_file.exists():
+        return FileResponse(bundled_file, media_type="audio/mpeg")
+
+    tmp_dir = Path(os.environ.get("TMPDIR", "/tmp")) / "tts_cache"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    cache_file = tmp_dir / f"word-{slug}.mp3"
+    if cache_file.exists():
+        return FileResponse(cache_file, media_type="audio/mpeg")
+
+    # Try edge-tts if installed
+    try:
+        import edge_tts
+        communicate = edge_tts.Communicate(clean, "zh-CN-XiaoxiaoNeural", rate="-10%")
+        await communicate.save(str(cache_file))
+        return FileResponse(cache_file, media_type="audio/mpeg")
+    except Exception:
+        pass
+
+    # Fallback to Google Translate TTS
+    try:
+        import urllib.parse
+        encoded = urllib.parse.quote(clean)
+        url = f"https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-CN&client=tw-ob&q={encoded}"
+        import httpx
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10.0)
+            if resp.status_code == 200:
+                cache_file.write_bytes(resp.content)
+                return FileResponse(cache_file, media_type="audio/mpeg")
+    except Exception as e:
+        raise HTTPException(500, f"Lỗi tạo phát âm: {e}")
+    raise HTTPException(500, "Không thể tạo phát âm")
+
+
 ADMIN_DIR = Path(__file__).resolve().parent.parent / "admin"
 WEB_DIR = Path(os.environ["WEB_APP_DIR"]).resolve() if os.getenv("WEB_APP_DIR") else None
 app.mount("/admin/assets", StaticFiles(directory=ADMIN_DIR), name="admin-assets")
