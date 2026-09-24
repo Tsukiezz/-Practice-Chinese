@@ -119,7 +119,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF163F35).withOpacity(0.18),
+                    color: const Color(0xFF163F35).withValues(alpha: 0.18),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -130,10 +130,11 @@ class _PracticeScreenState extends State<PracticeScreen> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.mic_rounded, color: Color(0xFFE2C391), size: 28),
+                    child: const Icon(Icons.mic_rounded,
+                        color: Color(0xFFE2C391), size: 28),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -152,7 +153,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                         Text(
                           'Thu âm micro, AI chấm % chính xác & sửa lỗi',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.85),
+                            color: Colors.white.withValues(alpha: 0.85),
                             fontSize: 12,
                           ),
                         ),
@@ -163,8 +164,10 @@ class _PracticeScreenState extends State<PracticeScreen> {
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFFEAD8B3),
                       foregroundColor: const Color(0xFF163F35),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      textStyle: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 13),
                     ),
                     onPressed: () {
                       if (kIsWeb) {
@@ -183,7 +186,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
                 Expanded(
                   child: Text(
                     'Đề thi Đọc do Admin phát hành',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w800),
                   ),
                 ),
                 Text(
@@ -230,8 +234,10 @@ class _PracticeScreenState extends State<PracticeScreen> {
         message: widget.title == 'Test Đọc'
             ? 'Hãy bấm "Luyện đọc phát âm AI" ở trên để thu âm qua micro và nhận AI chấm điểm trực tiếp theo từ vựng và chủ đề.'
             : 'Đề cần được Admin phát hành trước khi học viên làm bài.',
-        actionLabel: widget.title == 'Test Đọc' && kIsWeb ? 'Mở Luyện Đọc AI' : null,
-        onAction: widget.title == 'Test Đọc' && kIsWeb ? () => openReading('') : null,
+        actionLabel:
+            widget.title == 'Test Đọc' && kIsWeb ? 'Mở Luyện Đọc AI' : null,
+        onAction:
+            widget.title == 'Test Đọc' && kIsWeb ? () => openReading('') : null,
       );
     }
     return RefreshIndicator(
@@ -317,10 +323,10 @@ class _PracticeScreenState extends State<PracticeScreen> {
                     question.questionType == 'hanzi_canvas'
                         ? 'Viết chữ Hán'
                         : question.questionType == 'essay'
-                        ? 'Viết đoạn văn'
-                        : question.options.isEmpty
-                        ? 'Nhập đáp án'
-                        : 'Chọn một đáp án',
+                            ? 'Viết đoạn văn'
+                            : question.options.isEmpty
+                                ? 'Nhập đáp án'
+                                : 'Chọn một đáp án',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -493,9 +499,9 @@ class _PracticeScreenState extends State<PracticeScreen> {
                   ),
                 ),
                 ...result.reviewItems.asMap().entries.map(
-                  (entry) =>
-                      _ReviewCard(number: entry.key + 1, item: entry.value),
-                ),
+                      (entry) =>
+                          _ReviewCard(number: entry.key + 1, item: entry.value),
+                    ),
                 const SizedBox(height: 10),
                 FilledButton(
                   key: const Key('finish-exam'),
@@ -575,9 +581,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
 
   Widget _buildSentenceOrder(ReadingQuestion question) {
     final answer = _answers[question.id];
-    final selected = answer is String && answer.isNotEmpty
-        ? answer.split(' ')
-        : <String>[];
+    final selected =
+        answer is String && answer.isNotEmpty ? answer.split(' ') : <String>[];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -697,7 +702,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
         ).catchError((Object error) {
           if (mounted) {
             setState(
-              () => _submitError = 'Không lưu được bản nháp trên thiết bị. Đừng đóng trang trước khi nộp bài.',
+              () => _submitError =
+                  'Không lưu được bản nháp trên thiết bị. Đừng đóng trang trước khi nộp bài.',
             );
           }
         });
@@ -895,39 +901,39 @@ class _ExamAudioPlayerState extends State<_ExamAudioPlayer> {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF1E8),
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Column(
-      children: [
-        Row(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF1E8),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
           children: [
-            IconButton.filled(
-              key: const Key('comprehensive-audio'),
-              onPressed: _busy ? null : _toggle,
-              icon: _busy
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Icon(_playing ? Icons.pause : Icons.play_arrow),
+            Row(
+              children: [
+                IconButton.filled(
+                  key: const Key('comprehensive-audio'),
+                  onPressed: _busy ? null : _toggle,
+                  icon: _busy
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(_playing ? Icons.pause : Icons.play_arrow),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _playing ? 'Đang phát hội thoại...' : 'Nghe hội thoại',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                _playing ? 'Đang phát hội thoại...' : 'Nghe hội thoại',
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
+            if (_error != null)
+              Text(_error!, style: const TextStyle(color: AppTheme.red)),
           ],
         ),
-        if (_error != null)
-          Text(_error!, style: const TextStyle(color: AppTheme.red)),
-      ],
-    ),
-  );
+      );
 }
 
 class _ExamCard extends StatelessWidget {
@@ -1087,11 +1093,7 @@ class _ReviewCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Câu $number · ${item.score != null
-                        ? '${_score(item.score!)} điểm'
-                        : item.isCorrect
-                        ? 'Đúng'
-                        : 'Chưa đúng'}',
+                    'Câu $number · ${item.score != null ? '${_score(item.score!)} điểm' : item.isCorrect ? 'Đúng' : 'Chưa đúng'}',
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),

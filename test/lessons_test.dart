@@ -122,6 +122,8 @@ void main() {
     await tester.tap(filter);
     await tester.pumpAndSettle();
     expect(find.textContaining('HSK 6 · Đọc sâu'), findsOneWidget);
+    await tester.tap(find.text('Tìm kiếm và lọc bài'));
+    await tester.pumpAndSettle();
     final input = find.byType(TextField);
     await tester.ensureVisible(input);
     await tester.enterText(input, 'khongtontai');

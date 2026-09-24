@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 
-import 'personalized_practice_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import '../services/student_service.dart';
@@ -9,20 +8,13 @@ import '../services/auth_service.dart';
 import 'results_screen.dart';
 import 'custom_exam_history_screen.dart';
 import 'dashboard_screen.dart';
-import 'review_screen.dart';
-import 'handwriting_screen.dart';
-import 'handwriting_retry_screen.dart';
-import 'translation_screen.dart';
 import '../services/custom_exam_service.dart';
-import '../services/reading_exam_service.dart';
-import 'practice_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({
     super.key,
     this.onLogout,
     this.studentService,
-    this.comprehensiveRepository,
     this.user,
     this.onEditProfile,
     this.onOpenAdmin,
@@ -30,7 +22,6 @@ class ProfileScreen extends StatelessWidget {
 
   final VoidCallback? onLogout;
   final StudentService? studentService;
-  final ReadingExamRepository? comprehensiveRepository;
   final AuthUser? user;
   final VoidCallback? onEditProfile;
   final VoidCallback? onOpenAdmin;
@@ -38,329 +29,218 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: 24),
-        children: [
-          ScreenHeader(
-            eyebrow: 'Hồ sơ học tập',
-            title: 'Cá nhân',
-            trailing: IconButton(
-              icon: const Icon(Icons.logout_rounded),
-              tooltip: 'Đăng xuất',
-              onPressed: () async {
-                final confirmed = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Đăng xuất?'),
-                    content: const Text('Bạn cần đăng nhập lại để luyện tập.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Hủy'),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 840),
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 24),
+            children: [
+              ScreenHeader(
+                eyebrow: 'Hồ sơ học tập',
+                title: 'Cá nhân',
+                trailing: IconButton(
+                  icon: const Icon(Icons.logout_rounded),
+                  tooltip: 'Đăng xuất',
+                  onPressed: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Đăng xuất?'),
+                        content:
+                            const Text('Bạn cần đăng nhập lại để luyện tập.'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Hủy'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Đăng xuất'),
+                          ),
+                        ],
                       ),
-                      FilledButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text('Đăng xuất'),
+                    );
+                    if (confirmed == true) {
+                      onLogout?.call();
+                    }
+                  },
+                ),
+              ),
+              _ProfileOverview(
+                service: studentService,
+                name: user?.name ?? 'Học viên',
+                email: user?.email ?? '',
+              ),
+              if (onEditProfile != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: OutlinedButton.icon(
+                    onPressed: onEditProfile,
+                    icon: const Icon(Icons.manage_accounts_outlined),
+                    label: const Text('Hồ sơ, ảnh đại diện và mật khẩu'),
+                  ),
+                ),
+              if (onOpenAdmin != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+                  child: Card(
+                    color: const Color(0xFFFBF3EA),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(
+                          color: Color(0xFFE0C49F), width: 1.2),
+                    ),
+                    child: ListTile(
+                      leading: const CircleAvatar(
+                        backgroundColor: Color(0xFF912018),
+                        foregroundColor: Colors.white,
+                        child: Icon(Icons.admin_panel_settings, size: 20),
                       ),
-                    ],
-                  ),
-                );
-                if (confirmed == true) {
-                  onLogout?.call();
-                }
-              },
-            ),
-          ),
-          _ProfileOverview(
-            service: studentService,
-            name: user?.name ?? 'Học viên',
-            email: user?.email ?? '',
-          ),
-          if (onEditProfile != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: OutlinedButton.icon(
-                onPressed: onEditProfile,
-                icon: const Icon(Icons.manage_accounts_outlined),
-                label: const Text('Hồ sơ, ảnh đại diện và mật khẩu'),
-              ),
-            ),
-          if (onOpenAdmin != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
-              child: Card(
-                color: const Color(0xFFFBF3EA),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: Color(0xFFE0C49F), width: 1.2),
-                ),
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFF912018),
-                    foregroundColor: Colors.white,
-                    child: Icon(Icons.admin_panel_settings, size: 20),
-                  ),
-                  title: const Text(
-                    'Không gian Quản trị viên',
-                    style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF7A271A)),
-                  ),
-                  subtitle: const Text(
-                    'Quản lý học viên, kho từ, đề thi HSK 1–6 & hệ thống AI',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_rounded, color: Color(0xFF912018)),
-                  onTap: onOpenAdmin,
-                ),
-              ),
-            ),
-          const _SectionTitle('Kết quả học tập'),
-          if (studentService != null)
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.auto_awesome),
-                title: const Text('Bài ôn cá nhân hóa'),
-                subtitle: const Text('Tạo bài luyện mới từ lỗi sai của bạn'),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        PersonalizedPracticeScreen(service: studentService!),
-                  ),
-                ),
-              ),
-            ),
-          if (comprehensiveRepository != null)
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              child: ListTile(
-                leading: const Icon(Icons.fact_check, color: AppTheme.jade),
-                title: const Text(
-                  'Bài test tổng hợp',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: const Text('Nghe · Đọc · Viết trong cùng một đề'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => PracticeScreen(
-                      repository: comprehensiveRepository!,
-                      draftOwner: user?.id,
-                      title: 'Test Tổng hợp',
-                      eyebrow: 'Bài luyện · Ba kỹ năng',
-                      skillLabel: 'NGHE · ĐỌC · VIẾT',
+                      title: const Text(
+                        'Không gian Quản trị viên',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF7A271A)),
+                      ),
+                      subtitle: const Text(
+                        'Quản lý học viên, kho từ, đề thi HSK 1–6 & hệ thống AI',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      trailing: const Icon(Icons.arrow_forward_rounded,
+                          color: Color(0xFF912018)),
+                      onTap: onOpenAdmin,
                     ),
                   ),
                 ),
-              ),
-            ),
-          if (studentService != null)
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              child: ListTile(
-                leading: const Icon(Icons.gesture, color: AppTheme.red),
-                title: const Text(
-                  'Viết tay chữ Hán',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: const Text(
-                  'Tra từ viết tay hoặc chấm thứ tự nét offline',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => HandwritingScreen(service: studentService!),
-                  ),
-                ),
-              ),
-            ),
-          if (studentService != null)
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              child: ListTile(
-                leading: const Icon(
-                  Icons.auto_fix_high,
-                  color: AppTheme.orange,
-                ),
-                title: const Text(
-                  'Sửa câu tiếng Trung',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: const Text(
-                  'Kiểm tra ngữ pháp và phân tích ngữ cảnh bằng AI',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => TranslationScreen(service: studentService!),
-                  ),
-                ),
-              ),
-            ),
-          if (studentService != null)
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              child: ListTile(
-                key: const Key('open-handwriting-retry'),
-                leading: const Icon(Icons.history_edu, color: AppTheme.orange),
-                title: const Text(
-                  'Luyện lại chữ dưới 80',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: const Text(
-                  'Chọn một hoặc nhiều chữ và luyện bằng Canvas offline',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        HandwritingRetryScreen(service: studentService!),
-                  ),
-                ),
-              ),
-            ),
-          if (studentService != null)
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              child: ListTile(
-                leading: const Icon(Icons.radar_rounded, color: AppTheme.jade),
-                title: const Text(
-                  'Dashboard & năng lực',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: const Text('Streak, tiến độ và đánh giá AI'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => DashboardScreen(service: studentService!),
-                  ),
-                ),
-              ),
-            ),
-          if (studentService != null)
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              child: ListTile(
-                leading: const Icon(
-                  Icons.replay_circle_filled,
-                  color: AppTheme.orange,
-                ),
-                title: const Text(
-                  'Ôn tập dưới 80',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: const Text('Viết tay và đoạn văn cần luyện lại'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ReviewScreen(service: studentService!),
-                  ),
-                ),
-              ),
-            ),
-          if (studentService != null)
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              child: InkWell(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          ResultsScreen(service: studentService!),
+              const _SectionTitle('Tiến độ và lịch sử'),
+              if (studentService != null)
+                Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  child: ListTile(
+                    leading:
+                        const Icon(Icons.radar_rounded, color: AppTheme.jade),
+                    title: const Text(
+                      'Tiến độ học tập',
+                      style: TextStyle(fontWeight: FontWeight.w800),
                     ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(20),
-                child: const Padding(
-                  padding: EdgeInsets.all(18),
-                  child: Row(
-                    children: [
-                      Icon(Icons.history_rounded, color: AppTheme.jade),
-                      SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Lịch sử bài làm',
-                              style: TextStyle(fontWeight: FontWeight.w800),
-                            ),
-                            Text(
-                              'Xem lại điểm và nhận xét',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
+                    subtitle:
+                        const Text('Ngày học liên tiếp, kỹ năng và góp ý'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            DashboardScreen(service: studentService!),
+                      ),
+                    ),
+                  ),
+                ),
+              if (studentService != null)
+                Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ResultsScreen(service: studentService!),
                         ),
-                      ),
-                      Icon(Icons.chevron_right_rounded, color: Colors.grey),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          if (CustomExamService.instance != null)
-            Card(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              child: InkWell(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => CustomExamHistoryScreen(
-                        service: CustomExamService.instance!,
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    child: const Padding(
+                      padding: EdgeInsets.all(18),
+                      child: Row(
+                        children: [
+                          Icon(Icons.history_rounded, color: AppTheme.jade),
+                          SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Lịch sử bài làm',
+                                  style: TextStyle(fontWeight: FontWeight.w800),
+                                ),
+                                Text(
+                                  'Xem lại điểm và nhận xét',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                        ],
                       ),
                     ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(20),
-                child: const Padding(
-                  padding: EdgeInsets.all(18),
-                  child: Row(
-                    children: [
-                      Icon(Icons.bar_chart_rounded, color: AppTheme.orange),
-                      SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Lịch sử đề tùy chỉnh',
-                              style: TextStyle(fontWeight: FontWeight.w800),
-                            ),
-                            Text(
-                              'Theo điểm, loại đề, năng lực',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.chevron_right_rounded, color: Colors.grey),
-                    ],
                   ),
                 ),
+              if (CustomExamService.instance != null)
+                Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => CustomExamHistoryScreen(
+                            service: CustomExamService.instance!,
+                          ),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    child: const Padding(
+                      padding: EdgeInsets.all(18),
+                      child: Row(
+                        children: [
+                          Icon(Icons.bar_chart_rounded, color: AppTheme.orange),
+                          SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Lịch sử đề tùy chỉnh',
+                                  style: TextStyle(fontWeight: FontWeight.w800),
+                                ),
+                                Text(
+                                  'Theo điểm, loại đề, năng lực',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              const _SectionTitle('Thông tin học tập'),
+              const _Setting(
+                icon: Icons.track_changes_rounded,
+                title: 'Mục tiêu mỗi ngày',
+                value: '15 phút',
               ),
-            ),
-          const _SectionTitle('Cài đặt học tập'),
-          const _Setting(
-            icon: Icons.track_changes_rounded,
-            title: 'Mục tiêu mỗi ngày',
-            value: '15 phút',
+              const _Setting(
+                icon: Icons.notifications_none_rounded,
+                title: 'Nhắc nhở học tập',
+                value: '20:00',
+              ),
+              const _Setting(
+                icon: Icons.translate_rounded,
+                title: 'Trình độ hiện tại',
+                value: 'HSK 2',
+              ),
+            ],
           ),
-          const _Setting(
-            icon: Icons.notifications_none_rounded,
-            title: 'Nhắc nhở học tập',
-            value: '20:00',
-          ),
-          const _Setting(
-            icon: Icons.translate_rounded,
-            title: 'Trình độ hiện tại',
-            value: 'HSK 2',
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -383,7 +263,11 @@ class _ProfileStat extends StatelessWidget {
               color: AppTheme.jade,
             ),
           ),
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 9)),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.grey, fontSize: 12),
+          ),
         ],
       ),
     );
@@ -417,8 +301,8 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
   }
 
   void _retry() => setState(() {
-    _future = widget.service?.fetchMyDashboard();
-  });
+        _future = widget.service?.fetchMyDashboard();
+      });
 
   @override
   Widget build(BuildContext context) {
@@ -427,26 +311,34 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
         : widget.name.trim().characters.first.toUpperCase();
     return Column(
       children: [
-        FutureBuilder<String>(future: _avatar, builder: (context, snapshot) {
-          final avatar = snapshot.data ?? '';
-          ImageProvider? image;
-          if (avatar.startsWith('data:image/')) {
-            try { image = MemoryImage(base64Decode(avatar.split(',').last)); }
-            on FormatException { image = null; }
-          }
-          return CircleAvatar(
-          radius: 46,
-          backgroundColor: const Color(0xFFFFE6DA),
-          backgroundImage: image,
-          child: image != null ? null : Text(
-            initial,
-            style: const TextStyle(
-              color: AppTheme.red,
-              fontSize: 34,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ); }),
+        FutureBuilder<String>(
+            future: _avatar,
+            builder: (context, snapshot) {
+              final avatar = snapshot.data ?? '';
+              ImageProvider? image;
+              if (avatar.startsWith('data:image/')) {
+                try {
+                  image = MemoryImage(base64Decode(avatar.split(',').last));
+                } on FormatException {
+                  image = null;
+                }
+              }
+              return CircleAvatar(
+                radius: 46,
+                backgroundColor: const Color(0xFFFFE6DA),
+                backgroundImage: image,
+                child: image != null
+                    ? null
+                    : Text(
+                        initial,
+                        style: const TextStyle(
+                          color: AppTheme.red,
+                          fontSize: 34,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+              );
+            }),
         const SizedBox(height: 12),
         Text(
           widget.name,
@@ -533,15 +425,20 @@ class _Setting extends StatelessWidget {
           title,
           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              value,
-              style: const TextStyle(color: Colors.grey, fontSize: 11),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE9F3ED),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            value,
+            style: const TextStyle(
+              color: AppTheme.jade,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
             ),
-            const Icon(Icons.chevron_right_rounded, color: Colors.grey),
-          ],
+          ),
         ),
       ),
     );

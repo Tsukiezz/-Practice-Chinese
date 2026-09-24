@@ -17,7 +17,8 @@ class AiExamScreen extends StatefulWidget {
   State<AiExamScreen> createState() => _AiExamScreenState();
 }
 
-class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderStateMixin {
+class _AiExamScreenState extends State<AiExamScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   // Creation form state
@@ -112,12 +113,14 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Row(
             children: [
               Icon(Icons.auto_awesome, color: AppTheme.jade),
               SizedBox(width: 8),
-              Text('Đã tạo đề thi thành công!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('Đã tạo đề thi thành công!',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ],
           ),
           content: Column(
@@ -126,7 +129,8 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
             children: [
               Text(
                 exam.title,
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
               ),
               const SizedBox(height: 8),
               Text(
@@ -135,7 +139,8 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 style: const TextStyle(color: Color(0xFF5C6F64), height: 1.5),
               ),
               const SizedBox(height: 12),
-              const Text('Bạn muốn bắt đầu làm bài ngay bây giờ hay để làm sau?'),
+              const Text(
+                  'Bạn muốn bắt đầu làm bài ngay bây giờ hay để làm sau?'),
             ],
           ),
           actions: [
@@ -176,7 +181,9 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
       _userAnswers.clear();
       _currentFeedback = null;
       _reviewedExam = null;
-      _remainingSeconds = exam.durationSeconds > 0 ? exam.durationSeconds : (exam.durationMinutes * 60);
+      _remainingSeconds = exam.durationSeconds > 0
+          ? exam.durationSeconds
+          : (exam.durationMinutes * 60);
     });
 
     _countdownTimer?.cancel();
@@ -199,7 +206,8 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
   void _onTimeExpired() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Đã hết thời gian làm bài! Hệ thống đang tự động nộp bài...'),
+        content:
+            Text('Đã hết thời gian làm bài! Hệ thống đang tự động nộp bài...'),
         backgroundColor: Colors.red,
       ),
     );
@@ -247,7 +255,8 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
     setState(() => _submitting = true);
 
     try {
-      final feedback = await widget.service.submitExam(_activeExam!.id, _userAnswers);
+      final feedback =
+          await widget.service.submitExam(_activeExam!.id, _userAnswers);
       if (mounted) {
         setState(() {
           _reviewedExam = _activeExam;
@@ -274,7 +283,9 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
         title: const Text('Xóa đề thi'),
         content: const Text('Bạn có chắc chắn muốn xóa đề thi này?'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Hủy')),
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Hủy')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -332,7 +343,8 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
           const ScreenHeader(
             eyebrow: 'Khảo thí AI · Đề thi tiếng Trung',
             title: 'Kiểm tra',
-            trailing: Icon(Icons.assignment_turned_in_rounded, color: AppTheme.jade),
+            trailing:
+                Icon(Icons.assignment_turned_in_rounded, color: AppTheme.jade),
           ),
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -348,12 +360,16 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: const [
-                  BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                  BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 4,
+                      offset: Offset(0, 2)),
                 ],
               ),
               labelColor: AppTheme.jade,
               unselectedLabelColor: const Color(0xFF60736A),
-              labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              labelStyle:
+                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
               tabs: const [
                 Tab(text: '✨ Tạo đề thi mới'),
                 Tab(text: '📚 Đề thi của tôi'),
@@ -393,17 +409,23 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
               children: [
                 const Text(
                   'Yêu cầu AI tạo đề thi',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.ink),
                 ),
                 const SizedBox(height: 6),
                 const Text(
                   'Chọn số lượng câu hỏi và nội dung học tập. Mỗi câu làm bài trong 1 phút.',
-                  style: TextStyle(color: Color(0xFF60736A), fontSize: 13, height: 1.4),
+                  style: TextStyle(
+                      color: Color(0xFF60736A), fontSize: 13, height: 1.4),
                 ),
                 const SizedBox(height: 20),
 
                 // Question Count Selector
-                const Text('1. Số lượng câu hỏi:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                const Text('1. Số lượng câu hỏi:',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
@@ -414,17 +436,22 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                       selected: selected,
                       onSelected: (_) => setState(() => _questionCount = count),
                       selectedColor: const Color(0xFFE8F0EC),
-                      side: BorderSide(color: selected ? AppTheme.jade : const Color(0xFFDDE5E0)),
+                      side: BorderSide(
+                          color: selected
+                              ? AppTheme.jade
+                              : const Color(0xFFDDE5E0)),
                       labelStyle: TextStyle(
                         color: selected ? AppTheme.jade : Colors.black87,
-                        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                        fontWeight:
+                            selected ? FontWeight.bold : FontWeight.normal,
                       ),
                     );
                   }).toList(),
                 ),
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFDF6E2),
                     borderRadius: BorderRadius.circular(10),
@@ -432,11 +459,15 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.timer_outlined, size: 18, color: Color(0xFF8C6200)),
+                      const Icon(Icons.timer_outlined,
+                          size: 18, color: Color(0xFF8C6200)),
                       const SizedBox(width: 6),
                       Text(
                         'Thời gian làm bài: $_questionCount phút (1 phút / câu)',
-                        style: const TextStyle(color: Color(0xFF8C6200), fontWeight: FontWeight.w700, fontSize: 13),
+                        style: const TextStyle(
+                            color: Color(0xFF8C6200),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13),
                       ),
                     ],
                   ),
@@ -444,15 +475,20 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 const SizedBox(height: 24),
 
                 // Content Type Selector
-                const Text('2. Nội dung đề thi:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                const Text('2. Nội dung đề thi:',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                 const SizedBox(height: 10),
                 SegmentedButton<String>(
                   segments: const [
-                    ButtonSegment(value: 'random', label: Text('Ngẫu nhiên (Tổng hợp)')),
-                    ButtonSegment(value: 'vocabulary', label: Text('Theo từ vựng')),
+                    ButtonSegment(
+                        value: 'random', label: Text('Ngẫu nhiên (Tổng hợp)')),
+                    ButtonSegment(
+                        value: 'vocabulary', label: Text('Theo từ vựng')),
                   ],
                   selected: {_contentType},
-                  onSelectionChanged: (val) => setState(() => _contentType = val.first),
+                  onSelectionChanged: (val) =>
+                      setState(() => _contentType = val.first),
                 ),
 
                 // Filters when 'vocabulary' is selected
@@ -468,7 +504,9 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Cấp độ HSK:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        const Text('Cấp độ HSK:',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 13)),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 6,
@@ -476,7 +514,8 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                             ChoiceChip(
                               label: const Text('Tất cả'),
                               selected: _selectedHsk == null,
-                              onSelected: (_) => setState(() => _selectedHsk = null),
+                              onSelected: (_) =>
+                                  setState(() => _selectedHsk = null),
                             ),
                             ...List.generate(6, (i) {
                               final hsk = i + 1;
@@ -484,31 +523,39 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                               return ChoiceChip(
                                 label: Text('HSK $hsk'),
                                 selected: selected,
-                                onSelected: (_) => setState(() => _selectedHsk = hsk),
+                                onSelected: (_) =>
+                                    setState(() => _selectedHsk = hsk),
                               );
                             }),
                           ],
                         ),
                         if (_topics.isNotEmpty) ...[
                           const SizedBox(height: 14),
-                          const Text('Chủ đề từ vựng:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                          const Text('Chủ đề từ vựng:',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 13)),
                           const SizedBox(height: 6),
                           DropdownButtonFormField<String>(
-                            value: _selectedTopic,
+                            key: ValueKey(_selectedTopic),
+                            initialValue: _selectedTopic,
                             isExpanded: true,
                             decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 10),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10)),
                             ),
                             hint: const Text('Tất cả chủ đề'),
                             items: [
-                              const DropdownMenuItem(value: null, child: Text('Tất cả chủ đề')),
+                              const DropdownMenuItem(
+                                  value: null, child: Text('Tất cả chủ đề')),
                               ..._topics.map((t) => DropdownMenuItem(
                                     value: t['id'],
                                     child: Text(t['label'] ?? ''),
                                   )),
                             ],
-                            onChanged: (val) => setState(() => _selectedTopic = val),
+                            onChanged: (val) =>
+                                setState(() => _selectedTopic = val),
                           ),
                         ],
                       ],
@@ -524,19 +571,24 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                   child: FilledButton.icon(
                     style: FilledButton.styleFrom(
                       backgroundColor: AppTheme.jade,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
                     ),
                     onPressed: _generating ? null : _generateExam,
                     icon: _generating
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
                           )
                         : const Icon(Icons.auto_awesome_rounded),
                     label: Text(
-                      _generating ? 'Đang tạo đề thi…' : 'Yêu cầu AI tạo đề thi',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      _generating
+                          ? 'Đang tạo đề thi…'
+                          : 'Yêu cầu AI tạo đề thi',
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -561,11 +613,15 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
             children: [
               const Icon(Icons.cloud_off_rounded, size: 48, color: Colors.grey),
               const SizedBox(height: 12),
-              const Text('Không thể tải lịch sử đề thi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const Text('Không thể tải lịch sử đề thi',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 6),
-              Text(_historyError!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+              Text(_historyError!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey, fontSize: 13)),
               const SizedBox(height: 16),
-              FilledButton(onPressed: _loadHistory, child: const Text('Thử lại')),
+              FilledButton(
+                  onPressed: _loadHistory, child: const Text('Thử lại')),
             ],
           ),
         ),
@@ -584,7 +640,10 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
               const SizedBox(width: 6),
               Text(
                 'Đề thi chờ làm (${_pendingExams.length})',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.ink),
               ),
             ],
           ),
@@ -595,7 +654,8 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
               color: Colors.white,
               child: Padding(
                 padding: EdgeInsets.all(20),
-                child: Text('Không có đề thi nào đang chờ làm.', style: TextStyle(color: Colors.grey)),
+                child: Text('Không có đề thi nào đang chờ làm.',
+                    style: TextStyle(color: Colors.grey)),
               ),
             )
           else
@@ -608,11 +668,15 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                   ),
                   color: Colors.white,
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    title: Text(exam.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    title: Text(exam.title,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 15)),
                     subtitle: Text(
                       '⏱️ ${exam.durationMinutes} phút · ${exam.questionCount} câu',
-                      style: const TextStyle(color: Color(0xFF5C6F64), fontSize: 13),
+                      style: const TextStyle(
+                          color: Color(0xFF5C6F64), fontSize: 13),
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -626,7 +690,8 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                           child: const Text('Làm ngay'),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.grey, size: 20),
+                          icon: const Icon(Icons.delete_outline,
+                              color: Colors.grey, size: 20),
                           onPressed: () => _deleteExam(exam.id),
                         ),
                       ],
@@ -638,11 +703,15 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
           // Completed Exams
           Row(
             children: [
-              const Icon(Icons.check_circle_outline_rounded, size: 18, color: Colors.green),
+              const Icon(Icons.check_circle_outline_rounded,
+                  size: 18, color: Colors.green),
               const SizedBox(width: 6),
               Text(
                 'Đề thi đã hoàn thành (${_completedExams.length})',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.ink),
               ),
             ],
           ),
@@ -653,13 +722,16 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
               color: Colors.white,
               child: Padding(
                 padding: EdgeInsets.all(20),
-                child: Text('Chưa có đề thi nào đã hoàn thành.', style: TextStyle(color: Colors.grey)),
+                child: Text('Chưa có đề thi nào đã hoàn thành.',
+                    style: TextStyle(color: Colors.grey)),
               ),
             )
           else
             ..._completedExams.map((exam) {
               final score = exam.score ?? 0.0;
-              final scoreColor = score >= 80 ? Colors.green : (score >= 50 ? Colors.orange : Colors.red);
+              final scoreColor = score >= 80
+                  ? Colors.green
+                  : (score >= 50 ? Colors.orange : Colors.red);
               return Card(
                 elevation: 0,
                 margin: const EdgeInsets.only(bottom: 10),
@@ -669,24 +741,32 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 ),
                 color: Colors.white,
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  title: Text(exam.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  title: Text(exam.title,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 15)),
                   subtitle: Text(
                     '${exam.questionCount} câu',
-                    style: const TextStyle(color: Color(0xFF5C6F64), fontSize: 13),
+                    style:
+                        const TextStyle(color: Color(0xFF5C6F64), fontSize: 13),
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: scoreColor.withOpacity(0.1),
+                          color: scoreColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           '$score điểm',
-                          style: TextStyle(color: scoreColor, fontWeight: FontWeight.bold, fontSize: 14),
+                          style: TextStyle(
+                              color: scoreColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -711,7 +791,8 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
 
     final minutes = _remainingSeconds ~/ 60;
     final seconds = _remainingSeconds % 60;
-    final timeStr = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    final timeStr =
+        '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
 
     final timerColor = _remainingSeconds <= 60
         ? Colors.red
@@ -719,7 +800,8 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(exam.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: Text(exam.title,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () async {
@@ -727,9 +809,12 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
               context: context,
               builder: (ctx) => AlertDialog(
                 title: const Text('Tạm dừng bài thi?'),
-                content: const Text('Bạn có thể lưu đề thi này và tiếp tục làm sau trong mục "Đề thi của tôi".'),
+                content: const Text(
+                    'Bạn có thể lưu đề thi này và tiếp tục làm sau trong mục "Đề thi của tôi".'),
                 actions: [
-                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Ở lại')),
+                  TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Ở lại')),
                   FilledButton(
                     onPressed: () => Navigator.of(ctx).pop(true),
                     child: const Text('Lưu & Để làm sau'),
@@ -749,7 +834,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
             margin: const EdgeInsets.only(right: 12),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: timerColor.withOpacity(0.12),
+              color: timerColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -758,7 +843,10 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 const SizedBox(width: 4),
                 Text(
                   timeStr,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: timerColor),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: timerColor),
                 ),
               ],
             ),
@@ -769,7 +857,11 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
               style: FilledButton.styleFrom(backgroundColor: AppTheme.jade),
               onPressed: _submitting ? null : _confirmSubmit,
               child: _submitting
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
                   : const Text('Nộp bài'),
             ),
           ),
@@ -788,22 +880,30 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
               height: 48,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 itemCount: total,
                 separatorBuilder: (_, __) => const SizedBox(width: 6),
                 itemBuilder: (context, i) {
                   final isCurrent = i == _currentQuestionIndex;
-                  final isAnswered = _userAnswers.containsKey(exam.questions[i].id);
+                  final isAnswered =
+                      _userAnswers.containsKey(exam.questions[i].id);
                   return ChoiceChip(
                     label: Text('${i + 1}'),
                     selected: isCurrent,
-                    onSelected: (_) => setState(() => _currentQuestionIndex = i),
+                    onSelected: (_) =>
+                        setState(() => _currentQuestionIndex = i),
                     selectedColor: AppTheme.jade,
                     labelStyle: TextStyle(
-                      color: isCurrent ? Colors.white : (isAnswered ? AppTheme.jade : Colors.black87),
-                      fontWeight: (isCurrent || isAnswered) ? FontWeight.bold : FontWeight.normal,
+                      color: isCurrent
+                          ? Colors.white
+                          : (isAnswered ? AppTheme.jade : Colors.black87),
+                      fontWeight: (isCurrent || isAnswered)
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
-                    backgroundColor: isAnswered ? const Color(0xFFE5EDE8) : Colors.white,
+                    backgroundColor:
+                        isAnswered ? const Color(0xFFE5EDE8) : Colors.white,
                   );
                 },
               ),
@@ -847,7 +947,10 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                             const SizedBox(height: 6),
                             Text(
                               q.pinyin,
-                              style: const TextStyle(fontSize: 14, color: Color(0xFF5C6F64), fontStyle: FontStyle.italic),
+                              style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF5C6F64),
+                                  fontStyle: FontStyle.italic),
                             ),
                           ],
                           const SizedBox(height: 24),
@@ -857,22 +960,31 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                               padding: const EdgeInsets.only(bottom: 10),
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(12),
-                                onTap: () => setState(() => _userAnswers[q.id] = opt),
+                                onTap: () =>
+                                    setState(() => _userAnswers[q.id] = opt),
                                 child: Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: selected ? const Color(0xFFE8F0EC) : Colors.white,
+                                    color: selected
+                                        ? const Color(0xFFE8F0EC)
+                                        : Colors.white,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: selected ? AppTheme.jade : const Color(0xFFDDE5E0),
+                                      color: selected
+                                          ? AppTheme.jade
+                                          : const Color(0xFFDDE5E0),
                                       width: selected ? 2 : 1,
                                     ),
                                   ),
                                   child: Row(
                                     children: [
                                       Icon(
-                                        selected ? Icons.radio_button_checked : Icons.radio_button_off,
-                                        color: selected ? AppTheme.jade : Colors.grey,
+                                        selected
+                                            ? Icons.radio_button_checked
+                                            : Icons.radio_button_off,
+                                        color: selected
+                                            ? AppTheme.jade
+                                            : Colors.grey,
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
@@ -880,8 +992,12 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                                           opt,
                                           style: TextStyle(
                                             fontSize: 15,
-                                            fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-                                            color: selected ? AppTheme.jade : AppTheme.ink,
+                                            fontWeight: selected
+                                                ? FontWeight.bold
+                                                : FontWeight.w500,
+                                            color: selected
+                                                ? AppTheme.jade
+                                                : AppTheme.ink,
                                           ),
                                         ),
                                       ),
@@ -906,7 +1022,8 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                         child: const Text('← Câu trước'),
                       ),
                       FilledButton(
-                        style: FilledButton.styleFrom(backgroundColor: AppTheme.jade),
+                        style: FilledButton.styleFrom(
+                            backgroundColor: AppTheme.jade),
                         onPressed: () {
                           if (_currentQuestionIndex < total - 1) {
                             setState(() => _currentQuestionIndex++);
@@ -914,7 +1031,9 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                             _confirmSubmit();
                           }
                         },
-                        child: Text(_currentQuestionIndex < total - 1 ? 'Câu tiếp theo →' : 'Kiểm tra & Nộp bài'),
+                        child: Text(_currentQuestionIndex < total - 1
+                            ? 'Câu tiếp theo →'
+                            : 'Kiểm tra & Nộp bài'),
                       ),
                     ],
                   ),
@@ -929,13 +1048,12 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
 
   Widget _buildResultView() {
     final feedback = _currentFeedback!;
-    final exam = _reviewedExam!;
     final score = feedback.score;
-    final scoreColor = score >= 80 ? Colors.green : (score >= 50 ? Colors.orange : Colors.red);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kết quả & Sửa bài', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Kết quả & Sửa bài',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => setState(() {
@@ -963,18 +1081,26 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 children: [
                   const Text(
                     'ĐIỂM KẾT QUẢ BÀI THI AI',
-                    style: TextStyle(color: Color(0xFFEAD8B3), fontSize: 13, letterSpacing: 1.2, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: Color(0xFFEAD8B3),
+                        fontSize: 13,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     '${score.toStringAsFixed(1)} / 100',
-                    style: const TextStyle(color: Colors.white, fontSize: 44, fontWeight: FontWeight.w900),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 44,
+                        fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     feedback.summary,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Color(0xFFE0ECE5), fontSize: 15),
+                    style:
+                        const TextStyle(color: Color(0xFFE0ECE5), fontSize: 15),
                   ),
                 ],
               ),
@@ -983,7 +1109,9 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Chi tiết từng câu & Sửa bài', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                const Text('Chi tiết từng câu & Sửa bài',
+                    style:
+                        TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
                 FilledButton.tonal(
                   onPressed: () => setState(() {
                     _currentFeedback = null;
@@ -1006,7 +1134,9 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
-                    color: item.isCorrect ? Colors.green.shade300 : Colors.red.shade300,
+                    color: item.isCorrect
+                        ? Colors.green.shade300
+                        : Colors.red.shade300,
                     width: 1.5,
                   ),
                 ),
@@ -1020,28 +1150,44 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: item.isCorrect ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE),
+                              color: item.isCorrect
+                                  ? const Color(0xFFE8F5E9)
+                                  : const Color(0xFFFFEBEE),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               item.isCorrect ? '✅ Làm đúng' : '❌ Làm sai',
                               style: TextStyle(
-                                color: item.isCorrect ? Colors.green.shade800 : Colors.red.shade800,
+                                color: item.isCorrect
+                                    ? Colors.green.shade800
+                                    : Colors.red.shade800,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                               ),
                             ),
                           ),
-                          Text('Câu ${idx + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                          Text('Câu ${idx + 1}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey)),
                         ],
                       ),
                       const SizedBox(height: 10),
-                      Text(item.prompt, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.3)),
+                      Text(item.prompt,
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              height: 1.3)),
                       if (item.pinyin.isNotEmpty) ...[
                         const SizedBox(height: 4),
-                        Text(item.pinyin, style: const TextStyle(fontSize: 13, color: Color(0xFF5C6F64), fontStyle: FontStyle.italic)),
+                        Text(item.pinyin,
+                            style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF5C6F64),
+                                fontStyle: FontStyle.italic)),
                       ],
                       const SizedBox(height: 12),
                       Container(
@@ -1056,12 +1202,15 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                             Text.rich(
                               TextSpan(
                                 text: 'Đáp án của bạn: ',
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600, fontSize: 13),
                                 children: [
                                   TextSpan(
                                     text: item.userAnswer,
                                     style: TextStyle(
-                                      color: item.isCorrect ? Colors.green.shade700 : Colors.red.shade700,
+                                      color: item.isCorrect
+                                          ? Colors.green.shade700
+                                          : Colors.red.shade700,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -1072,11 +1221,14 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                             Text.rich(
                               TextSpan(
                                 text: 'Đáp án đúng: ',
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600, fontSize: 13),
                                 children: [
                                   TextSpan(
                                     text: item.correctAnswer,
-                                    style: TextStyle(color: Colors.green.shade800, fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                        color: Colors.green.shade800,
+                                        fontWeight: FontWeight.bold),
                                   ),
                                 ],
                               ),
@@ -1099,24 +1251,34 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                           children: [
                             const Row(
                               children: [
-                                Icon(Icons.lightbulb_outline, size: 18, color: Color(0xFF8C6200)),
+                                Icon(Icons.lightbulb_outline,
+                                    size: 18, color: Color(0xFF8C6200)),
                                 SizedBox(width: 6),
                                 Text(
                                   'SỬA THÀNH CHO ĐÚNG & GIẢI THÍCH:',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF8C6200)),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: Color(0xFF8C6200)),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 6),
                             Text(
                               item.explanation,
-                              style: const TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF4A3B18)),
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  height: 1.4,
+                                  color: Color(0xFF4A3B18)),
                             ),
                             if (item.correction.isNotEmpty) ...[
                               const SizedBox(height: 6),
                               Text(
                                 item.correction,
-                                style: const TextStyle(fontSize: 13, height: 1.4, color: Color(0xFF4A3B18)),
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    height: 1.4,
+                                    color: Color(0xFF4A3B18)),
                               ),
                             ],
                           ],

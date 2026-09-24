@@ -20,6 +20,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
   int _level = 0;
   String _status = 'Tất cả';
   bool _loading = true;
+  bool _showFilters = false;
 
   @override
   void initState() {
@@ -283,54 +284,78 @@ class _LessonsScreenState extends State<LessonsScreen> {
                               ),
                             ),
                             const SizedBox(height: 20),
-                            TextField(
-                              controller: _search,
-                              onChanged: (_) => setState(() {}),
-                              decoration: InputDecoration(
-                                hintText: 'Tìm chủ đề, mẫu câu…',
-                                prefixIcon: const Icon(Icons.search),
-                                suffixIcon: _search.text.isEmpty
-                                    ? null
-                                    : IconButton(
-                                        tooltip: 'Xóa tìm kiếm',
-                                        onPressed: () =>
-                                            setState(_search.clear),
-                                        icon: const Icon(Icons.close),
-                                      ),
-                                filled: true,
-                                fillColor: Colors.white,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide.none,
+                            if (constraints.maxWidth < 760)
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: OutlinedButton.icon(
+                                  onPressed: () => setState(
+                                    () => _showFilters = !_showFilters,
+                                  ),
+                                  icon: Icon(
+                                    _showFilters
+                                        ? Icons.expand_less_rounded
+                                        : Icons.tune_rounded,
+                                  ),
+                                  label: Text(
+                                    _search.text.isNotEmpty ||
+                                            _status != 'Tất cả'
+                                        ? 'Bộ lọc đang áp dụng'
+                                        : 'Tìm kiếm và lọc bài',
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: [
-                                  'Tất cả',
-                                  'Chưa học',
-                                  'Đang học',
-                                  'Hoàn thành',
-                                ]
-                                    .map(
-                                      (s) => Padding(
-                                        padding: const EdgeInsets.only(
-                                          right: 8,
+                            if (constraints.maxWidth >= 760 ||
+                                _showFilters) ...[
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _search,
+                                onChanged: (_) => setState(() {}),
+                                decoration: InputDecoration(
+                                  hintText: 'Tìm chủ đề, mẫu câu…',
+                                  prefixIcon: const Icon(Icons.search),
+                                  suffixIcon: _search.text.isEmpty
+                                      ? null
+                                      : IconButton(
+                                          tooltip: 'Xóa tìm kiếm',
+                                          onPressed: () =>
+                                              setState(_search.clear),
+                                          icon: const Icon(Icons.close),
                                         ),
-                                        child: ChoiceChip(
-                                          label: Text(s),
-                                          selected: _status == s,
-                                          onSelected: (_) =>
-                                              setState(() => _status = s),
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(height: 12),
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: [
+                                    'Tất cả',
+                                    'Chưa học',
+                                    'Đang học',
+                                    'Hoàn thành',
+                                  ]
+                                      .map(
+                                        (s) => Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 8,
+                                          ),
+                                          child: ChoiceChip(
+                                            label: Text(s),
+                                            selected: _status == s,
+                                            onSelected: (_) =>
+                                                setState(() => _status = s),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 12),
                             Text(
                               '${visible.length} bài học',

@@ -120,6 +120,20 @@ class _FakeListeningRepository implements ListeningExamRepository {
   }
 }
 
+Future<void> _openPracticeTool(
+  WidgetTester tester,
+  String tool,
+) async {
+  final practiceTab = find.descendant(
+    of: find.byType(NavigationBar),
+    matching: find.text('Luyện tập'),
+  );
+  await tester.tap(practiceTab);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(tool));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('hiển thị trang chủ học tiếng Trung', (tester) async {
     await tester.pumpWidget(
@@ -130,10 +144,66 @@ void main() {
       ),
     );
     expect(
-      find.text('Một chút mỗi ngày.\nTự tin hơn mỗi bước.'),
+      find.text('Học một chút hôm nay.\nTiến bộ thêm một bước.'),
       findsOneWidget,
     );
-    expect(find.text('Hôm nay bạn muốn học gì?'), findsOneWidget);
+    expect(find.text('Bắt đầu từ đâu?'), findsOneWidget);
+  });
+
+  testWidgets('điện thoại dùng 5 tab và mở trung tâm luyện tập', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 740));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      HanziGoApp(
+        readingRepository: _FakeReadingRepository(),
+        listeningRepository: _FakeListeningRepository(),
+        authService: AuthService.test(),
+      ),
+    );
+
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(NavigationRail), findsNothing);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('Luyện tập'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Hôm nay bạn muốn luyện gì?'), findsOneWidget);
+    expect(find.text('Luyện nghe'), findsOneWidget);
+    expect(find.text('Luyện đọc'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('máy tính dùng thanh điều hướng trái', (tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      HanziGoApp(
+        readingRepository: _FakeReadingRepository(),
+        listeningRepository: _FakeListeningRepository(),
+        authService: AuthService.test(),
+      ),
+    );
+
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.text('Luyện tập'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Hôm nay bạn muốn luyện gì?'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('tải và lọc đề đọc theo cấp độ HSK', (tester) async {
@@ -144,8 +214,7 @@ void main() {
         authService: AuthService.test(),
       ),
     );
-    await tester.tap(find.text('Đọc'));
-    await tester.pumpAndSettle();
+    await _openPracticeTool(tester, 'Luyện đọc');
 
     expect(find.text('Test Đọc'), findsOneWidget);
     expect(find.text('Đề đọc HSK 1'), findsOneWidget);
@@ -164,8 +233,7 @@ void main() {
         authService: AuthService.test(),
       ),
     );
-    await tester.tap(find.text('Nghe'));
-    await tester.pumpAndSettle();
+    await _openPracticeTool(tester, 'Luyện nghe');
 
     expect(find.text('Test Nghe'), findsOneWidget);
     expect(find.text('HSK 1 · Nghe hiểu mẫu'), findsOneWidget);
@@ -180,8 +248,7 @@ void main() {
         authService: AuthService.test(),
       ),
     );
-    await tester.tap(find.text('Nghe'));
-    await tester.pumpAndSettle();
+    await _openPracticeTool(tester, 'Luyện nghe');
     await tester.tap(find.byKey(const Key('listening-exam-8')));
     await tester.pumpAndSettle();
 
@@ -209,8 +276,7 @@ void main() {
         authService: AuthService.test(),
       ),
     );
-    await tester.tap(find.text('Đọc'));
-    await tester.pumpAndSettle();
+    await _openPracticeTool(tester, 'Luyện đọc');
 
     expect(find.byKey(const Key('exam-error')), findsOneWidget);
     expect(find.text('Phiên đã hết hạn'), findsOneWidget);
@@ -226,8 +292,7 @@ void main() {
         authService: AuthService.test(),
       ),
     );
-    await tester.tap(find.text('Đọc'));
-    await tester.pumpAndSettle();
+    await _openPracticeTool(tester, 'Luyện đọc');
     await tester.tap(find.byKey(const Key('exam-7')));
     await tester.pumpAndSettle();
 
@@ -262,8 +327,7 @@ void main() {
         authService: AuthService.test(),
       ),
     );
-    await tester.tap(find.text('Đọc'));
-    await tester.pumpAndSettle();
+    await _openPracticeTool(tester, 'Luyện đọc');
     await tester.tap(find.byKey(const Key('exam-7')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('answer-Xin chào')));
