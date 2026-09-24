@@ -104,9 +104,14 @@ def ai_settings() -> dict[str, Any]:
 
 
 def record_ai_usage(user_id: int, module: str, status: str):
-    with database() as conn:
-        conn.execute("INSERT INTO ai_usage(user_id,module,status,created_at) VALUES(?,?,?,?)",
-                     (user_id, module, status, int(time.time())))
+    if not user_id or user_id <= 0:
+        return
+    try:
+        with database() as conn:
+            conn.execute("INSERT INTO ai_usage(user_id,module,status,created_at) VALUES(?,?,?,?)",
+                         (user_id, module, status, int(time.time())))
+    except Exception:
+        pass
 
 
 def gemini_provider(settings: dict, content: str):

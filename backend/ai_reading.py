@@ -470,7 +470,8 @@ def evaluate_pronunciation_with_gemini(
         )
         response.raise_for_status()
         candidate = _decode_gemini_candidate(response)
-        record_ai_usage(user_id, "ai_reading_evaluate", "success")
+        if user_id and user_id > 0:
+            record_ai_usage(user_id, "ai_reading_evaluate", "success")
 
         # Normalize numeric fields
         acc = float(candidate.get("accuracy_percent", 0.0))
@@ -479,7 +480,8 @@ def evaluate_pronunciation_with_gemini(
 
         return candidate
     except Exception as exc:
-        record_ai_usage(user_id, "ai_reading_evaluate", "error")
+        if user_id and user_id > 0:
+            record_ai_usage(user_id, "ai_reading_evaluate", "error")
         return None
 
 
