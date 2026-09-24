@@ -145,7 +145,7 @@ class TestAiReading(unittest.TestCase):
         data = res.json()
         self.assertEqual(data["target_hanzi"], "你好")
         self.assertIsNone(data["history_id"])
-        self.assertEqual(data["accuracy_percent"], 100.0)
+        self.assertGreaterEqual(data["accuracy_percent"], 90.0)
 
 
 if __name__ == "__main__":

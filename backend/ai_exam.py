@@ -47,7 +47,7 @@ def init_ai_exam_tables(conn):
 
 
 class GenerateAIExamRequest(BaseModel):
-    question_count: int = Field(default=5, ge=1, le=30)
+    question_count: int = Field(default=40, ge=1, le=50)
     content_type: str = Field(default="random")  # 'random' or 'vocabulary'
     hsk_level: int | None = Field(default=None, ge=1, le=6)
     topic: str | None = Field(default=None, max_length=50)
@@ -55,6 +55,28 @@ class GenerateAIExamRequest(BaseModel):
 
 class SubmitAIExamRequest(BaseModel):
     answers: dict[str, str] = Field(default_factory=dict)
+
+
+def ensure_hsk_standard_exams(conn, user_id: int):
+    """Ensure the student has official 40-question mock exams for HSK 1 through HSK 6 (40 minutes each)."""
+    now = int(time.time())
+    for lvl in range(1, 7):
+        exists = conn.execute(
+            """SELECT id FROM student_ai_exams
+               WHERE user_id = ? AND hsk_level = ? AND content_type = 'standard_hsk' AND question_count = 40""",
+            (user_id, lvl)
+        ).fetchone()
+        if not exists:
+            questions = generate_questions_from_db(conn, 40, "vocabulary", lvl, None)
+            title = f"Đề thi thử HSK {lvl} Chuẩn (40 câu · 40 phút)"
+            conn.execute(
+                """INSERT INTO student_ai_exams (
+                    user_id, title, content_type, hsk_level, topic,
+                    question_count, duration_minutes, questions_json,
+                    status, created_at
+                ) VALUES (?, ?, 'standard_hsk', ?, '', 40, 40, ?, 'pending', ?)""",
+                (user_id, title, lvl, json.dumps(questions, ensure_ascii=False), now)
+            )
 
 
 def generate_questions_from_db(conn, count: int, content_type: str, hsk_level: int | None, topic: str | None) -> list[dict]:
@@ -91,7 +113,10 @@ def generate_questions_from_db(conn, count: int, content_type: str, hsk_level: i
     distractor_pool = conn.execute("SELECT hanzi, pinyin, meaning, hsk FROM vocabulary ORDER BY RANDOM() LIMIT 300").fetchall()
     distractor_list = [dict(r) for r in distractor_pool]
 
-    selected_words = word_list[:count]
+    selected_words = list(word_list[:count])
+    while len(selected_words) < count and word_list:
+        needed = count - len(selected_words)
+        selected_words.extend(word_list[:needed])
     questions = []
 
     templates = ["hanzi_to_meaning", "meaning_to_hanzi", "hanzi_to_pinyin", "cloze"]
@@ -422,28 +447,53 @@ def register_ai_exam_routes(app, current_user):
         }
 
     @app.get("/api/me/ai-exams")
-    def list_exams(user=Depends(current_user)):
+    def list_exams(user=Depends(current_user), include_standard: bool = Query(default=False)):
         with database() as conn:
+            if include_standard:
+                ensure_hsk_standard_exams(conn, user["id"])
             rows = conn.execute(
                 """SELECT id, title, content_type, hsk_level, topic,
                           question_count, duration_minutes, status, score,
                           created_at, submitted_at
                    FROM student_ai_exams
                    WHERE user_id = ?
-                   ORDER BY created_at DESC""",
+                   ORDER BY 
+                     CASE WHEN content_type = 'standard_hsk' THEN 0 ELSE 1 END,
+                     hsk_level ASC,
+                     created_at DESC""",
                 (user["id"],)
             ).fetchall()
 
         pending = []
         completed = []
+        standard_hsk = []
         for r in rows:
             item = dict(r)
+            if item.get("content_type") == "standard_hsk":
+                standard_hsk.append(item)
+                if not include_standard:
+                    continue
             if item["status"] == "completed":
                 completed.append(item)
             else:
                 pending.append(item)
 
-        return {"pending": pending, "completed": completed}
+        return {"pending": pending, "completed": completed, "standard_hsk": standard_hsk}
+
+    @app.get("/api/me/ai-exams/standard-presets")
+    def get_standard_presets(user=Depends(current_user)):
+        with database() as conn:
+            ensure_hsk_standard_exams(conn, user["id"])
+            rows = conn.execute(
+                """SELECT id, title, content_type, hsk_level, topic,
+                          question_count, duration_minutes, status, score,
+                          created_at, submitted_at
+                   FROM student_ai_exams
+                   WHERE user_id = ? AND content_type = 'standard_hsk'
+                   ORDER BY hsk_level ASC""",
+                (user["id"],)
+            ).fetchall()
+            return [dict(r) for r in rows]
 
     @app.get("/api/me/ai-exams/{exam_id}")
     def get_exam(exam_id: int, user=Depends(current_user)):

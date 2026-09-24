@@ -245,10 +245,10 @@ class ProfileScreen extends StatelessWidget {
                   color: AppTheme.orange,
                 ),
                 title: const Text(
-                  'Ôn tập dưới 80',
+                  'Ôn tập dưới 80 điểm',
                   style: TextStyle(fontWeight: FontWeight.w800),
                 ),
-                subtitle: const Text('Viết tay và đoạn văn cần luyện lại'),
+                subtitle: const Text('Đồng bộ Đọc · Nghe · Kiểm tra · Viết tay · Từ vựng'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
@@ -480,19 +480,334 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
                 );
               }
               final dashboard = snapshot.data!;
-              return Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    _ProfileStat('${dashboard.streak}', 'Ngày liên tiếp'),
-                    _ProfileStat('${dashboard.results}', 'Bài đã làm'),
-                    _ProfileStat('${dashboard.vocabularyCount}', 'Từ đã tra'),
-                  ],
-                ),
+              final under80 = dashboard.under80Breakdown;
+              final readingUnder80 = under80['reading'] ?? 0;
+              final listeningUnder80 = under80['listening'] ?? 0;
+              final examUnder80 = under80['exam'] ?? 0;
+              final handwritingUnder80 = (under80['handwriting'] ?? 0) + (under80['writing'] ?? 0);
+              final vocabWeak = under80['vocabulary'] ?? 0;
+              final totalUnder80 = dashboard.needsReview;
+
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    child: Row(
+                      children: [
+                        _ProfileStat('${dashboard.streak}', 'Ngày liên tiếp'),
+                        _ProfileStat('${dashboard.results}', 'Bài đã làm'),
+                        _ProfileStat('${dashboard.vocabularyCount}', 'Từ đã tra'),
+                        _ProfileStat(
+                          '${dashboard.averageScore.toStringAsFixed(0)}đ',
+                          'Điểm trung bình',
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Trung tâm Ôn tập dưới 80 điểm - Đồng bộ tất cả 5 kỹ năng
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+                    child: Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        side: const BorderSide(color: Color(0xFFF0D5C3), width: 1.2),
+                      ),
+                      color: const Color(0xFFFFF9F5),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Row(
+                                  children: [
+                                    Icon(Icons.replay_circle_filled, color: AppTheme.orange, size: 22),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Ôn tập dưới 80 điểm',
+                                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF8C3A00)),
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: totalUnder80 > 0 ? const Color(0xFFFFECE0) : const Color(0xFFE8F5E9),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    totalUnder80 > 0 ? '$totalUnder80 mục cần ôn' : 'Đã đạt chuẩn',
+                                    style: TextStyle(
+                                      color: totalUnder80 > 0 ? AppTheme.red : Colors.green,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Đồng bộ tự động từ kết quả làm bài của bạn trên tất cả 5 kỹ năng:',
+                              style: TextStyle(color: Color(0xFF7A5C4A), fontSize: 12),
+                            ),
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                _SkillReviewBadge(
+                                  icon: Icons.mic_none_outlined,
+                                  label: 'Đọc',
+                                  count: readingUnder80,
+                                  unit: 'mục <80%',
+                                  onTap: () => widget.service == null
+                                      ? null
+                                      : Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) => ReviewScreen(
+                                              service: widget.service!,
+                                              initialKind: 'reading',
+                                            ),
+                                          ),
+                                        ).then((_) => _retry()),
+                                ),
+                                _SkillReviewBadge(
+                                  icon: Icons.headphones_outlined,
+                                  label: 'Nghe',
+                                  count: listeningUnder80,
+                                  unit: 'bài <80đ',
+                                  onTap: () => widget.service == null
+                                      ? null
+                                      : Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) => ReviewScreen(
+                                              service: widget.service!,
+                                              initialKind: 'listening',
+                                            ),
+                                          ),
+                                        ).then((_) => _retry()),
+                                ),
+                                _SkillReviewBadge(
+                                  icon: Icons.assignment_outlined,
+                                  label: 'Kiểm tra',
+                                  count: examUnder80,
+                                  unit: 'đề <80đ',
+                                  onTap: () => widget.service == null
+                                      ? null
+                                      : Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) => ReviewScreen(
+                                              service: widget.service!,
+                                              initialKind: 'exam',
+                                            ),
+                                          ),
+                                        ).then((_) => _retry()),
+                                ),
+                                _SkillReviewBadge(
+                                  icon: Icons.draw_outlined,
+                                  label: 'Viết tay',
+                                  count: handwritingUnder80,
+                                  unit: 'chữ <80đ',
+                                  onTap: () => widget.service == null
+                                      ? null
+                                      : Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) => ReviewScreen(
+                                              service: widget.service!,
+                                              initialKind: 'handwriting',
+                                            ),
+                                          ),
+                                        ).then((_) => _retry()),
+                                ),
+                                _SkillReviewBadge(
+                                  icon: Icons.menu_book_outlined,
+                                  label: 'Từ vựng',
+                                  count: vocabWeak,
+                                  unit: 'từ cần nhớ',
+                                  onTap: () => widget.service == null
+                                      ? null
+                                      : Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) => ReviewScreen(
+                                              service: widget.service!,
+                                              initialKind: 'vocabulary',
+                                            ),
+                                          ),
+                                        ).then((_) => _retry()),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Tiến độ năng lực đồng bộ
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+                    child: Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        side: const BorderSide(color: Color(0xFFDDE5E0)),
+                      ),
+                      color: Colors.white,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.analytics_outlined, color: AppTheme.jade, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Năng lực đồng bộ theo kỹ năng',
+                                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppTheme.ink),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            _SkillProgressBar(
+                              label: 'Đọc phát âm (AI Voice)',
+                              score: dashboard.skillScores['reading'] ?? 0,
+                              icon: Icons.mic,
+                            ),
+                            _SkillProgressBar(
+                              label: 'Luyện nghe hiểu',
+                              score: dashboard.skillScores['listening'] ?? 0,
+                              icon: Icons.headphones,
+                            ),
+                            _SkillProgressBar(
+                              label: 'Kiểm tra & Đề thi AI',
+                              score: dashboard.skillScores['exam'] ?? 0,
+                              icon: Icons.assignment_turned_in,
+                            ),
+                            _SkillProgressBar(
+                              label: 'Viết tay & Đoạn văn',
+                              score: dashboard.skillScores['writing'] ?? 0,
+                              icon: Icons.draw,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               );
             },
           ),
       ],
+    );
+  }
+}
+
+class _SkillReviewBadge extends StatelessWidget {
+  const _SkillReviewBadge({
+    required this.icon,
+    required this.label,
+    required this.count,
+    required this.unit,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final int count;
+  final String unit;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasItems = count > 0;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: hasItems ? const Color(0xFFFFECE3) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: hasItems ? const Color(0xFFF5B895) : const Color(0xFFE2EBE5),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: hasItems ? AppTheme.red : AppTheme.jade),
+            const SizedBox(width: 6),
+            Text(
+              '$label: ',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+            ),
+            Text(
+              '$count $unit',
+              style: TextStyle(
+                color: hasItems ? AppTheme.red : const Color(0xFF5C6F64),
+                fontWeight: hasItems ? FontWeight.bold : FontWeight.w500,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SkillProgressBar extends StatelessWidget {
+  const _SkillProgressBar({
+    required this.label,
+    required this.score,
+    required this.icon,
+  });
+
+  final String label;
+  final double score;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final percent = (score / 100.0).clamp(0.0, 1.0);
+    final color = score >= 80 ? Colors.green : (score >= 50 ? Colors.orange : AppTheme.red);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 15, color: const Color(0xFF5C6F64)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              ),
+              Text(
+                '${score.toStringAsFixed(0)}%',
+                style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: percent,
+              minHeight: 6,
+              backgroundColor: const Color(0xFFE5EDE8),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

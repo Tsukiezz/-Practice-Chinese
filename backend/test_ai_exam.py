@@ -207,3 +207,36 @@ class AIExamTests(unittest.TestCase):
             "content_type": "random"
         })
         self.assertNotEqual(res1.json()["id"], res2.json()["id"])
+
+    def test_hsk_standard_40_question_presets(self):
+        """Test that HSK 1-6 standard mock exams (40 questions, 40 minutes each) are provided."""
+        res = self.client.get("/api/me/ai-exams/standard-presets", headers=self.headers_a)
+        self.assertEqual(res.status_code, 200)
+        presets = res.json()
+        self.assertEqual(len(presets), 6)
+        levels = [p["hsk_level"] for p in presets]
+        self.assertEqual(levels, [1, 2, 3, 4, 5, 6])
+        for p in presets:
+            self.assertEqual(p["question_count"], 40)
+            self.assertEqual(p["duration_minutes"], 40)
+            # Fetch full exam to verify questions
+            detail = self.client.get(f"/api/me/ai-exams/{p['id']}", headers=self.headers_a).json()
+            self.assertEqual(len(detail["questions"]), 40)
+
+    def test_dashboard_under_80_synchronization(self):
+        """Test that profile dashboard and review endpoints synchronize across reading, exams, listening, writing, handwriting, and vocabulary."""
+        summary = self.client.get("/api/me/review-summary", headers=self.headers_a)
+        self.assertEqual(summary.status_code, 200)
+        data = summary.json()
+        self.assertIn("total_under_80", data)
+        self.assertIn("reading", data)
+        self.assertIn("exam", data)
+        self.assertIn("listening", data)
+        self.assertIn("handwriting", data)
+        self.assertIn("vocabulary", data)
+
+        dash = self.client.get("/api/me/dashboard", headers=self.headers_a).json()
+        self.assertIn("under_80_breakdown", dash)
+        self.assertIn("reading", dash["skill_scores"])
+        self.assertIn("exam", dash["skill_scores"])
+

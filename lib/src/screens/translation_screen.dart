@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/student_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/mini_chinese_keyboard.dart';
 
 class TranslationScreen extends StatefulWidget {
   const TranslationScreen({
@@ -27,6 +28,8 @@ class _TranslationScreenState extends State<TranslationScreen> {
   final _translationText = TextEditingController();
   String _source = 'zh', _target = 'vi';
   String? _translation;
+  bool _showMiniKeyboard = false;
+  String _activeInput = 'translation'; // 'translation' or 'sentence'
   static const _languages = {
     'zh': 'Tiếng Trung',
     'vi': 'Tiếng Việt',
@@ -42,7 +45,23 @@ class _TranslationScreenState extends State<TranslationScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Dịch & sửa câu')),
+    appBar: AppBar(
+      title: const Text('Dịch & sửa câu'),
+      actions: [
+        IconButton(
+          icon: Icon(_showMiniKeyboard ? Icons.keyboard_hide_outlined : Icons.keyboard_alt_outlined),
+          tooltip: _showMiniKeyboard ? 'Ẩn bàn phím tiếng Trung' : 'Mở bàn phím tiếng Trung mini',
+          onPressed: () => setState(() => _showMiniKeyboard = !_showMiniKeyboard),
+        ),
+      ],
+    ),
+    bottomNavigationBar: _showMiniKeyboard
+        ? MiniChineseKeyboard(
+            controller: _activeInput == 'translation' ? _translationText : _sentenceController,
+            targetLabel: _activeInput == 'translation' ? 'Văn bản dịch' : 'Câu tiếng Trung',
+            onClose: () => setState(() => _showMiniKeyboard = false),
+          )
+        : null,
     body: SafeArea(
       child: Center(
         child: ConstrainedBox(
@@ -50,10 +69,43 @@ class _TranslationScreenState extends State<TranslationScreen> {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              const Text(
-                'Dịch đoạn văn',
-                style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Dịch đoạn văn',
+                    style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800),
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: Icon(
+                      _showMiniKeyboard && _activeInput == 'translation'
+                          ? Icons.keyboard_hide_outlined
+                          : Icons.keyboard_alt_outlined,
+                      size: 16,
+                      color: AppTheme.jade,
+                    ),
+                    label: Text(
+                      _showMiniKeyboard && _activeInput == 'translation'
+                          ? 'Đóng phím'
+                          : 'Phím tiếng Trung',
+                      style: const TextStyle(fontSize: 12, color: AppTheme.jade),
+                    ),
+                    onPressed: () => setState(() {
+                      if (_showMiniKeyboard && _activeInput == 'translation') {
+                        _showMiniKeyboard = false;
+                      } else {
+                        _showMiniKeyboard = true;
+                        _activeInput = 'translation';
+                      }
+                    }),
+                  ),
+                ],
               ),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
@@ -97,6 +149,7 @@ class _TranslationScreenState extends State<TranslationScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
               TextField(
                 controller: _translationText,
                 maxLength: 5000,
@@ -104,8 +157,11 @@ class _TranslationScreenState extends State<TranslationScreen> {
                 maxLines: 8,
                 decoration: const InputDecoration(
                   labelText: 'Văn bản cần dịch',
+                  hintText: 'Nhập hoặc bấm "Phím tiếng Trung" bên trên để gõ chữ Hán, Pinyin...',
+                  alignLabelWithHint: true,
                 ),
                 enabled: !_loading,
+                onTap: () => setState(() => _activeInput = 'translation'),
               ),
               FilledButton.icon(
                 onPressed: _loading ? null : _translate,
@@ -121,12 +177,48 @@ class _TranslationScreenState extends State<TranslationScreen> {
                   ),
                 ),
               const Divider(height: 36),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Kiểm tra ngữ pháp & sửa câu',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: Icon(
+                      _showMiniKeyboard && _activeInput == 'sentence'
+                          ? Icons.keyboard_hide_outlined
+                          : Icons.keyboard_alt_outlined,
+                      size: 16,
+                      color: AppTheme.jade,
+                    ),
+                    label: Text(
+                      _showMiniKeyboard && _activeInput == 'sentence'
+                          ? 'Đóng phím'
+                          : 'Phím tiếng Trung',
+                      style: const TextStyle(fontSize: 12, color: AppTheme.jade),
+                    ),
+                    onPressed: () => setState(() {
+                      if (_showMiniKeyboard && _activeInput == 'sentence') {
+                        _showMiniKeyboard = false;
+                      } else {
+                        _showMiniKeyboard = true;
+                        _activeInput = 'sentence';
+                      }
+                    }),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
               const Text(
                 'Nhập câu tiếng Trung để xem lỗi ngữ pháp và gợi ý sửa.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: Colors.grey, fontSize: 13),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
               TextField(
                 key: const Key('grammar-sentence'),
                 controller: _sentenceController,
@@ -140,6 +232,7 @@ class _TranslationScreenState extends State<TranslationScreen> {
                   alignLabelWithHint: true,
                   prefixIcon: Icon(Icons.translate_rounded),
                 ),
+                onTap: () => setState(() => _activeInput = 'sentence'),
               ),
               const SizedBox(height: 10),
               if (!widget.guest)

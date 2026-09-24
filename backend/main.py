@@ -1006,10 +1006,99 @@ def recognize_handwriting(body: HandwritingRecognition, user=Depends(current_use
 
 
 @app.get("/api/me/review-items")
-def review_items(kind: Literal["handwriting", "writing"],
+def review_items(kind: str = Query(default="writing"),
                  below: float = Query(default=80, gt=0, le=100),
                  user=Depends(current_user)):
     with database() as conn:
+        if kind == "reading":
+            try:
+                rows = conn.execute(
+                    """SELECT id, word_id, hanzi, pinyin, meaning, accuracy_percent, rating, spoken_text, created_at
+                       FROM student_reading_history
+                       WHERE user_id=? AND accuracy_percent<?
+                       ORDER BY created_at DESC""",
+                    (user["id"], below),
+                ).fetchall()
+                return [
+                    {
+                        "id": r["id"],
+                        "kind": "reading",
+                        "score": r["accuracy_percent"],
+                        "title": r["hanzi"],
+                        "subtitle": f"{r['pinyin']} · {r['meaning'] or ''}",
+                        "spoken_text": r["spoken_text"],
+                        "rating": r["rating"],
+                        "created_at": r["created_at"],
+                    }
+                    for r in rows
+                ]
+            except Exception:
+                return []
+
+        if kind == "exam":
+            try:
+                rows = conn.execute(
+                    """SELECT id, title, hsk_level, question_count, score, submitted_at, created_at
+                       FROM student_ai_exams
+                       WHERE user_id=? AND status='completed' AND score<?
+                       ORDER BY created_at DESC""",
+                    (user["id"], below),
+                ).fetchall()
+                return [
+                    {
+                        "id": r["id"],
+                        "kind": "exam",
+                        "score": r["score"],
+                        "title": r["title"],
+                        "subtitle": f"HSK {r['hsk_level'] or 'Tổng hợp'} · {r['question_count']} câu",
+                        "created_at": r["created_at"],
+                    }
+                    for r in rows
+                ]
+            except Exception:
+                return []
+
+        if kind == "listening":
+            rows = conn.execute(
+                """SELECT * FROM results WHERE user_id=? AND kind='listening' AND score<? ORDER BY created_at DESC""",
+                (user["id"], below),
+            ).fetchall()
+            return [
+                {
+                    "id": r["id"],
+                    "kind": "listening",
+                    "score": r["score"],
+                    "title": f"Bài luyện Nghe #{r['id']}",
+                    "subtitle": f"Điểm: {r['score']}/100",
+                    "created_at": r["created_at"],
+                }
+                for r in rows
+            ]
+
+        if kind == "vocabulary":
+            try:
+                rows = conn.execute(
+                    """SELECT d.id, d.word_id, d.lookup_count, d.last_looked_at, v.hanzi, v.pinyin, v.meaning, v.hsk
+                       FROM dictionary_history d
+                       LEFT JOIN vocabulary v ON v.id=d.word_id
+                       WHERE d.user_id=? AND d.lookup_count>=2
+                       ORDER BY d.last_looked_at DESC""",
+                    (user["id"],),
+                ).fetchall()
+                return [
+                    {
+                        "id": r["id"],
+                        "kind": "vocabulary",
+                        "score": max(0.0, float(100 - r["lookup_count"] * 10)),
+                        "title": r["hanzi"] or f"Từ #{r['word_id']}",
+                        "subtitle": f"{r['pinyin'] or ''} · {r['meaning'] or ''} (Đã tra {r['lookup_count']} lần)",
+                        "created_at": r["last_looked_at"],
+                    }
+                    for r in rows
+                ]
+            except Exception:
+                return []
+
         rows = conn.execute(
             """SELECT r.*,p.latest_result_id,p.completed_at,p.updated_at
                FROM results r LEFT JOIN review_progress p ON p.source_result_id=r.id
@@ -1028,6 +1117,72 @@ def review_items(kind: Literal["handwriting", "writing"],
                                      if latest_id is not None else None)
             items.append(item)
         return items
+
+
+@app.get("/api/me/review-summary")
+def review_summary(below: float = Query(default=80, gt=0, le=100), user=Depends(current_user)):
+    with database() as conn:
+        hw_count = conn.execute(
+            """SELECT COUNT(*) FROM results r
+               LEFT JOIN review_progress p ON p.source_result_id=r.id
+               WHERE r.user_id=? AND r.kind='handwriting' AND r.score<? AND p.completed_at IS NULL
+                 AND NOT EXISTS (SELECT 1 FROM review_attempts retry WHERE retry.result_id=r.id)""",
+            (user["id"], below),
+        ).fetchone()[0]
+        wt_count = conn.execute(
+            """SELECT COUNT(*) FROM results r
+               LEFT JOIN review_progress p ON p.source_result_id=r.id
+               WHERE r.user_id=? AND r.kind='writing' AND r.score<? AND p.completed_at IS NULL
+                 AND NOT EXISTS (SELECT 1 FROM review_attempts retry WHERE retry.result_id=r.id)""",
+            (user["id"], below),
+        ).fetchone()[0]
+        ls_count = conn.execute(
+            "SELECT COUNT(*) FROM results WHERE user_id=? AND kind='listening' AND score<?",
+            (user["id"], below),
+        ).fetchone()[0]
+        rd_count = 0
+        try:
+            rd_count = conn.execute(
+                "SELECT COUNT(*) FROM student_reading_history WHERE user_id=? AND accuracy_percent<?",
+                (user["id"], below),
+            ).fetchone()[0]
+        except Exception:
+            pass
+        ex_count = 0
+        try:
+            ex_count = conn.execute(
+                "SELECT COUNT(*) FROM student_ai_exams WHERE user_id=? AND status='completed' AND score<?",
+                (user["id"], below),
+            ).fetchone()[0]
+        except Exception:
+            pass
+        vc_count = 0
+        try:
+            vc_count = conn.execute(
+                "SELECT COUNT(*) FROM dictionary_history WHERE user_id=? AND lookup_count>=2",
+                (user["id"],),
+            ).fetchone()[0]
+        except Exception:
+            pass
+
+        total = hw_count + wt_count + ls_count + rd_count + ex_count
+        return {
+            "total_under_80": total,
+            "reading": rd_count,
+            "listening": ls_count,
+            "exam": ex_count,
+            "handwriting": hw_count,
+            "writing": wt_count,
+            "vocabulary": vc_count,
+            "breakdown": {
+                "reading": rd_count,
+                "listening": ls_count,
+                "exam": ex_count,
+                "handwriting": hw_count,
+                "writing": wt_count,
+                "vocabulary": vc_count,
+            }
+        }
 
 
 @app.post("/api/me/review/writing/{source_result_id}", status_code=201)
@@ -1108,6 +1263,35 @@ def my_dashboard(user=Depends(current_user)):
         v_row = conn.execute(
             "SELECT COUNT(*) FROM dictionary_history WHERE user_id=?", (user["id"],)).fetchone()
         vocabulary_count = v_row[0] if v_row else 0
+
+        reading_scores = []
+        reading_under_80 = 0
+        try:
+            rd_rows = conn.execute(
+                "SELECT accuracy_percent FROM student_reading_history WHERE user_id=?", (user["id"],)).fetchall()
+            reading_scores = [float(r[0]) for r in rd_rows if r[0] is not None]
+            reading_under_80 = sum(1 for s in reading_scores if s < 80)
+        except Exception:
+            pass
+
+        exam_scores = []
+        exam_under_80 = 0
+        try:
+            ex_rows = conn.execute(
+                "SELECT score FROM student_ai_exams WHERE user_id=? AND status='completed'", (user["id"],)).fetchall()
+            exam_scores = [float(r[0]) for r in ex_rows if r[0] is not None]
+            exam_under_80 = sum(1 for s in exam_scores if s < 80)
+        except Exception:
+            pass
+
+        vocab_weak = 0
+        try:
+            vw_row = conn.execute(
+                "SELECT COUNT(*) FROM dictionary_history WHERE user_id=? AND lookup_count >= 2", (user["id"],)).fetchone()
+            vocab_weak = vw_row[0] if vw_row else 0
+        except Exception:
+            pass
+
         nr_row = conn.execute(
             """SELECT COUNT(*) FROM results r
                LEFT JOIN review_progress p ON p.source_result_id=r.id
@@ -1118,12 +1302,16 @@ def my_dashboard(user=Depends(current_user)):
                  AND (r.kind='exam' OR p.completed_at IS NULL)""",
             (user["id"],),
         ).fetchone()
-        needs_review = nr_row[0] if nr_row else 0
+        classic_needs_review = nr_row[0] if nr_row else 0
+        total_needs_review = classic_needs_review + reading_under_80 + exam_under_80
+
         activity_days = [row[0] for row in conn.execute(
-            """SELECT DISTINCT date(created_at,'unixepoch','localtime') day FROM results
-               WHERE user_id=? UNION SELECT DISTINCT date(last_looked_at,'unixepoch','localtime')
-               FROM dictionary_history WHERE user_id=? ORDER BY day DESC""",
-            (user["id"], user["id"]),
+            """SELECT DISTINCT date(created_at,'unixepoch','localtime') day FROM results WHERE user_id=?
+               UNION SELECT DISTINCT date(last_looked_at,'unixepoch','localtime') FROM dictionary_history WHERE user_id=?
+               UNION SELECT DISTINCT date(created_at,'unixepoch','localtime') FROM student_reading_history WHERE user_id=?
+               UNION SELECT DISTINCT date(created_at,'unixepoch','localtime') FROM student_ai_exams WHERE user_id=?
+               ORDER BY day DESC""",
+            (user["id"], user["id"], user["id"], user["id"]),
         )]
         attempts = {row[0] for row in conn.execute(
             "SELECT result_id FROM review_attempts WHERE user_id=?", (user["id"],))}
@@ -1136,7 +1324,7 @@ def my_dashboard(user=Depends(current_user)):
         results_by_id.get(latest_by_source.get(result["id"]), result)
         for result in results if result["id"] not in attempts
     ]
-    skill_scores = {"listening": [], "reading": [], "writing": [], "handwriting": []}
+    skill_scores = {"listening": [], "reading": [], "writing": [], "handwriting": [], "exam": []}
     for result in current_results:
         skill = result["kind"]
         used_section_scores = False
@@ -1154,6 +1342,11 @@ def my_dashboard(user=Depends(current_user)):
                 skill = "mixed"
         if skill in skill_scores and not used_section_scores:
             skill_scores[skill].append(result["score"])
+
+    # Synchronize Reading and AI Exam scores into skill_scores:
+    skill_scores["reading"].extend(reading_scores)
+    skill_scores["exam"].extend(exam_scores)
+
     today = time.strftime("%Y-%m-%d", time.localtime())
     streak = 0
     cursor = int(time.mktime(time.strptime(today, "%Y-%m-%d")))
@@ -1165,14 +1358,26 @@ def my_dashboard(user=Depends(current_user)):
                 for key, values in skill_scores.items()}
     written_attempts = skill_scores["writing"] + skill_scores["handwriting"]
     averages["writing"] = round(sum(written_attempts) / len(written_attempts), 1) if written_attempts else 0
+    all_scores = [r["score"] for r in current_results] + reading_scores + exam_scores
+    overall_avg = round(sum(all_scores) / len(all_scores), 1) if all_scores else 0
+
     return {
-        "results": len(results),
-        "average_score": round(sum(r["score"] for r in current_results) / len(current_results), 1) if current_results else 0,
-        "needs_review": needs_review,
+        "results": len(results) + len(reading_scores) + len(exam_scores),
+        "average_score": overall_avg,
+        "needs_review": total_needs_review,
         "vocabulary_count": vocabulary_count,
         "streak": streak,
         "skill_scores": averages,
-        "progress_percent": round(sum(r["score"] for r in current_results) / len(current_results), 1) if current_results else 0,
+        "progress_percent": overall_avg,
+        "under_80_breakdown": {
+            "reading": reading_under_80,
+            "exam": exam_under_80,
+            "listening": sum(1 for r in current_results if r["kind"] == "listening" and r["score"] < 80),
+            "writing": sum(1 for r in current_results if r["kind"] == "writing" and r["score"] < 80),
+            "handwriting": sum(1 for r in current_results if r["kind"] == "handwriting" and r["score"] < 80),
+            "vocabulary": vocab_weak,
+            "total": total_needs_review,
+        },
     }
 
 

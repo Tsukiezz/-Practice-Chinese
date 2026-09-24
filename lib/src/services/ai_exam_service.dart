@@ -53,6 +53,7 @@ class AIExam {
     this.userAnswers = const {},
     this.aiFeedback,
     this.submittedAt,
+    this.isStandardPreset = false,
   });
 
   final int id;
@@ -70,6 +71,7 @@ class AIExam {
   final double? score;
   final Map<String, String> userAnswers;
   final AIExamFeedback? aiFeedback;
+  final bool isStandardPreset;
 
   factory AIExam.fromJson(Map<String, dynamic> json) {
     final rawQuestions = json['questions'] as List<dynamic>? ?? const [];
@@ -101,6 +103,7 @@ class AIExam {
       score: (json['score'] as num?)?.toDouble(),
       userAnswers: userAnswers,
       aiFeedback: feedback,
+      isStandardPreset: json['is_standard_preset'] as bool? ?? false,
     );
   }
 }
@@ -222,9 +225,9 @@ class AIExamService {
     return AIExam.fromJson(data);
   }
 
-  Future<Map<String, List<AIExam>>> listExams() async {
+  Future<Map<String, List<AIExam>>> listExams({bool includeStandard = true}) async {
     final headers = await _headers();
-    final uri = Uri.parse('$baseUrl/me/ai-exams');
+    final uri = Uri.parse('$baseUrl/me/ai-exams?include_standard=$includeStandard');
     final response = await _client.get(uri, headers: headers);
 
     if (response.statusCode != 200) {
@@ -234,11 +237,26 @@ class AIExamService {
     final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     final pendingRaw = data['pending'] as List<dynamic>? ?? const [];
     final completedRaw = data['completed'] as List<dynamic>? ?? const [];
+    final standardRaw = data['standard_hsk'] as List<dynamic>? ?? const [];
 
     return {
       'pending': pendingRaw.map((e) => AIExam.fromJson(e as Map<String, dynamic>)).toList(),
       'completed': completedRaw.map((e) => AIExam.fromJson(e as Map<String, dynamic>)).toList(),
+      'standard_hsk': standardRaw.map((e) => AIExam.fromJson(e as Map<String, dynamic>)).toList(),
     };
+  }
+
+  Future<List<AIExam>> getStandardPresets() async {
+    final headers = await _headers();
+    final uri = Uri.parse('$baseUrl/me/ai-exams/standard-presets');
+    final response = await _client.get(uri, headers: headers);
+
+    if (response.statusCode != 200) {
+      throw Exception('Không thể tải danh sách đề thi HSK chuẩn');
+    }
+
+    final data = jsonDecode(utf8.decode(response.bodyBytes)) as List<dynamic>;
+    return data.map((e) => AIExam.fromJson(e as Map<String, dynamic>)).toList();
   }
 
   Future<AIExam> getExam(int examId) async {

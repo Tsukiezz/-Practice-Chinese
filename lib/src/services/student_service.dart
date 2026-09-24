@@ -33,6 +33,8 @@ class StudentResult {
   final List<ScoreOverride> overrides;
   final double? latestScore;
   final String? latestFeedback;
+  final String? title;
+  final String? subtitle;
 
   double get reviewScore => latestScore ?? score;
   String get reviewFeedback => latestFeedback ?? feedback;
@@ -41,22 +43,25 @@ class StudentResult {
     final overrides =
         (json['overrides'] as List<dynamic>? ?? const <dynamic>[]);
     final latest = json['latest_result'] as Map<String, dynamic>?;
+    final score = (json['score'] as num?)?.toDouble() ?? 0.0;
     return StudentResult(
       id: json['id'] as int,
       examId: json['exam_id'] as int?,
-      kind: json['kind'] as String,
-      content: json['content'] as String,
-      score: (json['score'] as num).toDouble(),
-      originalScore: (json['original_score'] as num).toDouble(),
+      kind: json['kind'] as String? ?? 'writing',
+      content: json['content'] as String? ?? json['title'] as String? ?? '',
+      score: score,
+      originalScore: (json['original_score'] as num?)?.toDouble() ?? score,
       feedback: json['feedback'] as String? ?? '',
-      gradedBy: json['graded_by'] as String,
-      version: json['version'] as int,
-      createdAt: json['created_at'] as int,
+      gradedBy: json['graded_by'] as String? ?? 'ai',
+      version: json['version'] as int? ?? 1,
+      createdAt: json['created_at'] as int? ?? 0,
       overrides: overrides
           .map((item) => ScoreOverride.fromJson(item as Map<String, dynamic>))
           .toList(growable: false),
       latestScore: (latest?['score'] as num?)?.toDouble(),
       latestFeedback: latest?['feedback'] as String?,
+      title: json['title'] as String?,
+      subtitle: json['subtitle'] as String?,
     );
   }
 }
@@ -93,6 +98,7 @@ class StudentDashboard {
     required this.streak,
     required this.progressPercent,
     required this.skillScores,
+    this.under80Breakdown = const {},
   });
 
   final int results;
@@ -102,8 +108,15 @@ class StudentDashboard {
   final int streak;
   final double progressPercent;
   final Map<String, double> skillScores;
+  final Map<String, int> under80Breakdown;
 
   factory StudentDashboard.fromJson(Map<String, dynamic> json) {
+    final breakdown = <String, int>{};
+    if (json['under_80_breakdown'] is Map) {
+      (json['under_80_breakdown'] as Map).forEach((k, v) {
+        if (v is num) breakdown[k.toString()] = v.toInt();
+      });
+    }
     return StudentDashboard(
       results: json['results'] as int,
       averageScore: (json['average_score'] as num).toDouble(),
@@ -114,6 +127,7 @@ class StudentDashboard {
       skillScores: (json['skill_scores'] as Map<String, dynamic>).map(
         (key, value) => MapEntry(key, (value as num).toDouble()),
       ),
+      under80Breakdown: breakdown,
     );
   }
 }
@@ -542,6 +556,23 @@ class StudentService {
     return rows
         .map((row) => StudentResult.fromJson(row as Map<String, dynamic>))
         .toList(growable: false);
+  }
+
+  Future<Map<String, int>> fetchReviewSummary() async {
+    try {
+      final response = await _request(
+        'GET',
+        Uri.parse('$baseUrl/me/review-summary?below=80'),
+      );
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final result = <String, int>{};
+      data.forEach((k, v) {
+        if (v is num) result[k] = v.toInt();
+      });
+      return result;
+    } catch (_) {
+      return {};
+    }
   }
 
   Future<List<HandwritingRetryItem>> fetchHandwritingRetryItems() async {
