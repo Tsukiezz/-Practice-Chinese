@@ -66,3 +66,4 @@ playwright-report/
 .agents/
 skills-lock.json
 configs_backup/
+.env*

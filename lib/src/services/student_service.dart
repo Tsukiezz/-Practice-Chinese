@@ -18,6 +18,8 @@ class StudentResult {
     required this.overrides,
     this.latestScore,
     this.latestFeedback,
+    this.title,
+    this.subtitle,
   });
 
   final int id;
