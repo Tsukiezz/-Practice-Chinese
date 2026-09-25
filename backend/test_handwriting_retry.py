@@ -1,8 +1,13 @@
 """UC-05 tests for per-character handwriting retry selection."""
 import json
 from pathlib import Path
+import sys
 import unittest
 import uuid
+
+ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from fastapi.testclient import TestClient
 

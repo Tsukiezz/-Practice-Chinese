@@ -1,8 +1,13 @@
 """Unit tests for UC-03 grammar validation, caching and usage accounting."""
 from pathlib import Path
+import sys
 import unittest
 import uuid
 from unittest.mock import Mock, patch
+
+ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from fastapi import HTTPException
 from pydantic import ValidationError

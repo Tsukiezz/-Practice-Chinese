@@ -1,6 +1,14 @@
-import os,tempfile,unittest
+import os
 from pathlib import Path
+import sys
+import tempfile
+import unittest
 from unittest.mock import patch, Mock
+
+ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from fastapi.testclient import TestClient
 import database as storage
 from main import app

@@ -1,9 +1,14 @@
 """Unit tests for HSK 1 to HSK 6 listening exams."""
 import json
 import os
+from pathlib import Path
+import sys
 import tempfile
 import unittest
-from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from fastapi.testclient import TestClient
 

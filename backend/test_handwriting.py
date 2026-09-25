@@ -1,8 +1,13 @@
 """Unit tests for deterministic, offline handwriting grading."""
 import json
 from pathlib import Path
+import sys
 import unittest
 import uuid
+
+ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 import database as storage
 from seed import seed

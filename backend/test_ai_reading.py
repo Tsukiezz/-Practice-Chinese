@@ -1,7 +1,13 @@
-"""Automated tests for AI Reading & Pronunciation Assessment."""
 import json
 import sqlite3
+import sys
 import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from fastapi.testclient import TestClient
 
 from main import app, hash_password

@@ -1,12 +1,16 @@
-"""Integration tests use isolated databases, never the developer's local data."""
 import json
 import base64
 import os
+import sys
 import tempfile
 import unittest
 import httpx
 from pathlib import Path
 from unittest.mock import patch
+
+ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
