@@ -91,6 +91,10 @@ class HanziDrawingCanvas extends StatelessWidget {
     required this.controller,
     this.enabled = true,
     this.wrongStrokes = const {},
+    this.guideStrokes,
+    this.visibleGuideStrokeCount,
+    this.activeGuideStrokeIndex,
+    this.showStrokeNumbers = false,
     this.onChanged,
     this.onDrawingStateChanged,
     this.canvasKey,
@@ -100,6 +104,10 @@ class HanziDrawingCanvas extends StatelessWidget {
   final HanziCanvasController controller;
   final bool enabled;
   final Set<int> wrongStrokes;
+  final List<List<Offset>>? guideStrokes;
+  final int? visibleGuideStrokeCount;
+  final int? activeGuideStrokeIndex;
+  final bool showStrokeNumbers;
   final VoidCallback? onChanged;
   final ValueChanged<bool>? onDrawingStateChanged;
   final Key? canvasKey;
@@ -162,12 +170,23 @@ class HanziDrawingCanvas extends StatelessWidget {
                   foregroundPainter: _HanziPainter(
                     controller._strokes,
                     wrongStrokes: wrongStrokes,
+                    guideStrokes: guideStrokes,
+                    visibleGuideStrokeCount: visibleGuideStrokeCount,
+                    activeGuideStrokeIndex: activeGuideStrokeIndex,
+                    showStrokeNumbers: showStrokeNumbers,
                   ),
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      border: Border.all(color: AppTheme.jade, width: 2),
+                      border: Border.all(color: AppTheme.jade, width: 2.5),
                       borderRadius: BorderRadius.circular(18),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x12000000),
+                          blurRadius: 12,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -181,26 +200,128 @@ class HanziDrawingCanvas extends StatelessWidget {
 }
 
 class _HanziPainter extends CustomPainter {
-  const _HanziPainter(this.strokes, {this.wrongStrokes = const {}});
+  const _HanziPainter(
+    this.strokes, {
+    this.wrongStrokes = const {},
+    this.guideStrokes,
+    this.visibleGuideStrokeCount,
+    this.activeGuideStrokeIndex,
+    this.showStrokeNumbers = false,
+  });
 
   final List<List<Offset>> strokes;
   final Set<int> wrongStrokes;
+  final List<List<Offset>>? guideStrokes;
+  final int? visibleGuideStrokeCount;
+  final int? activeGuideStrokeIndex;
+  final bool showStrokeNumbers;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final guide = Paint()
-      ..color = const Color(0xFFE6DED5)
-      ..strokeWidth = 1;
+    // 1. Calligraphy rice-grid (米字格) guidelines
+    final crossPaint = Paint()
+      ..color = const Color(0xFFE2D8CC)
+      ..strokeWidth = 1.2;
     canvas.drawLine(
       Offset(size.width / 2, 0),
       Offset(size.width / 2, size.height),
-      guide,
+      crossPaint,
     );
     canvas.drawLine(
       Offset(0, size.height / 2),
       Offset(size.width, size.height / 2),
-      guide,
+      crossPaint,
     );
+
+    final diagPaint = Paint()
+      ..color = const Color(0xFFEEE6DC)
+      ..strokeWidth = 0.8;
+    canvas.drawLine(Offset.zero, Offset(size.width, size.height), diagPaint);
+    canvas.drawLine(Offset(size.width, 0), Offset(0, size.height), diagPaint);
+
+    // 2. Stroke guidance (Ghost / animated step-by-step strokes)
+    if (guideStrokes != null && guideStrokes!.isNotEmpty) {
+      final totalGuide = guideStrokes!.length;
+      final limit = visibleGuideStrokeCount == null
+          ? totalGuide
+          : visibleGuideStrokeCount!.clamp(0, totalGuide);
+
+      final guidePaint = Paint()
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..style = PaintingStyle.stroke;
+
+      for (var i = 0; i < limit; i++) {
+        final gStroke = guideStrokes![i];
+        if (gStroke.isEmpty) continue;
+        final isActive = (activeGuideStrokeIndex == i);
+
+        if (isActive) {
+          guidePaint
+            ..color = const Color(0xFFE65100)
+            ..strokeWidth = 9.0;
+        } else {
+          guidePaint
+            ..color = const Color(0x38176B50)
+            ..strokeWidth = 6.5;
+        }
+
+        if (gStroke.length == 1) {
+          final pt = Offset(
+            gStroke.first.dx / 1024 * size.width,
+            gStroke.first.dy / 1024 * size.height,
+          );
+          canvas.drawCircle(pt, isActive ? 5.5 : 4.0, guidePaint..style = PaintingStyle.fill);
+          guidePaint.style = PaintingStyle.stroke;
+        } else {
+          final path = Path()
+            ..moveTo(
+              gStroke.first.dx / 1024 * size.width,
+              gStroke.first.dy / 1024 * size.height,
+            );
+          for (final pt in gStroke.skip(1)) {
+            path.lineTo(
+              pt.dx / 1024 * size.width,
+              pt.dy / 1024 * size.height,
+            );
+          }
+          canvas.drawPath(path, guidePaint);
+        }
+
+        // Show starting point badge if active or numbers enabled
+        if (showStrokeNumbers || isActive) {
+          final startPt = Offset(
+            gStroke.first.dx / 1024 * size.width,
+            gStroke.first.dy / 1024 * size.height,
+          );
+          final badgePaint = Paint()
+            ..color = isActive ? const Color(0xFFE65100) : const Color(0xFF176B50)
+            ..style = PaintingStyle.fill;
+          canvas.drawCircle(startPt, 8.5, badgePaint);
+
+          final textPainter = TextPainter(
+            text: TextSpan(
+              text: '${i + 1}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            textDirection: TextDirection.ltr,
+          )..layout();
+          textPainter.paint(
+            canvas,
+            Offset(
+              startPt.dx - textPainter.width / 2,
+              startPt.dy - textPainter.height / 2,
+            ),
+          );
+        }
+      }
+    }
+
+    // 3. User's drawn strokes
     final ink = Paint()
       ..strokeWidth = 7
       ..strokeCap = StrokeCap.round

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:http/http.dart' as http;
 
@@ -292,6 +293,55 @@ class HandwritingRetryItem {
         attempts: json['attempts'] as int,
         lastPracticedAt: json['last_practiced_at'] as int,
       );
+}
+
+class HanziStrokeGuide {
+  const HanziStrokeGuide({
+    required this.char,
+    required this.pinyin,
+    required this.meaning,
+    required this.hsk,
+    required this.totalStrokes,
+    required this.strokes,
+  });
+
+  final String char;
+  final String pinyin;
+  final String meaning;
+  final int hsk;
+  final int totalStrokes;
+  final List<List<Offset>> strokes;
+
+  factory HanziStrokeGuide.fromJson(Map<String, dynamic> json) {
+    final rawStrokes = json['strokes'] as List<dynamic>? ?? const [];
+    final parsedStrokes = <List<Offset>>[];
+    for (final rawStroke in rawStrokes) {
+      if (rawStroke is List) {
+        final strokePoints = <Offset>[];
+        for (final pt in rawStroke) {
+          if (pt is Map) {
+            strokePoints.add(
+              Offset(
+                (pt['x'] as num).toDouble(),
+                (pt['y'] as num).toDouble(),
+              ),
+            );
+          }
+        }
+        if (strokePoints.isNotEmpty) {
+          parsedStrokes.add(strokePoints);
+        }
+      }
+    }
+    return HanziStrokeGuide(
+      char: json['char'] as String? ?? '',
+      pinyin: json['pinyin'] as String? ?? '',
+      meaning: json['meaning'] as String? ?? '',
+      hsk: (json['hsk'] as num?)?.toInt() ?? 0,
+      totalStrokes: (json['total_strokes'] as num?)?.toInt() ?? parsedStrokes.length,
+      strokes: parsedStrokes,
+    );
+  }
 }
 
 class GrammarCorrectionError {
@@ -744,6 +794,30 @@ class StudentService {
       throw const StudentApiException(
         null,
         'Kết quả nhận dạng chữ viết tay không đúng định dạng.',
+      );
+    }
+  }
+
+  Future<HanziStrokeGuide> fetchStrokeGuide(String char) async {
+    final cleanChar = char.trim();
+    if (cleanChar.isEmpty) {
+      throw const StudentApiException(null, 'Chữ cần hướng dẫn không hợp lệ.');
+    }
+    final response = await _request(
+      'GET',
+      Uri.parse(
+        '$baseUrl/handwriting/stroke-guide?char=${Uri.encodeComponent(cleanChar)}',
+      ),
+      requiresAuth: false,
+    );
+    try {
+      return HanziStrokeGuide.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
+    } on Object {
+      throw const StudentApiException(
+        null,
+        'Dữ liệu nét chữ Hán không đúng định dạng.',
       );
     }
   }

@@ -862,14 +862,74 @@ def _legacy_exam_grade(exam, questions, answers, user_id, grader):
     return grade_function(user_id, grading_content)
 
 
-def _grade_exam_canvas(target: str, strokes: list[list[dict]]):
+def fetch_or_get_stroke_guide(char: str) -> dict[str, Any]:
+    if not char:
+        raise HTTPException(400, "Vui lòng nhập chữ cần xem nét")
+    target = char.strip()[0]
+    pinyin = ""
+    meaning = ""
+    hsk = 0
+    strokes = []
+
     with database() as conn:
-        word = conn.execute(
-            "SELECT strokes_json FROM vocabulary WHERE hanzi=?", (target,)
-        ).fetchone()
-    if word is None or not json.loads(word["strokes_json"]):
+        word = conn.execute("SELECT * FROM vocabulary WHERE hanzi=?", (target,)).fetchone()
+        if word:
+            pinyin = word["pinyin"]
+            meaning = word["meaning"]
+            hsk = word["hsk"]
+            raw_strokes = json.loads(word["strokes_json"] or "[]")
+            if raw_strokes:
+                strokes = raw_strokes
+
+    if not strokes:
+        char_code = f"{ord(target):04x}"
+        cache_path = Path(__file__).parent / "data" / "stroke_data" / f"{char_code}.json"
+        if cache_path.exists():
+            try:
+                with open(cache_path, "r", encoding="utf-8") as f:
+                    cached_data = json.load(f)
+                    strokes = cached_data.get("strokes", [])
+            except Exception:
+                pass
+
+        if not strokes:
+            try:
+                import urllib.parse
+                import urllib.request
+                url = f"https://cdn.jsdelivr.net/npm/hanzi-writer-data@latest/{urllib.parse.quote(target)}.json"
+                req = urllib.request.Request(url, headers={"User-Agent": "HanziGo/1.0"})
+                with urllib.request.urlopen(req, timeout=4) as resp:
+                    hw_data = json.loads(resp.read().decode("utf-8"))
+                    medians = hw_data.get("medians", [])
+                    for s in medians:
+                        strokes.append([{"x": round(pt[0]), "y": round(900 - pt[1])} for pt in s])
+
+                if strokes:
+                    cache_path.parent.mkdir(parents=True, exist_ok=True)
+                    with open(cache_path, "w", encoding="utf-8") as f:
+                        json.dump({"char": target, "strokes": strokes}, f, ensure_ascii=False)
+
+                    with database() as conn:
+                        conn.execute("UPDATE vocabulary SET strokes_json=? WHERE hanzi=?", (json.dumps(strokes), target))
+            except Exception:
+                pass
+
+    return {
+        "char": target,
+        "pinyin": pinyin,
+        "meaning": meaning,
+        "hsk": hsk,
+        "total_strokes": len(strokes),
+        "strokes": strokes,
+    }
+
+
+def _grade_exam_canvas(target: str, strokes: list[list[dict]]):
+    guide = fetch_or_get_stroke_guide(target)
+    standard = guide.get("strokes", [])
+    if not standard:
         raise HTTPException(422, "Chữ Hán chưa có dữ liệu nét chuẩn")
-    return compare_handwriting_strokes(json.loads(word["strokes_json"]), strokes)
+    return compare_handwriting_strokes(standard, strokes)
 
 
 @app.post("/api/test-writing/grade-canvas",
@@ -1114,11 +1174,8 @@ def analyze_translation(body: GrammarAnalysisRequest,
 
 
 def grade_handwriting_submission(body: HandwritingSubmission, user_id: int):
-    with database() as conn:
-        word = conn.execute("SELECT * FROM vocabulary WHERE hanzi=?", (body.target,)).fetchone()
-    if word is None:
-        raise HTTPException(404, "Chữ Hán chưa có trong kho nét chuẩn")
-    standard = json.loads(word["strokes_json"])
+    guide = fetch_or_get_stroke_guide(body.target)
+    standard = guide.get("strokes", [])
     if not standard:
         raise HTTPException(422, "Chữ Hán chưa có dữ liệu nét chuẩn")
     submitted = [[point.model_dump() for point in stroke] for stroke in body.strokes]
@@ -1130,6 +1187,12 @@ def grade_handwriting_submission(body: HandwritingSubmission, user_id: int):
 def submit_handwriting(body: HandwritingSubmission, user=Depends(current_user)):
     grade, _ = grade_handwriting_submission(body, user["id"])
     return grade
+
+
+@app.get("/api/handwriting/stroke-guide")
+def handwriting_stroke_guide(char: str = Query(..., max_length=20)):
+    """Fetch stroke-by-stroke guide for any Hanzi with HSK info and ordered stroke coordinates."""
+    return fetch_or_get_stroke_guide(char)
 
 
 @app.get("/api/me/handwriting-retry-items",

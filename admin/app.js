@@ -23,8 +23,30 @@ let noticeTimer;
 let strokes = [];
 const escape = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const date = value => new Date(value * 1000).toLocaleString('vi-VN');
-const brand = '<div class="brand"><span class="seal">汉</span><div>HanziGo<small>ADMIN WORKSPACE</small></div></div>';
+const brand = '<div class="brand"><img class="logo-img" src="/admin/assets/logo.png" onerror="this.src=\'/admin/assets/logo.svg\'" alt="HanziGo"><div class="brand-text"><span class="brand-title">HanziGo</span><small class="brand-subtitle">HỆ THỐNG QUẢN TRỊ</small></div></div>';
 const statusLabel = value => ({published:'Đã phát hành',draft:'Bản nháp',hidden:'Đã ẩn',admin:'Quản trị viên',student:'Học viên'}[value] || value);
+
+const NAV_GROUPS = [
+  {
+    id: 'students',
+    title: '🎓 Quản trị Học viên',
+    desc: 'Tài khoản, 48 bài học, đọc AI, viết canvas, sổ tay và duyệt điểm thi',
+    items: ['users','student_lessons','student_reading','student_writing','student_vocab','student_ai_exams','results']
+  },
+  {
+    id: 'content',
+    title: '📚 Học liệu & Đề thi',
+    desc: 'Kho 5.000 từ vựng HSK, ngân hàng đề thi và giáo trình 48 bài học',
+    items: ['vocabulary','exams','lessons']
+  },
+  {
+    id: 'system',
+    title: '⚙️ Hệ thống & Trí tuệ AI',
+    desc: 'Cấu hình model Gemini AI và nhật ký kiểm toán hệ thống',
+    items: ['ai','logs']
+  }
+];
+const expandedGroups = new Set();
 
 // Desktop testers can use the same compact layout as a phone without DevTools.
 const previewControls = document.createElement('div');
@@ -98,7 +120,7 @@ function clearSession() {
 }
 
 function loginView(error = '') {
-  root.innerHTML = `<div class="login"><aside class="login-art">${brand}<div><div class="character">学 · 习</div><h1>Chăm chút từng<br>hành trình học.</h1><p>Không gian quản trị dành cho đội ngũ Chinese Learning. Nội dung tốt tạo nên trải nghiệm học tốt.</p></div><small>HanziGo · Chinese Learning</small></aside><section class="login-wrap"><form id="login" class="login-form"><div><div class="eyebrow">CHÀO MỪNG TRỞ LẠI</div><h2>Đăng nhập quản trị</h2><p>Sử dụng tài khoản Admin được cấp cho dự án.</p></div><label>Email<input name="email" type="email" autocomplete="username" required maxlength="120"></label><label>Mật khẩu<input name="password" type="password" autocomplete="current-password" required maxlength="128"></label><div id="login-error" role="alert">${error ? `<div class="error">${escape(error)}</div>` : ''}</div><button class="primary">Đăng nhập →</button><a href="/" style="display:inline-block;margin-top:16px;color:#2c7a3f;text-decoration:none;font-weight:600;text-align:center">← Trở về ứng dụng học tập HanziGo</a><small>Quyền quản trị được xác minh trên máy chủ.</small></form></section></div>`;
+  root.innerHTML = `<div class="login"><aside class="login-art">${brand}<div><div class="character"><img src="/admin/assets/logo.png" onerror="this.src='/admin/assets/logo.svg'" style="width:100px;height:100px;border-radius:24px;box-shadow:0 12px 36px rgba(0,0,0,0.35);border:2px solid #d7ed98" alt="Logo"></div><h1>Chăm chút từng<br>hành trình học.</h1><p>Không gian quản trị dành cho đội ngũ Chinese Learning. Nội dung tốt tạo nên trải nghiệm học tốt.</p></div><small>HanziGo · Chinese Learning</small></aside><section class="login-wrap"><form id="login" class="login-form"><div style="text-align:center"><img src="/admin/assets/logo.png" onerror="this.src='/admin/assets/logo.svg'" style="width:58px;height:58px;border-radius:16px;margin-bottom:10px;box-shadow:0 6px 20px rgba(21,62,53,0.2)" alt="Logo"><div class="eyebrow">CHÀO MỪNG TRỞ LẠI</div><h2>Đăng nhập quản trị</h2><p>Sử dụng tài khoản Admin được cấp cho dự án.</p></div><label>Email<input name="email" type="email" autocomplete="username" required maxlength="120"></label><label>Mật khẩu<input name="password" type="password" autocomplete="current-password" required maxlength="128"></label><div id="login-error" role="alert">${error ? `<div class="error">${escape(error)}</div>` : ''}</div><button class="primary">Đăng nhập →</button><a href="/" style="display:inline-block;margin-top:16px;color:#2c7a3f;text-decoration:none;font-weight:600;text-align:center">← Trở về ứng dụng học tập HanziGo</a><small>Quyền quản trị được xác minh trên máy chủ.</small></form></section></div>`;
   document.querySelector('#login').onsubmit = async event => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -121,20 +143,61 @@ function loginView(error = '') {
 }
 
 function shell() {
-  const navButton = key => `<button data-page="${key}">${pages[key][0]}</button>`;
-  root.innerHTML = `<div class="layout"><aside class="sidebar">${brand}<button type="button" id="menu-toggle" class="menu-toggle" aria-label="Mở menu quản trị" aria-expanded="false" aria-controls="admin-menu"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div id="admin-menu" class="sidebar-menu"><a href="/" class="app-return-link" style="display:flex;align-items:center;gap:8px;padding:9px 12px;margin:4px 8px 10px;background:#eef6ee;color:#1e5e2e;border:1px solid #cce5cc;border-radius:8px;font-weight:600;font-size:13px;text-decoration:none">← Về ứng dụng HanziGo</a><nav aria-label="Quản trị">${navButton('dashboard')}<div class="nav-group"><span class="nav-label">🎓 Quản trị Chức năng Học viên</span>${['users','student_lessons','student_reading','student_writing','student_vocab','student_ai_exams','results'].map(navButton).join('')}</div><div class="nav-group"><span class="nav-label">📚 Kho Học liệu & Đề thi</span>${['vocabulary','exams','lessons'].map(navButton).join('')}</div><div class="nav-group"><span class="nav-label">⚙️ Hệ thống & Trí tuệ AI</span>${['ai','logs'].map(navButton).join('')}</div></nav><div class="account"><div><b>${escape(user.name)}</b><small>${escape(user.email)}</small></div><a href="/">← Về trang học viên</a><button id="logout">Đăng xuất</button></div></div></aside><main class="main"><div class="topline"><span>CHINESE LEARNING / QUẢN TRỊ</span><a href="/" style="font-size:12px;color:#2c7a3f;text-decoration:none;font-weight:600;margin-right:12px">← Mở ứng dụng học tập</a><span class="pill">Không gian quản trị</span></div><div id="content"></div></main></div>`;
-  document.querySelector('#menu-toggle').onclick = event => {
-    setMenu(event.currentTarget.getAttribute('aria-expanded') !== 'true');
+  const curGroup = NAV_GROUPS.find(g => g.items.includes(page));
+  if (curGroup) expandedGroups.add(curGroup.id);
+
+  const navButton = key => `<button data-page="${key}" class="sub-nav-btn ${page === key ? 'active' : ''}">${pages[key][0]}</button>`;
+
+  const groupHtml = g => {
+    const isExpanded = expandedGroups.has(g.id);
+    const hasActiveChild = g.items.includes(page);
+    return `
+      <div class="nav-accordion ${isExpanded ? 'expanded' : ''} ${hasActiveChild ? 'has-active' : ''}" data-group="${g.id}">
+        <button type="button" class="nav-group-header" data-toggle-group="${g.id}" aria-expanded="${isExpanded}">
+          <span class="nav-group-title">${g.title}</span>
+          <span class="nav-group-badge">${g.items.length}</span>
+          <span class="nav-arrow">${isExpanded ? '▲' : '▼'}</span>
+        </button>
+        <div class="nav-group-items">
+          ${g.items.map(navButton).join('')}
+        </div>
+      </div>
+    `;
   };
+
+  root.innerHTML = `<div class="layout"><aside class="sidebar">${brand}<button type="button" id="menu-toggle" class="menu-toggle" aria-label="Mở menu quản trị" aria-expanded="false" aria-controls="admin-menu"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div id="admin-menu" class="sidebar-menu"><a href="/" class="app-return-link" style="display:flex;align-items:center;gap:8px;padding:9px 12px;margin:4px 8px 10px;background:#eef6ee;color:#1e5e2e;border:1px solid #cce5cc;border-radius:8px;font-weight:600;font-size:13px;text-decoration:none">← Về ứng dụng HanziGo</a><nav aria-label="Quản trị"><button data-page="dashboard" class="main-nav-btn ${page === 'dashboard' ? 'active' : ''}">📊 Tổng quan</button><div class="nav-accordion-container">${NAV_GROUPS.map(groupHtml).join('')}</div></nav><div class="account"><div><b>${escape(user.name)}</b><small>${escape(user.email)}</small></div><a href="/">← Về trang học viên</a><button id="logout">Đăng xuất</button></div></div></aside><main class="main"><div class="topline"><div style="display:flex;align-items:center;gap:8px"><img src="/admin/assets/logo.png" onerror="this.src='/admin/assets/logo.svg'" style="width:22px;height:22px;border-radius:6px" alt="HanziGo"><span>CHINESE LEARNING / QUẢN TRỊ</span></div><div style="display:flex;align-items:center"><a href="/" style="font-size:12px;color:#2c7a3f;text-decoration:none;font-weight:600;margin-right:12px">← Mở ứng dụng học tập</a><span class="pill">Không gian quản trị</span></div></div><div id="content"></div></main></div>`;
+
+  document.querySelectorAll('[data-toggle-group]').forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const groupId = btn.dataset.toggleGroup;
+      if (expandedGroups.has(groupId)) {
+        expandedGroups.delete(groupId);
+      } else {
+        expandedGroups.add(groupId);
+      }
+      shell();
+    };
+  });
+
   document.querySelectorAll('[data-page]').forEach(button => button.onclick = () => {
     page = button.dataset.page;
     setMenu(false);
+    const pGroup = NAV_GROUPS.find(g => g.items.includes(page));
+    if (pGroup) expandedGroups.add(pGroup.id);
+    shell();
     loadPage().then(() => document.querySelector('#content h1')?.focus());
   });
+
+  document.querySelector('#menu-toggle').onclick = event => {
+    setMenu(event.currentTarget.getAttribute('aria-expanded') !== 'true');
+  };
+
   document.querySelector('#logout').onclick = async () => {
     try { await api('/auth/logout', 'POST'); clearSession(); loginView(); }
     catch (err) { notify(err.message); }
   };
+
   loadPage();
 }
 
@@ -213,7 +276,61 @@ function renderDashboard(content, data) {
   const t = data.totals;
   const stats = items => `<div class="stats">${items.map(([label,value]) => `<article class="stat"><small>${label}</small><b>${value}</b></article>`).join('')}</div>`;
   content.innerHTML += stats([['Người dùng',t.users],['Từ vựng',t.vocabulary],['Đề thi',t.exams],['Kết quả đã chấm',t.results]]);
-  content.innerHTML += `<details class="advanced-stats"><summary>Thống kê chi tiết</summary>${stats([['Tài khoản hoạt động',t.active_users],['Điểm trung bình',t.average_score],['Lượt AI thành công',t.ai_success],['Lượt AI lỗi',t.ai_errors]])}</details><section class="panel"><h2>Hoạt động quản trị gần đây</h2>${table(['Người thực hiện','Thao tác','Dữ liệu','Thời gian'], data.recent_activity.map(r => `<tr><td>${escape(r.name)}</td><td>${escape(r.action)}</td><td>${escape(r.entity)} #${r.entity_id}</td><td>${date(r.created_at)}</td></tr>`))}</section>`;
+  content.innerHTML += `<details class="advanced-stats"><summary>Thống kê chi tiết</summary>${stats([['Tài khoản hoạt động',t.active_users],['Điểm trung bình',t.average_score],['Lượt AI thành công',t.ai_success],['Lượt AI lỗi',t.ai_errors]])}</details>`;
+
+  // Hub of Main Functional Groups
+  content.innerHTML += `
+    <section class="panel main-groups-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div>
+          <h2 style="margin:0 0 4px">Trung tâm Quản trị theo Mục chính</h2>
+          <p style="margin:0;color:var(--muted);font-size:13px">Nhấn vào từng mục chính để mở hoặc truy cập nhanh các chức năng.</p>
+        </div>
+      </div>
+      <div class="main-group-cards">
+        ${NAV_GROUPS.map(g => `
+          <div class="main-group-card ${expandedGroups.has(g.id) ? 'expanded' : ''}">
+            <div class="mg-head" data-hub-toggle="${g.id}">
+              <div>
+                <h3 style="margin:0 0 4px;font-size:16px;color:#153e35">${g.title}</h3>
+                <small style="color:var(--muted)">${g.desc}</small>
+              </div>
+              <button type="button" class="mg-toggle-btn">${expandedGroups.has(g.id) ? 'Thu gọn ▲' : 'Xem ' + g.items.length + ' chức năng ▼'}</button>
+            </div>
+            <div class="mg-items ${expandedGroups.has(g.id) ? 'show' : ''}">
+              ${g.items.map(k => `
+                <a href="#${k}" class="mg-item-link" data-goto-page="${k}">
+                  <b>${pages[k][0]}</b>
+                  <small>${pages[k][1]}</small>
+                </a>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </section>
+  `;
+
+  content.innerHTML += `<section class="panel"><h2>Hoạt động quản trị gần đây</h2>${table(['Người thực hiện','Thao tác','Dữ liệu','Thời gian'], data.recent_activity.map(r => `<tr><td>${escape(r.name)}</td><td>${escape(r.action)}</td><td>${escape(r.entity)} #${r.entity_id}</td><td>${date(r.created_at)}</td></tr>`))}</section>`;
+
+  content.querySelectorAll('[data-hub-toggle]').forEach(card => {
+    card.onclick = () => {
+      const gId = card.dataset.hubToggle;
+      if (expandedGroups.has(gId)) expandedGroups.delete(gId);
+      else expandedGroups.add(gId);
+      shell();
+    };
+  });
+  content.querySelectorAll('[data-goto-page]').forEach(link => {
+    link.onclick = (e) => {
+      e.preventDefault();
+      const p = link.dataset.gotoPage;
+      page = p;
+      const pGroup = NAV_GROUPS.find(g => g.items.includes(page));
+      if (pGroup) expandedGroups.add(pGroup.id);
+      shell();
+    };
+  });
 }
 
 function renderUsers(content, data, params) {

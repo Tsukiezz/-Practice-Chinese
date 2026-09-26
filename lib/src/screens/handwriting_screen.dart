@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -26,6 +27,7 @@ class HandwritingScreen extends StatefulWidget {
 
 class _HandwritingScreenState extends State<HandwritingScreen> {
   final _target = TextEditingController();
+  final _searchController = TextEditingController();
   final _canvasController = HanziCanvasController();
   final Set<int> _savingWordIds = {};
 
@@ -36,6 +38,24 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
   HandwritingRecognitionResult? _recognitionResult;
   String? _error;
 
+  // Search & Stroke-by-stroke guidance state
+  List<VocabularyEntry> _searchResults = [];
+  bool _searching = false;
+  bool _showSearchResults = false;
+  Timer? _searchDebounce;
+
+  HanziStrokeGuide? _strokeGuide;
+  bool _loadingStrokeGuide = false;
+  int _activeGuideStrokeIndex = 0;
+  bool _isPlayingAnimation = false;
+  Timer? _animationTimer;
+  bool _showGhostStrokes = true;
+  bool _showStrokeNumbers = true;
+
+  static const _popularChars = [
+    '你', '好', '学', '爱', '我', '中', '国', '生', '人', '水', '大', '天'
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -44,21 +64,31 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
         : _HandwritingMode.practice;
     if (widget.source != null) {
       try {
-        _target.text =
+        final initialTarget =
             (jsonDecode(widget.source!.content)
                     as Map<String, dynamic>)['target']
                 as String? ??
             '';
+        _target.text = initialTarget;
+        if (initialTarget.isNotEmpty) {
+          _loadStrokeGuide(initialTarget);
+        }
       } on Object {
         // Learner can enter a target if a legacy review payload has none.
       }
+    } else {
+      _target.text = '你';
+      _loadStrokeGuide('你');
     }
   }
 
   @override
   void dispose() {
     _target.dispose();
+    _searchController.dispose();
     _canvasController.dispose();
+    _searchDebounce?.cancel();
+    _animationTimer?.cancel();
     super.dispose();
   }
 
@@ -119,13 +149,12 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
               Text(
                 _isLookup
                     ? 'Viết một chữ Hán vào ô bên dưới để nhận dạng và tra từ.'
-                    : 'Nhập một chữ Hán, sau đó viết đúng thứ tự nét để chấm offline.',
+                    : 'Tìm từ vựng cần viết, xem hướng dẫn từng nét và luyện viết đúng chuẩn.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: isDark ? const Color(0xFF90A89D) : Colors.grey.shade700,
                 ),
               ),
-
 
               if (_isLookup) ...[
                 const SizedBox(height: 8),
@@ -140,21 +169,317 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
               ],
               if (!_isLookup) ...[
                 const SizedBox(height: 12),
+                // 1. Search Box with Live Auto-complete
                 TextField(
-                  key: const Key('handwriting-target'),
-                  controller: _target,
-                  enabled: !_submitting && widget.source == null,
-                  maxLength: 1,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w800,
-                  ),
-                  decoration: const InputDecoration(
-                    labelText: 'Chữ cần viết',
-                    hintText: 'Ví dụ: 你',
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  decoration: InputDecoration(
+                    labelText: 'Tìm từ vựng muốn viết',
+                    hintText: 'Nhập chữ Hán, Pinyin hoặc nghĩa (VD: bạn, nǐ, 你, học...)',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searching
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox.square(
+                              dimension: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {
+                                    _showSearchResults = false;
+                                    _searchResults = [];
+                                  });
+                                },
+                              )
+                            : null,
                   ),
                 ),
+                if (_showSearchResults && _searchResults.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Card(
+                    elevation: 4,
+                    color: isDark ? const Color(0xFF1E3029) : Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: AppTheme.jade.withValues(alpha: 0.3)),
+                    ),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 220),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        itemCount: _searchResults.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (_, index) {
+                          final item = _searchResults[index];
+                          return ListTile(
+                            dense: true,
+                            leading: Text(
+                              item.hanzi,
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.jade,
+                              ),
+                            ),
+                            title: Text('${item.pinyin} • ${item.meaning}'),
+                            trailing: Chip(
+                              label: Text('HSK ${item.hsk}'),
+                              padding: EdgeInsets.zero,
+                              labelStyle: const TextStyle(fontSize: 10),
+                            ),
+                            onTap: () => _selectChar(
+                              item.hanzi,
+                              pinyin: item.pinyin,
+                              meaning: item.meaning,
+                              hsk: item.hsk,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 10),
+                // 2. Quick Popular Character Chips
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    Text(
+                      'Gợi ý:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? const Color(0xFF90A89D) : Colors.grey.shade700,
+                      ),
+                    ),
+                    for (final ch in _popularChars)
+                      ActionChip(
+                        label: Text(ch),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        labelStyle: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _target.text == ch ? Colors.white : (isDark ? Colors.white : AppTheme.jade),
+                        ),
+                        backgroundColor: _target.text == ch
+                            ? AppTheme.jade
+                            : (isDark ? const Color(0xFF1A3328) : const Color(0xFFEBF5EE)),
+                        side: BorderSide(
+                          color: _target.text == ch ? AppTheme.jade : AppTheme.jade.withValues(alpha: 0.25),
+                        ),
+                        onPressed: () => _selectChar(ch),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // 3. Current Selected Character Info Card
+                Card(
+                  color: isDark ? const Color(0xFF1C2C24) : const Color(0xFFF4F8F4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(color: AppTheme.jade.withValues(alpha: 0.25)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 58,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF122019) : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.jade, width: 1.5),
+                          ),
+                          child: Text(
+                            _target.text.isEmpty ? '?' : _target.text,
+                            style: const TextStyle(
+                              fontSize: 34,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.jade,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    _strokeGuide?.pinyin.isNotEmpty == true
+                                        ? _strokeGuide!.pinyin
+                                        : 'Chữ cần viết',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (_strokeGuide != null && _strokeGuide!.hsk > 0) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.jade.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        'HSK ${_strokeGuide!.hsk}',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.jade,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                _strokeGuide?.meaning.isNotEmpty == true
+                                    ? _strokeGuide!.meaning
+                                    : (_loadingStrokeGuide
+                                        ? 'Đang tải thông tin nét...'
+                                        : 'Nhấn vào các nút bên dưới để xem hướng dẫn viết từng nét'),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: isDark ? const Color(0xFFA0B4AA) : Colors.grey.shade700,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (_strokeGuide != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppTheme.jade,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              '${_strokeGuide!.totalStrokes} nét',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // 4. Interactive Stroke Guidance Bar & Player
+                if (_strokeGuide != null && _strokeGuide!.strokes.isNotEmpty) ...[
+                  Card(
+                    color: isDark ? const Color(0xFF1E2F26) : Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: BorderSide(color: AppTheme.jade.withValues(alpha: 0.2)),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.school, size: 18, color: AppTheme.jade),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Hướng dẫn nét:',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? Colors.white : const Color(0xFF153E35),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                children: [
+                                  FilterChip(
+                                    label: const Text('Nét mờ'),
+                                    selected: _showGhostStrokes,
+                                    padding: EdgeInsets.zero,
+                                    labelStyle: const TextStyle(fontSize: 11),
+                                    onSelected: (val) => setState(() => _showGhostStrokes = val),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  FilterChip(
+                                    label: const Text('Số nét 1..N'),
+                                    selected: _showStrokeNumbers,
+                                    padding: EdgeInsets.zero,
+                                    labelStyle: const TextStyle(fontSize: 11),
+                                    onSelected: (val) => setState(() => _showStrokeNumbers = val),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              IconButton.outlined(
+                                icon: const Icon(Icons.replay),
+                                tooltip: 'Về nét 1',
+                                onPressed: _resetGuide,
+                              ),
+                              IconButton.outlined(
+                                icon: const Icon(Icons.skip_previous),
+                                tooltip: 'Nét trước',
+                                onPressed: _prevStroke,
+                              ),
+                              FilledButton.tonalIcon(
+                                onPressed: _togglePlayAnimation,
+                                icon: Icon(_isPlayingAnimation ? Icons.pause : Icons.play_arrow),
+                                label: Text(_isPlayingAnimation ? 'Tạm dừng' : 'Tự động phát'),
+                              ),
+                              IconButton.outlined(
+                                icon: const Icon(Icons.skip_next),
+                                tooltip: 'Nét tiếp theo',
+                                onPressed: _nextStroke,
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE65100).withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFFE65100).withValues(alpha: 0.4)),
+                                ),
+                                child: Text(
+                                  'Nét ${_activeGuideStrokeIndex + 1}/${_strokeGuide!.totalStrokes}',
+                                  style: const TextStyle(
+                                    color: Color(0xFFE65100),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
               ],
               const SizedBox(height: 8),
               Semantics(
@@ -166,6 +491,16 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                   enabled: !_submitting,
                   wrongStrokes:
                       _practiceResult?.wrongStrokes.toSet() ?? const {},
+                  guideStrokes: !_isLookup && _showGhostStrokes && _strokeGuide != null
+                      ? _strokeGuide!.strokes
+                      : null,
+                  visibleGuideStrokeCount: _isPlayingAnimation || _activeGuideStrokeIndex > 0
+                      ? _activeGuideStrokeIndex + 1
+                      : null,
+                  activeGuideStrokeIndex: !_isLookup && _strokeGuide != null && _strokeGuide!.strokes.isNotEmpty
+                      ? _activeGuideStrokeIndex
+                      : null,
+                  showStrokeNumbers: !_isLookup && _showStrokeNumbers && _strokeGuide != null,
                   canvasKey: const Key('handwriting-canvas'),
                   onChanged: () => setState(_clearResults),
                   onDrawingStateChanged: (drawing) {
@@ -306,7 +641,136 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
       _mode = mode;
       _canvasController.clear();
       _clearResults();
+      _stopAnimation();
     });
+    if (mode == _HandwritingMode.practice && _strokeGuide == null) {
+      if (_target.text.isEmpty) {
+        _target.text = '你';
+      }
+      _loadStrokeGuide(_target.text);
+    }
+  }
+
+  void _onSearchChanged(String query) {
+    _searchDebounce?.cancel();
+    if (query.trim().isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _showSearchResults = false;
+      });
+      return;
+    }
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () async {
+      if (!mounted) return;
+      setState(() => _searching = true);
+      try {
+        final list = await widget.service.fetchVocabulary(search: query.trim());
+        if (!mounted) return;
+        setState(() {
+          _searchResults = list.take(15).toList();
+          _showSearchResults = true;
+          _searching = false;
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() => _searching = false);
+      }
+    });
+  }
+
+  void _selectChar(String char, {String? pinyin, String? meaning, int? hsk}) {
+    if (char.trim().isEmpty) return;
+    final single = char.trim().characters.first;
+    _target.text = single;
+    _searchController.clear();
+    setState(() {
+      _showSearchResults = false;
+      _searchResults = [];
+      _clearResults();
+      _canvasController.clear();
+    });
+    _stopAnimation();
+    _loadStrokeGuide(single);
+  }
+
+  Future<void> _loadStrokeGuide(String char) async {
+    final clean = char.trim();
+    if (clean.isEmpty) return;
+    final single = clean.characters.first;
+    setState(() {
+      _loadingStrokeGuide = true;
+      _strokeGuide = null;
+      _activeGuideStrokeIndex = 0;
+    });
+    try {
+      final guide = await widget.service.fetchStrokeGuide(single);
+      if (!mounted) return;
+      setState(() {
+        _strokeGuide = guide;
+        _loadingStrokeGuide = false;
+        _activeGuideStrokeIndex = 0;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingStrokeGuide = false);
+    }
+  }
+
+  void _togglePlayAnimation() {
+    if (_isPlayingAnimation) {
+      _stopAnimation();
+    } else {
+      _startAnimation();
+    }
+  }
+
+  void _startAnimation() {
+    if (_strokeGuide == null || _strokeGuide!.strokes.isEmpty) return;
+    _stopAnimation();
+    setState(() {
+      _isPlayingAnimation = true;
+      _activeGuideStrokeIndex = 0;
+    });
+    _animationTimer = Timer.periodic(const Duration(milliseconds: 800), (timer) {
+      if (!mounted || _strokeGuide == null) {
+        timer.cancel();
+        return;
+      }
+      if (_activeGuideStrokeIndex < _strokeGuide!.strokes.length - 1) {
+        setState(() => _activeGuideStrokeIndex++);
+      } else {
+        _stopAnimation();
+      }
+    });
+  }
+
+  void _stopAnimation() {
+    _animationTimer?.cancel();
+    _animationTimer = null;
+    if (_isPlayingAnimation) {
+      setState(() => _isPlayingAnimation = false);
+    }
+  }
+
+  void _nextStroke() {
+    _stopAnimation();
+    if (_strokeGuide == null || _strokeGuide!.strokes.isEmpty) return;
+    if (_activeGuideStrokeIndex < _strokeGuide!.strokes.length - 1) {
+      setState(() => _activeGuideStrokeIndex++);
+    }
+  }
+
+  void _prevStroke() {
+    _stopAnimation();
+    if (_strokeGuide == null || _strokeGuide!.strokes.isEmpty) return;
+    if (_activeGuideStrokeIndex > 0) {
+      setState(() => _activeGuideStrokeIndex--);
+    }
+  }
+
+  void _resetGuide() {
+    _stopAnimation();
+    setState(() => _activeGuideStrokeIndex = 0);
   }
 
   void _clearResults() {
