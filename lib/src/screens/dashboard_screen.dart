@@ -316,7 +316,7 @@ class _RadarPainter extends CustomPainter {
       final painter = TextPainter(
         text: TextSpan(
           text: '${labels[i]} ${(scores[keys[i]] ?? 0).round()}',
-          style: const TextStyle(
+          style: TextStyle(
             color: isDark ? const Color(0xFFE2ECE7) : AppTheme.ink,
             fontSize: 11,
             fontWeight: FontWeight.w700,
