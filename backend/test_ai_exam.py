@@ -245,3 +245,34 @@ class AIExamTests(unittest.TestCase):
         self.assertIn("reading", dash["skill_scores"])
         self.assertIn("exam", dash["skill_scores"])
 
+    def test_multiskill_and_topic_support(self):
+        """Test multi-skill AI exam generation: reading, listening, writing with custom topics."""
+        for skill in ["reading", "listening", "writing"]:
+            res = self.client.post("/api/me/ai-exams/generate", headers=self.headers_a, json={
+                "question_count": 6,
+                "content_type": skill,
+                "hsk_level": 1,
+                "topic": "school"
+            })
+            self.assertEqual(res.status_code, 201, f"Failed for skill {skill}: {res.text}")
+            data = res.json()
+            self.assertEqual(len(data["questions"]), 6)
+            self.assertEqual(data["duration_minutes"], 6)
+
+    def test_question_count_boundary_50(self):
+        """Test that question count up to 50 is allowed and > 50 is rejected."""
+        res_50 = self.client.post("/api/me/ai-exams/generate", headers=self.headers_a, json={
+            "question_count": 50,
+            "content_type": "random"
+        })
+        self.assertEqual(res_50.status_code, 201)
+        self.assertEqual(res_50.json()["question_count"], 50)
+        self.assertEqual(len(res_50.json()["questions"]), 50)
+
+        # > 50 should be rejected by validation
+        res_51 = self.client.post("/api/me/ai-exams/generate", headers=self.headers_a, json={
+            "question_count": 51,
+            "content_type": "random"
+        })
+        self.assertEqual(res_51.status_code, 422)
+

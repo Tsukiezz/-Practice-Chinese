@@ -48,7 +48,7 @@ class AuthService {
   static const _userKey = 'auth_user';
   static const _apiBaseUrlKey = 'api_base_url';
   static const _lastActiveKey = 'auth_last_active_at';
-  static const int defaultInactivityTimeoutSeconds = 86400; // 24 giờ
+  static const int defaultInactivityTimeoutSeconds = 1800; // 30 phút không hoạt động sẽ tự động đăng xuất
   bool _persistSession = true;
   String? _memoryToken;
   AuthUser? _memoryUser;

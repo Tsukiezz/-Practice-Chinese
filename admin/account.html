@@ -1,9 +1,12 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tài khoản · HanziGo</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f5f7f4;color:#24332e;font:16px system-ui,sans-serif}main{max-width:650px;margin:auto;padding:24px 18px}section{background:white;border-radius:22px;padding:24px;margin:20px 0}h1{font-size:28px}label{display:block;margin:15px 0}input{display:block;width:100%;padding:12px;border:1px solid #cbd7ce;border-radius:10px;font:inherit;margin-top:6px}button,a{font:inherit}button{padding:13px 20px;border:0;border-radius:12px;background:#235546;color:white;cursor:pointer}button:disabled{opacity:.5}a{color:#235546}#message{white-space:pre-wrap}img{width:80px;height:80px;object-fit:cover;border-radius:50%}.hint{color:#60736a;line-height:1.5}[hidden]{display:none!important}
+*{box-sizing:border-box}body{margin:0;background:#f5f7f4;color:#24332e;font:16px system-ui,sans-serif}main{max-width:650px;margin:auto;padding:24px 18px}section{background:white;border-radius:22px;padding:24px;margin:20px 0}h1{font-size:28px}label{display:block;margin:15px 0}input{display:block;width:100%;padding:12px;border:1px solid #cbd7ce;border-radius:10px;font:inherit;margin-top:6px}button,a{font:inherit}button{padding:13px 20px;border:0;border-radius:12px;background:#235546;color:white;cursor:pointer}button:disabled{opacity:.5}a{color:#235546;text-decoration:none;font-weight:600}#message{white-space:pre-wrap}img{width:80px;height:80px;object-fit:cover;border-radius:50%}.hint{color:#60736a;line-height:1.5}[hidden]{display:none!important}
+@media (prefers-color-scheme:dark){
+body{background:#121b18;color:#e2ece7}section{background:#1b2823;border:1px solid #283b34}input{background:#16221e;color:#e2ece7;border-color:#283b34}button{background:#397765}a{color:#4db697}.hint{color:#8fa69c}
+}
 </style></head><body><main>
-<a id="back" href="/">← Trở về HanziGo</a><h1 id="title">Thông tin cá nhân</h1>
+<a id="back" href="javascript:void(0)">← Trở về HanziGo</a><h1 id="title">Thông tin cá nhân</h1>
 <p id="message" role="status" aria-live="polite"></p>
 <section id="profile-section" hidden><form id="profile">
 <img id="preview" alt="Ảnh đại diện" hidden>
@@ -69,6 +72,24 @@ $('reset').onsubmit=e=>{e.preventDefault();submit(e.target,async()=>{
  await api('/auth/recovery/confirm','POST',Object.fromEntries(new FormData(e.target)));
  message('Đã đặt lại mật khẩu. Trở về HanziGo để đăng nhập.');e.target.reset();
 });};
+function goBack(e) {
+  if (e) e.preventDefault();
+  if (window.history.length > 1 && document.referrer && document.referrer.includes(location.host)) {
+    window.history.back();
+    return;
+  }
+  const savedTab = sessionStorage.getItem('hanzigo_return_tab');
+  const role = sessionStorage.getItem('hanzigo_admin_token') ? 'admin' : 'student';
+  if (role === 'admin') {
+    window.location.href = '/admin';
+  } else if (savedTab !== null && savedTab !== '') {
+    window.location.href = '/#tab=' + savedTab;
+  } else {
+    window.location.href = '/';
+  }
+}
+$('back').onclick = goBack;
+
 (async()=>{
  if(location.pathname==='/recover'){
   $('title').textContent='Quên mật khẩu';$('recovery-section').hidden=false;
@@ -78,7 +99,16 @@ $('reset').onsubmit=e=>{e.preventDefault();submit(e.target,async()=>{
   const data=await api('/account');
   for(const key of ['name','email','phone','birth_date','daily_goal','weekly_goal'])$('profile').elements[key].value=data[key]??'';
   avatar=data.avatar;preview();
-  if(data.role==='admin')$('back').href='/admin';
+  if(data.role==='admin'){
+    $('back').onclick = (e) => {
+      if (e) e.preventDefault();
+      if (window.history.length > 1 && document.referrer && document.referrer.includes(location.host)) {
+        window.history.back();
+      } else {
+        window.location.href = '/admin';
+      }
+    };
+  }
   $('profile-section').hidden=false;$('password-section').hidden=false;
  }
 })().catch(e=>message(e.message));

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/ai_exam_service.dart';
 import '../services/pronunciation_service.dart';
@@ -24,8 +25,9 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
   late TabController _tabController;
 
   // Creation form state
+  late final TextEditingController _customCountController;
   int _questionCount = 40;
-  String _contentType = 'random'; // 'random' or 'vocabulary'
+  String _contentType = 'random'; // 'random', 'reading', 'listening', 'writing', 'vocabulary'
   int? _selectedHsk;
   String? _selectedTopic;
   List<Map<String, String>> _topics = [];
@@ -52,6 +54,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
+    _customCountController = TextEditingController(text: '$_questionCount');
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
       if (_tabController.index == 1 && !_tabController.indexIsChanging) {
@@ -64,6 +67,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
 
   @override
   void dispose() {
+    _customCountController.dispose();
     _countdownTimer?.cancel();
     _tabController.dispose();
     super.dispose();
@@ -102,13 +106,18 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
   }
 
   Future<void> _generateExam() async {
-    setState(() => _generating = true);
+    final parsed = int.tryParse(_customCountController.text) ?? _questionCount;
+    final validCount = parsed.clamp(1, 50);
+    setState(() {
+      _questionCount = validCount;
+      _generating = true;
+    });
     try {
       final exam = await widget.service.generateExam(
         questionCount: _questionCount,
         contentType: _contentType,
-        hskLevel: _contentType == 'vocabulary' ? _selectedHsk : null,
-        topic: _contentType == 'vocabulary' ? _selectedTopic : null,
+        hskLevel: _selectedHsk,
+        topic: _selectedTopic,
       );
 
       if (!mounted) return;
@@ -601,16 +610,48 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
 
                 // Question Count Selector
                 const Text('1. Số lượng câu hỏi:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _customCountController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: InputDecoration(
+                    labelText: 'Số lượng câu hỏi (tùy chọn 1 - 50 câu)',
+                    hintText: 'Nhập số câu (ví dụ: 10, 25, 50)',
+                    prefixIcon: const Icon(Icons.format_list_numbered_rounded, color: AppTheme.jade),
+                    suffixText: 'câu',
+                    helperText: 'Giới hạn tối đa 50 câu hỏi cho mỗi đề thi',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                  onChanged: (val) {
+                    final parsed = int.tryParse(val);
+                    if (parsed != null) {
+                      if (parsed > 50) {
+                        _customCountController.text = '50';
+                        _customCountController.selection = const TextSelection.collapsed(offset: 2);
+                        setState(() => _questionCount = 50);
+                      } else if (parsed >= 1) {
+                        setState(() => _questionCount = parsed);
+                      }
+                    }
+                  },
+                ),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: [5, 10, 15, 20, 30, 40].map((count) {
+                  children: [5, 10, 15, 20, 30, 40, 50].map((count) {
                     final selected = _questionCount == count;
                     return ChoiceChip(
                       label: Text('$count câu'),
                       selected: selected,
-                      onSelected: (_) => setState(() => _questionCount = count),
+                      onSelected: (_) {
+                        setState(() {
+                          _questionCount = count;
+                          _customCountController.text = count.toString();
+                        });
+                      },
                       selectedColor: const Color(0xFFE8F0EC),
                       side: BorderSide(color: selected ? AppTheme.jade : const Color(0xFFDDE5E0)),
                       labelStyle: TextStyle(
@@ -641,78 +682,97 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 ),
                 const SizedBox(height: 24),
 
-                // Content Type Selector
-                const Text('2. Nội dung đề thi:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                // Content Type / Skill Selector
+                const Text('2. Kỹ năng & Dạng bài thi:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                 const SizedBox(height: 10),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'random', label: Text('Ngẫu nhiên (Tổng hợp)')),
-                    ButtonSegment(value: 'vocabulary', label: Text('Theo từ vựng')),
-                  ],
-                  selected: {_contentType},
-                  onSelectionChanged: (val) => setState(() => _contentType = val.first),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: const [
+                    {'id': 'random', 'label': '🎲 Ngẫu nhiên (Tổng hợp)'},
+                    {'id': 'reading', 'label': '📖 Đọc hiểu'},
+                    {'id': 'listening', 'label': '🎧 Nghe hiểu'},
+                    {'id': 'writing', 'label': '✍️ Viết & Ngữ pháp'},
+                    {'id': 'vocabulary', 'label': '📚 Từ vựng'},
+                  ].map((skill) {
+                    final selected = _contentType == skill['id'];
+                    return ChoiceChip(
+                      avatar: selected ? const Icon(Icons.check_circle, size: 18, color: AppTheme.jade) : null,
+                      label: Text(skill['label']!),
+                      selected: selected,
+                      onSelected: (_) => setState(() => _contentType = skill['id']!),
+                      selectedColor: const Color(0xFFE8F0EC),
+                      side: BorderSide(color: selected ? AppTheme.jade : const Color(0xFFDDE5E0), width: selected ? 1.5 : 1),
+                      labelStyle: TextStyle(
+                        color: selected ? AppTheme.jade : Colors.black87,
+                        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    );
+                  }).toList(),
                 ),
+                const SizedBox(height: 24),
 
-                // Filters when 'vocabulary' is selected
-                if (_contentType == 'vocabulary') ...[
-                  const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF9FBF9),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFDDE5E0)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Cấp độ HSK:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 6,
-                          children: [
-                            ChoiceChip(
-                              label: const Text('Tất cả'),
-                              selected: _selectedHsk == null,
-                              onSelected: (_) => setState(() => _selectedHsk = null),
-                            ),
-                            ...List.generate(6, (i) {
-                              final hsk = i + 1;
-                              final selected = _selectedHsk == hsk;
-                              return ChoiceChip(
-                                label: Text('HSK $hsk'),
-                                selected: selected,
-                                onSelected: (_) => setState(() => _selectedHsk = hsk),
-                              );
-                            }),
-                          ],
-                        ),
-                        if (_topics.isNotEmpty) ...[
-                          const SizedBox(height: 14),
-                          const Text('Chủ đề từ vựng:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                          const SizedBox(height: 6),
-                          DropdownButtonFormField<String>(
-                            value: _selectedTopic,
-                            isExpanded: true,
-                            decoration: InputDecoration(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                            hint: const Text('Tất cả chủ đề'),
-                            items: [
-                              const DropdownMenuItem(value: null, child: Text('Tất cả chủ đề')),
-                              ..._topics.map((t) => DropdownMenuItem(
-                                    value: t['id'],
-                                    child: Text(t['label'] ?? ''),
-                                  )),
-                            ],
-                            onChanged: (val) => setState(() => _selectedTopic = val),
-                          ),
-                        ],
-                      ],
-                    ),
+                // Filters: HSK Level & Topics (available for all skills)
+                const Text('3. Cấp độ HSK & Chủ đề (Tùy chọn):', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9FBF9),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFDDE5E0)),
                   ),
-                ],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Cấp độ HSK:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          ChoiceChip(
+                            label: const Text('Tất cả'),
+                            selected: _selectedHsk == null,
+                            onSelected: (_) => setState(() => _selectedHsk = null),
+                          ),
+                          ...List.generate(6, (i) {
+                            final hsk = i + 1;
+                            final selected = _selectedHsk == hsk;
+                            return ChoiceChip(
+                              label: Text('HSK $hsk'),
+                              selected: selected,
+                              onSelected: (_) => setState(() => _selectedHsk = hsk),
+                            );
+                          }),
+                        ],
+                      ),
+                      if (_topics.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        const Text('Chủ đề bài thi:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        const SizedBox(height: 6),
+                        DropdownButtonFormField<String>(
+                          value: _selectedTopic,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          hint: const Text('Tất cả chủ đề'),
+                          items: [
+                            const DropdownMenuItem(value: null, child: Text('Tất cả chủ đề')),
+                            ..._topics.map((t) => DropdownMenuItem(
+                                  value: t['id'],
+                                  child: Text(t['label'] ?? ''),
+                                )),
+                          ],
+                          onChanged: (val) => setState(() => _selectedTopic = val),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 28),
 
                 // Submit Button
@@ -929,9 +989,9 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Bảng 40 Câu Hỏi',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.ink),
+                          Text(
+                            'Bảng Câu Hỏi ($total câu)',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.ink),
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -1103,7 +1163,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
         ),
         actions: [
           IconButton(
-            tooltip: 'Bảng 40 câu hỏi',
+            tooltip: 'Bảng câu hỏi',
             icon: const Icon(Icons.grid_view_rounded, color: AppTheme.jade),
             onPressed: () => _showQuestionMatrixSheet(context, total),
           ),
@@ -1208,6 +1268,41 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                               ),
                             ],
                           ),
+                          if (exam.contentType == 'listening' || q.prompt.contains('[Nghe') || q.prompt.contains('Nghe')) ...[
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE8F4F0),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFFB7DFD2)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.headphones_rounded, color: AppTheme.jade, size: 22),
+                                  const SizedBox(width: 10),
+                                  const Expanded(
+                                    child: Text(
+                                      'Phần thi nghe: Bấm nút để nghe phát âm câu hỏi.',
+                                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.jade),
+                                    ),
+                                  ),
+                                  FilledButton.icon(
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: AppTheme.jade,
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    ),
+                                    onPressed: () {
+                                      final textToSpeak = q.pinyin.isNotEmpty ? q.pinyin : q.prompt;
+                                      PronunciationService.playWord(textToSpeak);
+                                    },
+                                    icon: const Icon(Icons.volume_up_rounded, size: 18),
+                                    label: const Text('Phát âm', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 8),
                           Text(
                             q.prompt,

@@ -48,7 +48,7 @@ def init_ai_exam_tables(conn):
 
 class GenerateAIExamRequest(BaseModel):
     question_count: int = Field(default=40, ge=1, le=50)
-    content_type: str = Field(default="random")  # 'random' or 'vocabulary'
+    content_type: str = Field(default="random")  # 'random', 'reading', 'listening', 'writing', 'vocabulary'
     hsk_level: int | None = Field(default=None, ge=1, le=6)
     topic: str | None = Field(default=None, max_length=50)
 
@@ -119,7 +119,21 @@ def generate_questions_from_db(conn, count: int, content_type: str, hsk_level: i
         selected_words.extend(word_list[:needed])
     questions = []
 
-    templates = ["hanzi_to_meaning", "meaning_to_hanzi", "hanzi_to_pinyin", "cloze"]
+    if content_type == "listening":
+        templates = ["listen_dialogue", "listen_meaning", "listen_hanzi"]
+    elif content_type == "reading":
+        templates = ["reading_passage", "reading_context_cloze", "reading_sentence_meaning"]
+    elif content_type == "writing":
+        templates = ["writing_order", "writing_grammar", "writing_radical"]
+    elif content_type == "vocabulary":
+        templates = ["hanzi_to_meaning", "meaning_to_hanzi", "hanzi_to_pinyin", "cloze"]
+    else:  # random / all skills
+        templates = [
+            "listen_dialogue", "listen_meaning",
+            "reading_passage", "reading_context_cloze",
+            "writing_order", "writing_grammar",
+            "hanzi_to_meaning", "meaning_to_hanzi", "hanzi_to_pinyin", "cloze"
+        ]
 
     for idx, target in enumerate(selected_words):
         qid = f"q{idx + 1}"
@@ -133,7 +147,151 @@ def generate_questions_from_db(conn, count: int, content_type: str, hsk_level: i
         else:
             distractors = random.sample(distractors, 3)
 
-        if template == "hanzi_to_meaning":
+        if template == "listen_dialogue":
+            ex = target.get("example", "").strip() or f"我想去买{target['hanzi']}。"
+            prompt = f"🎧 Nghe câu nói sau và chọn ý nghĩa chuẩn xác:\n“{ex}”"
+            pinyin = target["pinyin"]
+            correct_val = f"Người nói đang đề cập đến việc liên quan đến '{target['meaning'].split(';')[0].strip()}'"
+            distractor_vals = [f"Người nói đang đề cập đến việc liên quan đến '{d['meaning'].split(';')[0].strip()}'" for d in distractors]
+            all_choices = [correct_val] + distractor_vals
+            random.shuffle(all_choices)
+            letter_idx = all_choices.index(correct_val)
+            letters = ["A", "B", "C", "D"]
+            options = [f"{letters[i]}. {val}" for i, val in enumerate(all_choices)]
+            correct_answer = f"{letters[letter_idx]}. {correct_val}"
+            explanation = f"Từ khóa chính trong câu thoại là '{target['hanzi']}' ({target['pinyin']}: {target['meaning']})."
+            correction = f"Đáp án đúng là {correct_answer}. Hãy chú ý nghe từ khóa '{target['hanzi']}' để nắm bắt chuẩn xác ý người nói."
+
+        elif template == "listen_meaning":
+            prompt = f"🎧 Nghe phát âm và chọn nghĩa tiếng Việt chính xác của từ: “{target['hanzi']}”"
+            pinyin = target["pinyin"]
+            correct_val = target["meaning"].split(";")[0].strip()
+            distractor_vals = [d["meaning"].split(";")[0].strip() for d in distractors]
+            all_choices = [correct_val] + distractor_vals
+            random.shuffle(all_choices)
+            letter_idx = all_choices.index(correct_val)
+            letters = ["A", "B", "C", "D"]
+            options = [f"{letters[i]}. {val}" for i, val in enumerate(all_choices)]
+            correct_answer = f"{letters[letter_idx]}. {correct_val}"
+            explanation = f"Từ bạn vừa nghe là '{target['hanzi']}' ({target['pinyin']}), có nghĩa là '{target['meaning']}'."
+            correction = f"Đáp án đúng là {correct_answer}. Các phương án khác mang nghĩa: " + ", ".join(
+                [f"'{d['hanzi']}' ({d['meaning']})" for d in distractors]
+            ) + "."
+
+        elif template == "listen_hanzi":
+            prompt = f"🎧 Nghe âm đọc [{target['pinyin']}] và chọn chữ Hán chính xác mang nghĩa “{target['meaning'].split(';')[0].strip()}”:"
+            pinyin = target["pinyin"]
+            correct_val = target["hanzi"]
+            distractor_vals = [d["hanzi"] for d in distractors]
+            all_choices = [correct_val] + distractor_vals
+            random.shuffle(all_choices)
+            letter_idx = all_choices.index(correct_val)
+            letters = ["A", "B", "C", "D"]
+            options = [f"{letters[i]}. {val}" for i, val in enumerate(all_choices)]
+            correct_answer = f"{letters[letter_idx]}. {correct_val}"
+            explanation = f"Âm đọc [{target['pinyin']}] ứng với chữ Hán '{target['hanzi']}', nghĩa là '{target['meaning']}'."
+            correction = f"Đáp án đúng là {correct_answer}. Chú ý phân biệt chữ Hán '{target['hanzi']}' với các chữ có âm tương tự."
+
+        elif template == "reading_passage":
+            ex = target.get("example", "").strip() or f"{target['hanzi']}在汉语学习中很常用。"
+            prompt = f"📖 Đọc câu sau và chọn nhận định đúng nhất:\n“{ex}”"
+            pinyin = target["pinyin"]
+            correct_val = f"Câu văn diễn đạt ý nghĩa liên quan đến “{target['meaning'].split(';')[0].strip()}”"
+            distractor_vals = [f"Câu văn diễn đạt ý nghĩa liên quan đến “{d['meaning'].split(';')[0].strip()}”" for d in distractors]
+            all_choices = [correct_val] + distractor_vals
+            random.shuffle(all_choices)
+            letter_idx = all_choices.index(correct_val)
+            letters = ["A", "B", "C", "D"]
+            options = [f"{letters[i]}. {val}" for i, val in enumerate(all_choices)]
+            correct_answer = f"{letters[letter_idx]}. {correct_val}"
+            explanation = f"Trong câu trên, từ khóa quan trọng là '{target['hanzi']}' ({target['pinyin']}: {target['meaning']})."
+            correction = f"Đáp án đúng là {correct_answer}. Khi đọc hiểu, cần nắm vững từ khóa chính '{target['hanzi']}' để suy luận ý toàn câu."
+
+        elif template == "reading_context_cloze":
+            ex = target.get("example", "").strip()
+            if ex and target["hanzi"] in ex:
+                blank_sentence = ex.replace(target["hanzi"], " [____] ", 1)
+            else:
+                blank_sentence = f"在日常生活中，我们经常用到 [____] ({target['meaning'].split(';')[0].strip()})。"
+            prompt = f"📖 Đọc hiểu ngữ cảnh: Chọn từ thích hợp nhất để hoàn chỉnh câu:\n“{blank_sentence}”"
+            pinyin = target["pinyin"]
+            correct_val = target["hanzi"]
+            distractor_vals = [d["hanzi"] for d in distractors]
+            all_choices = [correct_val] + distractor_vals
+            random.shuffle(all_choices)
+            letter_idx = all_choices.index(correct_val)
+            letters = ["A", "B", "C", "D"]
+            options = [f"{letters[i]}. {val}" for i, val in enumerate(all_choices)]
+            correct_answer = f"{letters[letter_idx]}. {correct_val}"
+            explanation = f"Trong ngữ cảnh này, từ cần điền là '{target['hanzi']}' ({target['pinyin']}) mang nghĩa '{target['meaning']}'."
+            correction = f"Đáp án đúng là {correct_answer}. Cần chú ý ngữ cảnh và sự kết hợp từ thích hợp."
+
+        elif template == "reading_sentence_meaning":
+            ex = target.get("example", "").strip() or f"我和朋友都很喜欢{target['hanzi']}。"
+            prompt = f"📖 Trong câu sau, từ “{target['hanzi']}” có nghĩa là gì?\n“{ex}”"
+            pinyin = target["pinyin"]
+            correct_val = target["meaning"].split(";")[0].strip()
+            distractor_vals = [d["meaning"].split(";")[0].strip() for d in distractors]
+            all_choices = [correct_val] + distractor_vals
+            random.shuffle(all_choices)
+            letter_idx = all_choices.index(correct_val)
+            letters = ["A", "B", "C", "D"]
+            options = [f"{letters[i]}. {val}" for i, val in enumerate(all_choices)]
+            correct_answer = f"{letters[letter_idx]}. {correct_val}"
+            explanation = f"Từ '{target['hanzi']}' trong câu mang nghĩa '{target['meaning']}' (phiên âm: {target['pinyin']})."
+            correction = f"Đáp án đúng là {correct_answer}."
+
+        elif template == "writing_order":
+            prompt = f"✍️ Sắp xếp các cụm từ sau thành câu hoàn chỉnh đúng ngữ pháp Hán ngữ:\n(1) 我 / (2) 喜欢 / (3) {target['hanzi']} / (4) 很"
+            pinyin = target["pinyin"]
+            correct_val = f"(1)-(4)-(2)-(3): 我很喜欢{target['hanzi']}。"
+            distractor_vals = [
+                f"(1)-(2)-(4)-(3): 我喜欢很{target['hanzi']}。",
+                f"(4)-(1)-(2)-(3): 很我喜欢{target['hanzi']}。",
+                f"(3)-(1)-(4)-(2): {target['hanzi']}我很喜欢。"
+            ]
+            all_choices = [correct_val] + distractor_vals
+            random.shuffle(all_choices)
+            letter_idx = all_choices.index(correct_val)
+            letters = ["A", "B", "C", "D"]
+            options = [f"{letters[i]}. {val}" for i, val in enumerate(all_choices)]
+            correct_answer = f"{letters[letter_idx]}. {correct_val}"
+            explanation = f"Trật tự câu chuẩn trong tiếng Trung là: Chủ ngữ (我) + Phó từ mức độ (很) + Động từ (喜欢) + Tân ngữ ({target['hanzi']})."
+            correction = f"Đáp án đúng là {correct_answer}. Trong tiếng Trung, phó từ mức độ như '很' phải đứng trước vị ngữ/tính từ, không đứng sau động từ hay đầu câu."
+
+        elif template == "writing_grammar":
+            prompt = f"✍️ Chọn trợ từ kết cấu thích hợp điền vào chỗ trống trong câu:\n“他高兴 [____] 说：'{target['hanzi']}'。”"
+            pinyin = target["pinyin"]
+            correct_val = "地 (trợ từ trạng ngữ đứng trước động từ)"
+            distractor_vals = [
+                "的 (trợ từ định ngữ đứng trước danh từ)",
+                "得 (trợ từ bổ ngữ đứng sau động từ)",
+                "了 (trợ từ ngữ khí/hoàn thành)"
+            ]
+            all_choices = [correct_val] + distractor_vals
+            random.shuffle(all_choices)
+            letter_idx = all_choices.index(correct_val)
+            letters = ["A", "B", "C", "D"]
+            options = [f"{letters[i]}. {val}" for i, val in enumerate(all_choices)]
+            correct_answer = f"{letters[letter_idx]}. {correct_val}"
+            explanation = "Trước động từ '说' là tính từ miêu tả trạng thái '高兴', do đó cần dùng trợ từ trạng ngữ '地' (高兴地 nói)."
+            correction = f"Đáp án đúng là {correct_answer}. Quy tắc: Danh từ + 的 + Danh từ; Tính từ + 地 + Động từ; Động từ + 得 + Tính từ/Bổ ngữ."
+
+        elif template == "writing_radical":
+            prompt = f"✍️ Chọn chữ Hán có phiên âm chuẩn là [{target['pinyin']}] mang nghĩa “{target['meaning'].split(';')[0].strip()}”:"
+            pinyin = target["pinyin"]
+            correct_val = target["hanzi"]
+            distractor_vals = [d["hanzi"] for d in distractors]
+            all_choices = [correct_val] + distractor_vals
+            random.shuffle(all_choices)
+            letter_idx = all_choices.index(correct_val)
+            letters = ["A", "B", "C", "D"]
+            options = [f"{letters[i]}. {val}" for i, val in enumerate(all_choices)]
+            correct_answer = f"{letters[letter_idx]}. {correct_val}"
+            explanation = f"Chữ Hán chuẩn là '{target['hanzi']}' ({target['pinyin']}), mang nghĩa '{target['meaning']}'."
+            correction = f"Đáp án đúng là {correct_answer}."
+
+        elif template == "hanzi_to_meaning":
             prompt = f"Chọn nghĩa tiếng Việt chính xác của từ: {target['hanzi']}"
             pinyin = target["pinyin"]
             correct_val = target["meaning"].split(";")[0].strip()
@@ -193,8 +351,6 @@ def generate_questions_from_db(conn, count: int, content_type: str, hsk_level: i
             random.shuffle(all_choices)
             letter_idx = all_choices.index(correct_val)
             letters = ["A", "B", "C", "D"]
-            options = [f"{letters[i]}. {val} ({all_choices[i]})" if "(" not in val else f"{letters[i]}. {val}" for i, val in enumerate(all_choices)]
-            # Re-normalize options
             options = [f"{letters[i]}. {val}" for i, val in enumerate(all_choices)]
             correct_answer = f"{letters[letter_idx]}. {correct_val}"
             explanation = f"Từ cần điền là '{target['hanzi']}' ({target['pinyin']}) mang nghĩa '{target['meaning']}' phù hợp nhất với ngữ cảnh."
@@ -226,21 +382,44 @@ def generate_questions_with_gemini(user_id: int, count: int, content_type: str, 
     topic_name = topics_map.get(topic, topic) if topic else ""
 
     topic_desc = []
-    if content_type == "vocabulary":
-        if hsk_level:
-            topic_desc.append(f"Cấp độ HSK {hsk_level}")
-        if topic_name:
-            topic_desc.append(f"Chủ đề từ vựng: {topic_name}")
-        if not topic_desc:
-            topic_desc.append("Từ vựng tiếng Trung ứng dụng HSK 1 - HSK 4")
-    else:
-        topic_desc.append("Kiến thức tiếng Trung tổng hợp ngẫu nhiên (từ vựng, ngữ pháp, đặt câu, đọc hiểu ngắn)")
+    if hsk_level:
+        topic_desc.append(f"Cấp độ chuẩn HSK {hsk_level}")
+    if topic_name:
+        topic_desc.append(f"Chủ đề: {topic_name}")
+
+    if content_type == "listening":
+        skill_req = (
+            "Trọng tâm là KỸ NĂNG NGHE HIỂU (Listening). "
+            "Phần 'prompt' phải là đoạn hội thoại ngắn giữa hai người (A: ... / B: ...) hoặc lời thoại khẩu ngữ tiếng Trung ngắn gọn trong tình huống giao tiếp đời sống thực tế. "
+            "Câu hỏi yêu cầu nghe phát âm và chọn thông tin đúng, chọn câu đáp lại phù hợp hoặc hiểu ngữ cảnh."
+        )
+    elif content_type == "reading":
+        skill_req = (
+            "Trọng tâm là KỸ NĂNG ĐỌC HIỂU (Reading Comprehension). "
+            "Phần 'prompt' gồm 1 đoạn văn ngắn 2-3 câu hoặc thông báo ngắn bằng tiếng Trung kèm câu hỏi đọc hiểu thông tin chi tiết, ý chính, hoặc suy luận nghĩa."
+        )
+    elif content_type == "writing":
+        skill_req = (
+            "Trọng tâm là KỸ NĂNG VIẾT & NGỮ PHÁP (Writing & Grammar). "
+            "Câu hỏi về sắp xếp trật tự từ thành câu đúng cấu trúc ngữ pháp Hán ngữ, chọn trợ từ kết cấu (的/地/得), liên từ, hoặc cấu trúc câu đặc biệt (把, 被, 比, 连...都...)."
+        )
+    elif content_type == "vocabulary":
+        skill_req = (
+            "Trọng tâm là KỸ NĂNG TỪ VỰNG (Vocabulary). "
+            "Câu hỏi về giải nghĩa từ vựng, nhận diện Hán tự, phát âm Pinyin, điền từ vào chỗ trống và phân biệt từ đồng nghĩa/gần nghĩa."
+        )
+    else:  # random
+        skill_req = (
+            "Trọng tâm là TỔNG HỢP ĐA DẠNG CẢ 4 KỸ NĂNG (Đọc hiểu, Nghe hiểu giao tiếp, Viết/Ngữ pháp câu, và Từ vựng ứng dụng). "
+            "Hãy phân bổ đều các dạng câu hỏi phong phú giữa nghe, đọc, viết và từ vựng."
+        )
 
     prompt = (
         f"Hãy tạo 1 đề thi trắc nghiệm tiếng Trung mới gồm đúng {count} câu hỏi trắc nghiệm khách quan.\n"
-        f"Nội dung yêu cầu: {', '.join(topic_desc)}.\n"
+        f"Yêu cầu về kỹ năng: {skill_req}\n"
+        f"Phạm vi: {', '.join(topic_desc) if topic_desc else 'Tiếng Trung giao tiếp chuẩn HSK'}.\n"
         f"Mỗi câu hỏi phải độc đáo, không trùng lặp, gồm:\n"
-        "- prompt: Câu hỏi hoặc câu có chỗ trống cần điền bằng tiếng Trung.\n"
+        "- prompt: Câu hỏi, đoạn hội thoại hoặc câu tiếng Trung cần làm bài.\n"
         "- pinyin: Phiên âm Pinyin kèm dấu thanh điệu chuẩn cho phần tiếng Trung trong câu hỏi.\n"
         "- options: Mảng đúng 4 lựa chọn có tiền tố 'A. ', 'B. ', 'C. ', 'D. '.\n"
         "- answer: Đáp án đúng, khớp chính xác 100% với một trong 4 options (ví dụ: 'A. 同学').\n"
@@ -390,17 +569,21 @@ def register_ai_exam_routes(app, current_user):
         topic_name = topics_map.get(body.topic, body.topic) if body.topic else None
 
         # Build dynamic title
-        if body.content_type == "vocabulary":
-            if body.hsk_level and topic_name:
-                title = f"Đề thi Từ vựng HSK {body.hsk_level} · {topic_name} ({body.question_count} câu)"
-            elif body.hsk_level:
-                title = f"Đề thi Từ vựng HSK {body.hsk_level} ({body.question_count} câu)"
-            elif topic_name:
-                title = f"Đề thi Từ vựng · {topic_name} ({body.question_count} câu)"
-            else:
-                title = f"Đề thi Từ vựng tiếng Trung ({body.question_count} câu)"
-        else:
-            title = f"Đề thi Tổng hợp Ngẫu nhiên ({body.question_count} câu)"
+        skill_names = {
+            "reading": "Đọc hiểu",
+            "listening": "Nghe hiểu",
+            "writing": "Viết & Ngữ pháp",
+            "vocabulary": "Từ vựng",
+            "random": "Tổng hợp Ngẫu nhiên",
+        }
+        skill_label = skill_names.get(body.content_type, "Tổng hợp")
+        parts = [f"Đề thi {skill_label}"]
+        if body.hsk_level:
+            parts.append(f"HSK {body.hsk_level}")
+        if topic_name:
+            parts.append(topic_name)
+        parts.append(f"({body.question_count} câu)")
+        title = " · ".join(parts[:-1]) + f" {parts[-1]}"
 
         # Time rule: 1 minute per question
         duration_minutes = body.question_count * 1

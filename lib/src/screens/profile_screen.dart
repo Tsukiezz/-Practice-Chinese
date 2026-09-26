@@ -123,6 +123,31 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
             ),
+          const _SectionTitle('Cài đặt giao diện'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            child: ValueListenableBuilder<ThemeMode>(
+              valueListenable: ThemeManager.themeMode,
+              builder: (context, mode, _) {
+                final isDark = mode == ThemeMode.dark;
+                return SwitchListTile(
+                  secondary: Icon(
+                    isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                    color: isDark ? const Color(0xFFF6E05E) : AppTheme.jade,
+                  ),
+                  title: const Text(
+                    'Chế độ Tối (Dark mode)',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  subtitle: Text(
+                    isDark ? 'Giao diện tối dịu mắt' : 'Giao diện sáng tiêu chuẩn',
+                  ),
+                  value: isDark,
+                  onChanged: (_) => ThemeManager.toggle(),
+                );
+              },
+            ),
+          ),
           const _SectionTitle('Kết quả học tập'),
           if (studentService != null)
             Card(

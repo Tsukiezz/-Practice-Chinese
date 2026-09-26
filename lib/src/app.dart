@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -19,7 +20,7 @@ import 'services/custom_exam_service.dart';
 import 'services/ai_exam_service.dart';
 import 'theme/app_theme.dart';
 
-class HanziGoApp extends StatelessWidget {
+class HanziGoApp extends StatefulWidget {
   const HanziGoApp({
     super.key,
     this.readingRepository,
@@ -32,16 +33,34 @@ class HanziGoApp extends StatelessWidget {
   final AuthService? authService;
 
   @override
+  State<HanziGoApp> createState() => _HanziGoAppState();
+}
+
+class _HanziGoAppState extends State<HanziGoApp> {
+  @override
+  void initState() {
+    super.initState();
+    ThemeManager.init();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'HanziGo',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      home: AppShell(
-        readingRepository: readingRepository,
-        listeningRepository: listeningRepository,
-        authService: authService,
-      ),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeManager.themeMode,
+      builder: (context, mode, child) {
+        return MaterialApp(
+          title: 'HanziGo',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: mode,
+          home: AppShell(
+            readingRepository: widget.readingRepository,
+            listeningRepository: widget.listeningRepository,
+            authService: widget.authService,
+          ),
+        );
+      },
     );
   }
 }
@@ -62,7 +81,7 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   static String get _apiBaseUrl {
     const configured = String.fromEnvironment('HANZIGO_API_URL');
     return configured.isNotEmpty
@@ -83,15 +102,21 @@ class _AppShellState extends State<AppShell> {
   ListeningExamRepository? _listeningRepository;
   int _index = 0;
   final List<int> _tabHistory = [];
+  Timer? _inactivityTimer;
+  int _lastRecordTime = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _bootstrap();
+    _startInactivityTimer();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _inactivityTimer?.cancel();
     _httpClient?.close();
     super.dispose();
   }
@@ -183,6 +208,52 @@ class _AppShellState extends State<AppShell> {
       _authenticated = _authService.isAuthenticated;
       _loading = false;
     });
+
+    final savedTab = getSavedReturnTab();
+    if (savedTab != null && savedTab >= 0 && savedTab <= 6) {
+      _index = savedTab;
+      _tabHistory.add(0);
+      clearSavedReturnTab();
+    }
+  }
+
+  void _startInactivityTimer() {
+    _inactivityTimer?.cancel();
+    _inactivityTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (_authenticated && _authService.isSessionExpiredDueToInactivity) {
+        _handleInactivityLogout();
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _authenticated) {
+      if (_authService.isSessionExpiredDueToInactivity) {
+        _handleInactivityLogout();
+      }
+    }
+  }
+
+  void _onUserActivity() {
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    if (now - _lastRecordTime >= 15) {
+      _lastRecordTime = now;
+      _authService.recordActivity();
+    }
+  }
+
+  Future<void> _handleInactivityLogout() async {
+    await _logout();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Phiên đăng nhập đã tự động kết thúc do không hoạt động trong 30 phút. Vui lòng đăng nhập lại.'),
+          backgroundColor: Color(0xFFC53030),
+          duration: Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   Future<bool> _routeAdmin() async {
@@ -255,6 +326,7 @@ class _AppShellState extends State<AppShell> {
           client: _httpClient,
         );
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return PopScope(
       canPop: _tabHistory.isEmpty,
       onPopInvokedWithResult: (didPop, result) {
@@ -263,218 +335,239 @@ class _AppShellState extends State<AppShell> {
           _navigateBack();
         }
       },
-      child: Scaffold(
-        appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border(
-              bottom: BorderSide(
-                color: const Color(0xFF1B4D3E).withValues(alpha: 0.12),
-                width: 1,
+      child: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) => _onUserActivity(),
+        onPointerMove: (_) => _onUserActivity(),
+        child: Scaffold(
+          appBar: PreferredSize(
+            preferredSize: const Size.fromHeight(60),
+            child: Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF14201C) : Colors.white,
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark ? const Color(0xFF283B34) : const Color(0xFF1B4D3E).withValues(alpha: 0.12),
+                    width: 1,
+                  ),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-              child: Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1B4D3E),
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF1B4D3E).withValues(alpha: 0.25),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1B4D3E),
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF1B4D3E).withValues(alpha: 0.25),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: const Center(
-                      child: Text(
-                        '汉',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 19,
-                          fontWeight: FontWeight.w800,
+                        child: const Center(
+                          child: Text(
+                            '汉',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'HanziGo · Hán Ngữ Xanh',
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF1B4D3E),
-                            letterSpacing: 0.2,
-                          ),
-                        ),
-                        Text(
-                          'Ứng dụng học tiếng Trung',
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF707974),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  if (_authService.currentUser != null)
-                    GestureDetector(
-                      onTap: () => _navigateToTab(6),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE9F3ED),
-                          borderRadius: BorderRadius.all(Radius.circular(20)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(
-                              Icons.person_rounded,
-                              size: 16,
-                              color: Color(0xFF1B4D3E),
+                            Text(
+                              'HanziGo · Hán Ngữ Xanh',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: isDark ? const Color(0xFF4DB697) : const Color(0xFF1B4D3E),
+                                letterSpacing: 0.2,
+                              ),
                             ),
-                            const SizedBox(width: 6),
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 120),
-                              child: Text(
-                                _authService.currentUser!.name,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF1B4D3E),
-                                ),
+                            Text(
+                              'Ứng dụng học tiếng Trung',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: isDark ? const Color(0xFF8FA69C) : const Color(0xFF707974),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                ],
+                      const SizedBox(width: 8),
+                      ValueListenableBuilder<ThemeMode>(
+                        valueListenable: ThemeManager.themeMode,
+                        builder: (context, mode, _) {
+                          final isDarkMode = mode == ThemeMode.dark;
+                          return IconButton(
+                            tooltip: isDarkMode ? 'Chuyển sang Giao diện Sáng' : 'Chuyển sang Giao diện Tối',
+                            icon: Icon(
+                              isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_outlined,
+                              color: isDarkMode ? const Color(0xFFF6E05E) : const Color(0xFF1B4D3E),
+                              size: 22,
+                            ),
+                            onPressed: ThemeManager.toggle,
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 4),
+                      if (_authService.currentUser != null)
+                        GestureDetector(
+                          onTap: () => _navigateToTab(6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1C2C26) : const Color(0xFFE9F3ED),
+                              borderRadius: const BorderRadius.all(Radius.circular(20)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.person_rounded,
+                                  size: 16,
+                                  color: isDark ? const Color(0xFF4DB697) : const Color(0xFF1B4D3E),
+                                ),
+                                const SizedBox(width: 6),
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 120),
+                                  child: Text(
+                                    _authService.currentUser!.name,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark ? const Color(0xFFE2ECE7) : const Color(0xFF1B4D3E),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
+          body: IndexedStack(
+            index: _index,
+            children: [
+              HomeScreen(
+                userName: _authService.currentUser?.name ?? '',
+                onOpenLessons: () => _navigateToTab(1),
+                onOpenListening: () => _navigateToTab(2),
+                onOpenReading: () => _navigateToTab(3),
+                onOpenDictionary: () => _navigateToTab(4),
+                onOpenAiExam: () => _navigateToTab(5),
+                onOpenProfile: () => _navigateToTab(6),
+              ),
+              LessonsScreen(
+                service: _studentService,
+                onBack: _navigateBack,
+              ),
+              ListeningScreen(
+                repository: _listeningRepository!,
+                draftOwner: _authService.currentUser?.id,
+                onBack: _navigateBack,
+              ),
+              PracticeScreen(
+                repository: _readingRepository!,
+                draftOwner: _authService.currentUser?.id,
+                onBack: _navigateBack,
+              ),
+              VocabularyScreen(
+                service: _studentService,
+                onBack: _navigateBack,
+              ),
+              AiExamScreen(
+                service: _aiExamService,
+                onBack: _navigateBack,
+              ),
+              ProfileScreen(
+                onLogout: _logout,
+                studentService: _studentService,
+                comprehensiveRepository: _comprehensiveRepository,
+                user: _authService.currentUser,
+                onBack: _navigateBack,
+                onEditProfile: kIsWeb
+                    ? () => openAccount(_authService.token!, returnTab: _index)
+                    : null,
+                onOpenAdmin: kIsWeb && (_authService.currentUser?.isAdmin ?? false)
+                    ? () => openAdmin(_authService.token ?? '')
+                    : null,
+              ),
+            ],
+          ),
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _index,
+            onDestinationSelected: (value) => _navigateToTab(value),
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home_rounded),
+                label: 'Trang chủ',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.menu_book_outlined),
+                selectedIcon: Icon(Icons.menu_book_rounded),
+                label: 'Bài học',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.headphones_outlined),
+                selectedIcon: Icon(Icons.headphones_rounded),
+                label: 'Nghe',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.psychology_outlined),
+                selectedIcon: Icon(Icons.psychology_rounded),
+                label: 'Đọc',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.style_outlined),
+                selectedIcon: Icon(Icons.style_rounded),
+                label: 'Từ vựng',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.assignment_turned_in_outlined),
+                selectedIcon: Icon(Icons.assignment_turned_in_rounded),
+                label: 'Kiểm tra',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.person_outline_rounded),
+                selectedIcon: Icon(Icons.person_rounded),
+                label: 'Cá nhân',
+              ),
+            ],
+          ),
         ),
-      ),
-      body: IndexedStack(
-        index: _index,
-        children: [
-          HomeScreen(
-            userName: _authService.currentUser?.name ?? '',
-            onOpenLessons: () => _navigateToTab(1),
-            onOpenListening: () => _navigateToTab(2),
-            onOpenReading: () => _navigateToTab(3),
-            onOpenDictionary: () => _navigateToTab(4),
-            onOpenAiExam: () => _navigateToTab(5),
-            onOpenProfile: () => _navigateToTab(6),
-          ),
-          LessonsScreen(
-            service: _studentService,
-            onBack: _navigateBack,
-          ),
-          ListeningScreen(
-            repository: _listeningRepository!,
-            draftOwner: _authService.currentUser?.id,
-            onBack: _navigateBack,
-          ),
-          PracticeScreen(
-            repository: _readingRepository!,
-            draftOwner: _authService.currentUser?.id,
-            onBack: _navigateBack,
-          ),
-          VocabularyScreen(
-            service: _studentService,
-            onBack: _navigateBack,
-          ),
-          AiExamScreen(
-            service: _aiExamService,
-            onBack: _navigateBack,
-          ),
-          ProfileScreen(
-            onLogout: _logout,
-            studentService: _studentService,
-            comprehensiveRepository: _comprehensiveRepository,
-            user: _authService.currentUser,
-            onBack: _navigateBack,
-            onEditProfile: kIsWeb
-                ? () => openAccount(_authService.token!)
-                : null,
-            onOpenAdmin: kIsWeb && (_authService.currentUser?.isAdmin ?? false)
-                ? () => openAdmin(_authService.token ?? '')
-                : null,
-          ),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (value) => _navigateToTab(value),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Trang chủ',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book_rounded),
-            label: 'Bài học',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.headphones_outlined),
-            selectedIcon: Icon(Icons.headphones_rounded),
-            label: 'Nghe',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.psychology_outlined),
-            selectedIcon: Icon(Icons.psychology_rounded),
-            label: 'Đọc',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.style_outlined),
-            selectedIcon: Icon(Icons.style_rounded),
-            label: 'Từ vựng',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.assignment_turned_in_outlined),
-            selectedIcon: Icon(Icons.assignment_turned_in_rounded),
-            label: 'Kiểm tra',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'Cá nhân',
-          ),
-        ],
-      ),
       ),
     );
   }
