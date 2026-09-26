@@ -271,19 +271,30 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
         ),
       );
 
-  Widget _panel(List<Widget> children, {Color? color}) => Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: color ?? Colors.white,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: children,
-        ),
-      );
+  Widget _panel(List<Widget> children, {Color? color}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final defaultBg = isDark ? const Color(0xFF1A2924) : Colors.white;
+    Color bg;
+    if (color == const Color(0xFFE6F0EB)) {
+      bg = isDark ? const Color(0xFF1E322A) : const Color(0xFFE6F0EB);
+    } else {
+      bg = color ?? defaultBg;
+    }
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(18),
+        border: isDark ? Border.all(color: const Color(0xFF283B34)) : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
 
   List<Widget> _vocabulary(Map<String, dynamic> lesson) => [
         _heading('01 · Từ vựng trọng tâm'),
@@ -568,58 +579,77 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 12),
           for (var option = 0;
               option < (questions[i]['options'] as List).length;
               option++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Semantics(
-                selected: _answers[questions[i]['id']] == option,
-                child: OutlinedButton(
-                  key: ValueKey('answer-${questions[i]['id']}-$option'),
-                  style: OutlinedButton.styleFrom(
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.all(14),
-                    foregroundColor: AppTheme.ink,
-                    disabledForegroundColor: AppTheme.ink,
-                    backgroundColor: _answers[questions[i]['id']] == option
-                        ? const Color(0xFFE6F0EB)
-                        : Colors.white,
-                    side: BorderSide(
-                      color: _answers[questions[i]['id']] == option
-                          ? AppTheme.jade
-                          : const Color(0xFFDBE1DC),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: _busy || _result != null
-                      ? null
-                      : () => setState(() {
-                            _answers[questions[i]['id'] as String] = option;
-                            _error = null;
-                          }),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _answers[questions[i]['id']] == option
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_off,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          '${String.fromCharCode(65 + option)}. ${(questions[i]['options'] as List)[option]}',
-                          style: const TextStyle(fontSize: 16, height: 1.5),
+            Builder(
+              builder: (context) {
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                final isSelected = _answers[questions[i]['id']] == option;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Semantics(
+                    selected: isSelected,
+                    child: OutlinedButton(
+                      key: ValueKey('answer-${questions[i]['id']}-$option'),
+                      style: OutlinedButton.styleFrom(
+                        alignment: Alignment.centerLeft,
+                        padding: const EdgeInsets.all(14),
+                        foregroundColor: isDark ? const Color(0xFFE2ECE7) : AppTheme.ink,
+                        disabledForegroundColor: isDark ? const Color(0xFFE2ECE7) : AppTheme.ink,
+                        backgroundColor: isSelected
+                            ? (isDark ? const Color(0xFF1E3A2F) : const Color(0xFFE6F0EB))
+                            : (isDark ? const Color(0xFF1A2924) : Colors.white),
+                        side: BorderSide(
+                          color: isSelected
+                              ? AppTheme.jade
+                              : (isDark ? const Color(0xFF283B34) : const Color(0xFFDBE1DC)),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                    ],
+                      onPressed: _busy || _result != null
+                          ? null
+                          : () => setState(() {
+                                _answers[questions[i]['id'] as String] = option;
+                                _error = null;
+                              }),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 28,
+                            height: 28,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppTheme.jade
+                                  : (isDark ? const Color(0xFF263A31) : const Color(0xFFE9F3ED)),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              String.fromCharCode(65 + option),
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isDark ? const Color(0xFF4DB697) : AppTheme.jade),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              (questions[i]['options'] as List)[option] as String,
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           if (review[questions[i]['id']] != null) ...[
             const SizedBox(height: 8),

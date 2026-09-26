@@ -38,11 +38,22 @@ class ReadingQuestion {
   }
 
   static String _audioUrl(String value) {
-    if (!value.startsWith('/media/')) return value;
+    if (value.isEmpty) return value;
     const configured = String.fromEnvironment('HANZIGO_API_URL');
-    return (configured.isEmpty ? Uri.base : Uri.parse(configured))
-        .resolve(value)
-        .toString();
+    final base = configured.isEmpty ? Uri.base : Uri.parse(configured);
+    if (value.startsWith('/')) {
+      return base.resolve(value).toString();
+    }
+    if (value.contains('translate.google.com')) {
+      try {
+        final uri = Uri.parse(value);
+        final q = uri.queryParameters['q'];
+        if (q != null && q.isNotEmpty) {
+          return base.resolve('/api/tts?text=${Uri.encodeComponent(q)}').toString();
+        }
+      } catch (_) {}
+    }
+    return value;
   }
 }
 

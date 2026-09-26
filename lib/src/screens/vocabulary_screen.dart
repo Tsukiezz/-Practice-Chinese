@@ -240,7 +240,6 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
       body: SafeArea(
         child: Column(
             children: [
@@ -642,7 +641,9 @@ class _WordCard extends StatelessWidget {
               leading: HanziAvatar(
                 word.hanzi.characters.first,
                 size: 54,
-                color: const Color(0xFFFFEDE4),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF33231F)
+                    : const Color(0xFFFFEDE4),
               ),
               title: Text(
                 word.hanzi,

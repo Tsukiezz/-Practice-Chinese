@@ -65,7 +65,9 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
   bool get _isLookup => _mode == _HandwritingMode.lookup;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Scaffold(
     appBar: AppBar(
       title: Text(
         widget.source == null
@@ -119,8 +121,12 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                     ? 'Viết một chữ Hán vào ô bên dưới để nhận dạng và tra từ.'
                     : 'Nhập một chữ Hán, sau đó viết đúng thứ tự nét để chấm offline.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade700),
+                style: TextStyle(
+                  color: isDark ? const Color(0xFF90A89D) : Colors.grey.shade700,
+                ),
               ),
+
+
               if (_isLookup) ...[
                 const SizedBox(height: 8),
                 Center(
@@ -242,8 +248,8 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                   padding: const EdgeInsets.only(top: 16),
                   child: Card(
                     color: _practiceResult!.score >= 80
-                        ? const Color(0xFFE4F4E9)
-                        : const Color(0xFFFFF1E8),
+                        ? (isDark ? const Color(0xFF1E3228) : const Color(0xFFE4F4E9))
+                        : (isDark ? const Color(0xFF382320) : const Color(0xFFFFF1E8)),
                     child: Padding(
                       padding: const EdgeInsets.all(18),
                       child: Column(
@@ -292,6 +298,8 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
       ),
     ),
   );
+  }
+
 
   void _changeMode(_HandwritingMode mode) {
     setState(() {
@@ -456,12 +464,15 @@ class _CandidateSection extends StatelessWidget {
   final Future<void> Function(VocabularyEntry) onSaveWord;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: Material(
-      color: const Color(0xFFF7F4EF),
-      borderRadius: BorderRadius.circular(14),
-      child: Column(
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: isDark ? const Color(0xFF1E3029) : const Color(0xFFF7F4EF),
+        borderRadius: BorderRadius.circular(14),
+        child: Column(
+
         children: [
           ListTile(
             dense: true,
@@ -509,6 +520,7 @@ class _CandidateSection extends StatelessWidget {
       ),
     ),
   );
+  }
 }
 
 class _ScoreChip extends StatelessWidget {
@@ -518,9 +530,15 @@ class _ScoreChip extends StatelessWidget {
   final double score;
 
   @override
-  Widget build(BuildContext context) => Chip(
-    label: Text('$label: ${score.toStringAsFixed(0)}'),
-    side: BorderSide(color: AppTheme.jade.withValues(alpha: 0.3)),
-    backgroundColor: Colors.white.withValues(alpha: 0.75),
-  );
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Chip(
+      label: Text('$label: ${score.toStringAsFixed(0)}'),
+      side: BorderSide(color: AppTheme.jade.withValues(alpha: 0.3)),
+      backgroundColor: isDark
+          ? const Color(0xFF1E3228)
+          : Colors.white.withValues(alpha: 0.75),
+    );
+  }
 }
+

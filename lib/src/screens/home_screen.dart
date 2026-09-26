@@ -49,10 +49,12 @@ class HomeScreen extends StatelessWidget {
                         userName.trim().isEmpty
                             ? 'Xin chào bạn!'
                             : 'Xin chào, ${userName.trim()}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w800,
-                          color: AppTheme.ink,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFFE2ECE7)
+                              : AppTheme.ink,
                         ),
                       ),
                     ],
@@ -130,6 +132,7 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _card(
+              context,
               'Bài học',
               'Khám phá kiến thức và luyện viết',
               Icons.menu_book_rounded,
@@ -137,6 +140,7 @@ class HomeScreen extends StatelessWidget {
               onOpenLessons,
             ),
             _card(
+              context,
               'Luyện nghe',
               'Nghe hội thoại, hiểu từng câu',
               Icons.headphones_rounded,
@@ -144,6 +148,7 @@ class HomeScreen extends StatelessWidget {
               onOpenListening,
             ),
             _card(
+              context,
               'Luyện đọc phát âm AI',
               'Đọc qua micro, HSK 1–6 & chủ đề, AI chấm và sửa lỗi',
               Icons.record_voice_over_rounded,
@@ -151,6 +156,7 @@ class HomeScreen extends StatelessWidget {
               onOpenReading,
             ),
             _card(
+              context,
               'Tra từ điển',
               'Hán tự, pinyin và phát âm',
               Icons.search_rounded,
@@ -158,6 +164,7 @@ class HomeScreen extends StatelessWidget {
               onOpenDictionary,
             ),
             _card(
+              context,
               'Kiểm tra AI',
               'Tạo đề thi tùy chọn, làm bài đếm ngược và AI chấm sửa',
               Icons.assignment_turned_in_rounded,
@@ -177,60 +184,71 @@ class HomeScreen extends StatelessWidget {
   );
 
   Widget _card(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
     Color color,
     VoidCallback? onTap,
-  ) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(22),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(13),
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(16),
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: isDark ? const Color(0xFF1A2924) : Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              border: isDark ? Border.all(color: const Color(0xFF283B34)) : null,
+            ),
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(13),
+                  decoration: BoxDecoration(
+                    color: isDark ? color.withOpacity(0.18) : color,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, color: isDark ? const Color(0xFF4DB697) : AppTheme.ink),
                 ),
-                child: Icon(icon, color: AppTheme.ink),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: Color(0xFF60736A),
-                        fontSize: 13,
-                        height: 1.4,
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: isDark ? const Color(0xFF90A89D) : const Color(0xFF60736A),
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_right_rounded, color: AppTheme.jade),
-            ],
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: isDark ? const Color(0xFF4DB697) : AppTheme.jade,
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }

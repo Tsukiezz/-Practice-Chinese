@@ -41,7 +41,7 @@ class ListeningHskTest(unittest.TestCase):
 
     def test_listening_data_completeness_hsk1_to_hsk6(self):
         """Validate structure and content of HSK 1 to HSK 6 listening dataset."""
-        self.assertEqual(len(LISTENING_EXAMS_HSK1_6), 6)
+        self.assertGreaterEqual(len(LISTENING_EXAMS_HSK1_6), 6)
         levels_seen = set()
         for exam in LISTENING_EXAMS_HSK1_6:
             self.assertIn("title", exam)

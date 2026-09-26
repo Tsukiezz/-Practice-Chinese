@@ -39,8 +39,8 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.only(bottom: 24),
@@ -98,11 +98,14 @@ class ProfileScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
               child: Card(
-                color: const Color(0xFFFBF3EA),
+                color: isDark ? const Color(0xFF2C2216) : const Color(0xFFFBF3EA),
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: Color(0xFFE0C49F), width: 1.2),
+                  side: BorderSide(
+                    color: isDark ? const Color(0xFF5A3D22) : const Color(0xFFE0C49F),
+                    width: 1.2,
+                  ),
                 ),
                 child: ListTile(
                   leading: const CircleAvatar(

@@ -179,7 +179,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         height: 250,
                         child: CustomPaint(
                           key: const Key('skill-radar'),
-                          painter: _RadarPainter(data.report.skillScores),
+                          painter: _RadarPainter(
+                            data.report.skillScores,
+                            isDark: Theme.of(context).brightness == Brightness.dark,
+                          ),
                           child: const SizedBox.expand(),
                         ),
                       ),
@@ -275,7 +278,8 @@ class _AdviceCard extends StatelessWidget {
 }
 
 class _RadarPainter extends CustomPainter {
-  _RadarPainter(this.scores);
+  _RadarPainter(this.scores, {this.isDark = false});
+  final bool isDark;
   final Map<String, double> scores;
   static const labels = ['Nghe', 'Đọc', 'Viết'];
   static const keys = ['listening', 'reading', 'writing'];
@@ -285,7 +289,7 @@ class _RadarPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = math.min(size.width, size.height) * .34;
     final grid = Paint()
-      ..color = const Color(0xFFD9DDD9)
+      ..color = isDark ? const Color(0xFF283B34) : const Color(0xFFD9DDD9)
       ..style = PaintingStyle.stroke;
     final fill = Paint()
       ..color = AppTheme.jade.withValues(alpha: .25)
@@ -313,7 +317,7 @@ class _RadarPainter extends CustomPainter {
         text: TextSpan(
           text: '${labels[i]} ${(scores[keys[i]] ?? 0).round()}',
           style: const TextStyle(
-            color: AppTheme.ink,
+            color: isDark ? const Color(0xFFE2ECE7) : AppTheme.ink,
             fontSize: 11,
             fontWeight: FontWeight.w700,
           ),

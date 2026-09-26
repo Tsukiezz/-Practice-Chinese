@@ -233,10 +233,16 @@ def init_listening_exams(conn):
             LISTENING_EXAMS_HSK1_6 = getattr(mod, "LISTENING_EXAMS_HSK1_6", [])
         for exam in LISTENING_EXAMS_HSK1_6:
             row = conn.execute("SELECT id FROM exams WHERE title=?", (exam["title"],)).fetchone()
+            q_json = json.dumps(exam["questions"], ensure_ascii=False)
             if not row:
                 conn.execute(
                     "INSERT INTO exams(title, hsk, status, duration_minutes, questions_json) VALUES(?,?,'published',?,?)",
-                    (exam["title"], exam["hsk"], exam["duration_minutes"], json.dumps(exam["questions"], ensure_ascii=False))
+                    (exam["title"], exam["hsk"], exam["duration_minutes"], q_json)
+                )
+            else:
+                conn.execute(
+                    "UPDATE exams SET questions_json=?, duration_minutes=?, hsk=?, status='published' WHERE id=?",
+                    (q_json, exam["duration_minutes"], exam["hsk"], row["id"])
                 )
     except Exception as e:
         import logging

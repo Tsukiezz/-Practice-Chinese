@@ -1718,17 +1718,18 @@ register_reading_routes(app, current_user)
 
 
 @app.get("/api/tts")
-async def text_to_speech(text: str = Query(..., min_length=1, max_length=120)):
+async def text_to_speech(text: str = Query(..., min_length=1, max_length=1000)):
     clean = text.strip()
-    slug = '-'.join(f'{ord(c):x}' for c in clean[:24])
+    slug = hashlib.sha256(clean.encode("utf-8")).hexdigest()[:32]
     media_dir = Path(__file__).parent / "media"
-    bundled_file = media_dir / f"word-{slug}.mp3"
+    bundled_slug = '-'.join(f'{ord(c):x}' for c in clean[:24])
+    bundled_file = media_dir / f"word-{bundled_slug}.mp3"
     if bundled_file.exists():
         return FileResponse(bundled_file, media_type="audio/mpeg")
 
     tmp_dir = Path(os.environ.get("TMPDIR", "/tmp")) / "tts_cache"
     tmp_dir.mkdir(parents=True, exist_ok=True)
-    cache_file = tmp_dir / f"word-{slug}.mp3"
+    cache_file = tmp_dir / f"tts-{slug}.mp3"
     if cache_file.exists():
         return FileResponse(cache_file, media_type="audio/mpeg")
 
@@ -1741,17 +1742,42 @@ async def text_to_speech(text: str = Query(..., min_length=1, max_length=120)):
     except Exception:
         pass
 
-    # Fallback to Google Translate TTS
+    # Fallback to Google Translate TTS with sentence chunking
     try:
         import urllib.parse
-        encoded = urllib.parse.quote(clean)
-        url = f"https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-CN&client=tw-ob&q={encoded}"
+        import re
         import httpx
+        chunks = []
+        current = ""
+        sentences = re.split(r'([。！？；;\n]+)', clean)
+        for part in sentences:
+            if not part:
+                continue
+            if len(current) + len(part) <= 140:
+                current += part
+            else:
+                if current:
+                    chunks.append(current)
+                current = part
+                while len(current) > 140:
+                    chunks.append(current[:140])
+                    current = current[140:]
+        if current:
+            chunks.append(current)
+
+        audio_chunks = []
         async with httpx.AsyncClient() as client:
-            resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10.0)
-            if resp.status_code == 200:
-                cache_file.write_bytes(resp.content)
-                return FileResponse(cache_file, media_type="audio/mpeg")
+            for chunk in chunks:
+                encoded = urllib.parse.quote(chunk)
+                url = f"https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-CN&client=tw-ob&q={encoded}"
+                resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10.0)
+                if resp.status_code == 200:
+                    audio_chunks.append(resp.content)
+                else:
+                    raise Exception(f"Google TTS returned status {resp.status_code}")
+        if audio_chunks:
+            cache_file.write_bytes(b"".join(audio_chunks))
+            return FileResponse(cache_file, media_type="audio/mpeg")
     except Exception as e:
         raise HTTPException(500, f"Lỗi tạo phát âm: {e}")
     raise HTTPException(500, "Không thể tạo phát âm")

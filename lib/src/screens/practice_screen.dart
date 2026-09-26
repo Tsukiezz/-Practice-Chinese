@@ -147,7 +147,6 @@ class _PracticeScreenState extends State<PracticeScreen> {
       content = _buildExamList();
     }
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
       body: content,
     );
   }
@@ -176,17 +175,18 @@ class _PracticeScreenState extends State<PracticeScreen> {
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final hsk = index + 1;
+                final isDark = Theme.of(context).brightness == Brightness.dark;
                 return ChoiceChip(
                   key: Key('hsk-$hsk'),
                   label: Text('HSK $hsk'),
                   selected: _selectedHsk == hsk,
                   onSelected: (_) => _selectHsk(hsk),
-                  selectedColor: const Color(0xFFFFE7DC),
+                  selectedColor: isDark ? const Color(0xFF382320) : const Color(0xFFFFE7DC),
                   side: BorderSide.none,
                   labelStyle: TextStyle(
                     color: _selectedHsk == hsk
                         ? AppTheme.red
-                        : Colors.grey.shade700,
+                        : (isDark ? const Color(0xFF9CB2A8) : Colors.grey.shade700),
                     fontWeight: FontWeight.w700,
                   ),
                 );
@@ -564,7 +564,9 @@ class _PracticeScreenState extends State<PracticeScreen> {
                     key: const Key('reading-prompt'),
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE9F3ED),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF1E322A)
+                          : const Color(0xFFE9F3ED),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Column(
@@ -1297,10 +1299,30 @@ class _ExamAudioPlayerState extends State<_ExamAudioPlayer> {
     try {
       if (_playing) {
         await _player.pause();
+        if (mounted) setState(() => _playing = false);
       } else {
-        await _player.play(UrlSource(widget.url));
+        try {
+          await _player.play(UrlSource(widget.url)).timeout(const Duration(seconds: 6));
+          if (mounted) setState(() => _playing = true);
+        } catch (_) {
+          String text = '';
+          try {
+            final uri = Uri.parse(widget.url);
+            text = uri.queryParameters['text'] ?? uri.queryParameters['q'] ?? '';
+          } catch (_) {}
+          if (text.isNotEmpty) {
+            await PronunciationService.playWord(text, audioUrl: widget.url);
+            if (mounted) {
+              setState(() => _playing = true);
+              Future.delayed(Duration(milliseconds: (text.length * 280).clamp(2000, 10000)), () {
+                if (mounted) setState(() => _playing = false);
+              });
+            }
+          } else {
+            rethrow;
+          }
+        }
       }
-      if (mounted) setState(() => _playing = !_playing);
     } on Exception {
       if (mounted) {
         setState(() => _error = 'Không phát được audio. Hãy kiểm tra mạng.');
@@ -1311,12 +1333,14 @@ class _ExamAudioPlayerState extends State<_ExamAudioPlayer> {
   }
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF1E8),
-      borderRadius: BorderRadius.circular(16),
-    ),
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2C221B) : const Color(0xFFFFF1E8),
+        borderRadius: BorderRadius.circular(16),
+      ),
     child: Column(
       children: [
         Row(
@@ -1346,6 +1370,8 @@ class _ExamAudioPlayerState extends State<_ExamAudioPlayer> {
     ),
   );
 }
+}
+
 
 class _ExamCard extends StatelessWidget {
   const _ExamCard({required this.exam, required this.onTap});
@@ -1670,6 +1696,11 @@ class _AnswerOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final selectedBg = isDark ? const Color(0xFF382320) : const Color(0xFFFFEEE5);
+    final unselectedBg = isDark ? const Color(0xFF1A2924) : Colors.white;
+    final unselectedBorder = isDark ? const Color(0xFF283B34) : const Color(0xFFF0E8DE);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: InkWell(
@@ -1682,10 +1713,10 @@ class _AnswerOption extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 56),
           padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 15),
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFFFFEEE5) : Colors.white,
+            color: selected ? selectedBg : unselectedBg,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: selected ? AppTheme.red : const Color(0xFFF0E8DE),
+              color: selected ? AppTheme.red : unselectedBorder,
               width: selected ? 1.5 : 1,
             ),
           ),
@@ -1694,7 +1725,10 @@ class _AnswerOption extends StatelessWidget {
               Expanded(
                 child: Text(
                   option,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: isDark && !selected ? const Color(0xFFE2ECE7) : null,
+                  ),
                 ),
               ),
               if (selected)

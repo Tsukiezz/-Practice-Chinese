@@ -61,7 +61,6 @@ class _ListeningScreenState extends State<ListeningScreen> {
       content = _buildExamList();
     }
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
       body: content,
     );
   }
@@ -87,17 +86,18 @@ class _ListeningScreenState extends State<ListeningScreen> {
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final hsk = index + 1;
+                final isDark = Theme.of(context).brightness == Brightness.dark;
                 return ChoiceChip(
                   key: Key('hsk-$hsk'),
                   label: Text('HSK $hsk'),
                   selected: _selectedHsk == hsk,
                   onSelected: (_) => _selectHsk(hsk),
-                  selectedColor: const Color(0xFFFFE7DC),
+                  selectedColor: isDark ? const Color(0xFF382320) : const Color(0xFFFFE7DC),
                   side: BorderSide.none,
                   labelStyle: TextStyle(
                     color: _selectedHsk == hsk
                         ? AppTheme.red
-                        : Colors.grey.shade700,
+                        : (isDark ? const Color(0xFF9CB2A8) : Colors.grey.shade700),
                     fontWeight: FontWeight.w700,
                   ),
                 );
@@ -207,6 +207,7 @@ class _ListeningScreenState extends State<ListeningScreen> {
                   if (question.audioUrl.isNotEmpty) ...[
                     _AudioPlayer(
                       url: question.audioUrl,
+                      transcript: question.transcript,
                       audioPlayer: _audioPlayer,
                     ),
                     const SizedBox(height: 22),
@@ -670,10 +671,15 @@ class _ExamCard extends StatelessWidget {
 }
 
 class _AudioPlayer extends StatefulWidget {
-  const _AudioPlayer({required this.url, required this.audioPlayer});
+  const _AudioPlayer({
+    required this.url,
+    required this.audioPlayer,
+    this.transcript,
+  });
 
   final String url;
   final AudioPlayer audioPlayer;
+  final String? transcript;
 
   @override
   State<_AudioPlayer> createState() => _AudioPlayerState();
@@ -694,13 +700,28 @@ class _AudioPlayerState extends State<_AudioPlayer> {
     });
   }
 
+  String _extractSpeechText() {
+    if (widget.transcript != null && widget.transcript!.isNotEmpty) {
+      final t = widget.transcript!;
+      final idx = t.indexOf('(');
+      return idx > 0 ? t.substring(0, idx).trim() : t.trim();
+    }
+    try {
+      final uri = Uri.parse(widget.url);
+      final q = uri.queryParameters['text'] ?? uri.queryParameters['q'];
+      if (q != null && q.isNotEmpty) return q;
+    } catch (_) {}
+    return '';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       key: const Key('listening-audio-player'),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFE9F3ED),
+        color: isDark ? const Color(0xFF1E322A) : const Color(0xFFE9F3ED),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -719,16 +740,42 @@ class _AudioPlayerState extends State<_AudioPlayer> {
                     try {
                       if (_playing) {
                         await widget.audioPlayer.pause();
-                        setState(() => _playing = false);
+                        if (mounted) setState(() => _playing = false);
                       } else {
-                        await widget.audioPlayer.play(UrlSource(widget.url));
-                        setState(() => _playing = true);
+                        try {
+                          await widget.audioPlayer
+                              .play(UrlSource(widget.url))
+                              .timeout(const Duration(seconds: 6));
+                          if (mounted) setState(() => _playing = true);
+                        } catch (_) {
+                          // Fallback to PronunciationService (Web Speech API / backend proxy)
+                          final text = _extractSpeechText();
+                          if (text.isNotEmpty) {
+                            await PronunciationService.playWord(text, audioUrl: widget.url);
+                            if (mounted) {
+                              setState(() {
+                                _playing = true;
+                                _error = null;
+                              });
+                              Future.delayed(
+                                Duration(milliseconds: (text.length * 280).clamp(2000, 10000)),
+                                () {
+                                  if (mounted) setState(() => _playing = false);
+                                },
+                              );
+                            }
+                          } else {
+                            rethrow;
+                          }
+                        }
                       }
                     } on Exception {
-                      setState(() {
-                        _error = 'Không thể phát audio.';
-                        _playing = false;
-                      });
+                      if (mounted) {
+                        setState(() {
+                          _error = 'Không thể phát audio.';
+                          _playing = false;
+                        });
+                      }
                     } finally {
                       if (mounted) {
                         setState(() => _loading = false);
@@ -755,7 +802,10 @@ class _AudioPlayerState extends State<_AudioPlayer> {
               children: [
                 Text(
                   _playing ? 'Đang phát...' : 'Nghe hội thoại mẫu',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? const Color(0xFFE2ECE7) : null,
+                  ),
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 4),
@@ -788,6 +838,11 @@ class _AnswerOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final selectedBg = isDark ? const Color(0xFF382320) : const Color(0xFFFFEEE5);
+    final unselectedBg = isDark ? const Color(0xFF1A2924) : Colors.white;
+    final unselectedBorder = isDark ? const Color(0xFF283B34) : const Color(0xFFF0E8DE);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: InkWell(
@@ -800,10 +855,10 @@ class _AnswerOption extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 56),
           padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 15),
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFFFFEEE5) : Colors.white,
+            color: selected ? selectedBg : unselectedBg,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: selected ? AppTheme.red : const Color(0xFFF0E8DE),
+              color: selected ? AppTheme.red : unselectedBorder,
               width: selected ? 1.5 : 1,
             ),
           ),
@@ -812,7 +867,10 @@ class _AnswerOption extends StatelessWidget {
               Expanded(
                 child: Text(
                   option,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: isDark && !selected ? const Color(0xFFE2ECE7) : null,
+                  ),
                 ),
               ),
               if (selected)

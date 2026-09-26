@@ -145,8 +145,9 @@ class _LessonsScreenState extends State<LessonsScreen> {
         : (_course!['levels'] as List).cast<Map<String, dynamic>>().firstWhere(
               (l) => l['hsk'] == _level,
             );
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -175,30 +176,34 @@ class _LessonsScreenState extends State<LessonsScreen> {
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
+                                        color: isDark ? const Color(0xFF1A2924) : Colors.white,
                                         borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: const Color(0xFFD4E2DA)),
+                                        border: Border.all(
+                                          color: isDark ? const Color(0xFF283B34) : const Color(0xFFD4E2DA),
+                                        ),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: const Color(0xFF1B4D3E).withOpacity(0.06),
+                                            color: isDark
+                                                ? Colors.black.withOpacity(0.2)
+                                                : const Color(0xFF1B4D3E).withOpacity(0.06),
                                             blurRadius: 6,
                                             offset: const Offset(0, 2),
                                           ),
                                         ],
                                       ),
-                                      child: const Row(
+                                      child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Icon(
                                             Icons.arrow_back_rounded,
-                                            color: AppTheme.jade,
+                                            color: primary,
                                             size: 18,
                                           ),
-                                          SizedBox(width: 4),
+                                          const SizedBox(width: 4),
                                           Text(
                                             'Quay lại',
                                             style: TextStyle(
-                                              color: AppTheme.jade,
+                                              color: primary,
                                               fontSize: 13,
                                               fontWeight: FontWeight.w700,
                                             ),
@@ -209,32 +214,32 @@ class _LessonsScreenState extends State<LessonsScreen> {
                                   ),
                                 ),
                               ],
-                              const Text(
+                              Text(
                                 'HỌC MỖI NGÀY · HSK 1–6',
-                              style: TextStyle(
-                                color: AppTheme.jade,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1,
+                                style: TextStyle(
+                                  color: primary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Từng bài nhỏ, tiến bộ lớn',
-                              style: TextStyle(
-                                fontSize: 27,
-                                fontWeight: FontWeight.w800,
-                                color: AppTheme.ink,
+                              const SizedBox(height: 8),
+                              Text(
+                                'Từng bài nhỏ, tiến bộ lớn',
+                                style: TextStyle(
+                                  fontSize: 27,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark ? const Color(0xFFE2ECE7) : AppTheme.ink,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              '${all.length} bài học • Từ vựng, mẫu câu, đọc hiểu và luyện tập',
-                              style: TextStyle(
-                                color: Colors.grey.shade700,
-                                height: 1.5,
+                              const SizedBox(height: 6),
+                              Text(
+                                '${all.length} bài học • Từ vựng, mẫu câu, đọc hiểu và luyện tập',
+                                style: TextStyle(
+                                  color: isDark ? const Color(0xFF9CB2A8) : Colors.grey.shade700,
+                                  height: 1.5,
+                                ),
                               ),
-                            ),
                             const SizedBox(height: 20),
                             SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
@@ -259,7 +264,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFE6F0EB),
+                                color: isDark ? const Color(0xFF1E322A) : const Color(0xFFE6F0EB),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Column(
@@ -269,10 +274,10 @@ class _LessonsScreenState extends State<LessonsScreen> {
                                     info == null
                                         ? 'Lộ trình của bạn'
                                         : 'HSK $_level · ${info['title']}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 19,
                                       fontWeight: FontWeight.w800,
-                                      color: AppTheme.jade,
+                                      color: primary,
                                     ),
                                   ),
                                   const SizedBox(height: 8),
@@ -287,7 +292,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
                                       'Trước khi học: ${info['prerequisite']}',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: Colors.grey.shade800,
+                                        color: isDark ? const Color(0xFF9CB2A8) : Colors.grey.shade800,
                                         height: 1.5,
                                       ),
                                     ),
@@ -344,7 +349,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
                                         icon: const Icon(Icons.close),
                                       ),
                                 filled: true,
-                                fillColor: Colors.white,
+                                fillColor: isDark ? const Color(0xFF1A2924) : Colors.white,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   borderSide: BorderSide.none,
@@ -456,6 +461,9 @@ class _LessonsScreenState extends State<LessonsScreen> {
     final stage = _stage(lesson);
     final done = stage == 4;
     final progress = _progress[lesson['id']];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
+
     return Card(
       margin: const EdgeInsets.fromLTRB(4, 5, 4, 9),
       child: InkWell(
@@ -475,13 +483,13 @@ class _LessonsScreenState extends State<LessonsScreen> {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE6F0EB),
+                      color: isDark ? const Color(0xFF233A31) : const Color(0xFFE6F0EB),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       'HSK ${lesson['hsk']} · ${lesson['order']}/8',
-                      style: const TextStyle(
-                        color: AppTheme.jade,
+                      style: TextStyle(
+                        color: primary,
                         fontWeight: FontWeight.w700,
                         fontSize: 12,
                       ),
@@ -489,15 +497,15 @@ class _LessonsScreenState extends State<LessonsScreen> {
                   ),
                   const Spacer(),
                   if (done)
-                    const Icon(
+                    Icon(
                       Icons.check_circle,
-                      color: AppTheme.jade,
+                      color: primary,
                       size: 22,
                     )
                   else
-                    const Icon(
+                    Icon(
                       Icons.chevron_right_rounded,
-                      color: AppTheme.jade,
+                      color: primary,
                     ),
                 ],
               ),
@@ -513,7 +521,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
               Text(
                 lesson['objective'] as String,
                 style: TextStyle(
-                  color: Colors.grey.shade700,
+                  color: isDark ? const Color(0xFF9CB2A8) : Colors.grey.shade700,
                   fontSize: 13,
                   height: 1.5,
                 ),

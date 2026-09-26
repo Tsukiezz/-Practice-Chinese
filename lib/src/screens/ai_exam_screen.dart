@@ -376,8 +376,8 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
       return _buildExamTakingView();
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -394,7 +394,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE5EDE8),
+                    color: isDark ? const Color(0xFF1E3029) : const Color(0xFFE5EDE8),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: TabBar(
@@ -402,14 +402,18 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                     indicatorSize: TabBarIndicatorSize.tab,
                     dividerColor: Colors.transparent,
                     indicator: BoxDecoration(
-                      color: Colors.white,
+                      color: isDark ? const Color(0xFF283F36) : Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: const [
-                        BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: isDark ? Colors.black26 : Colors.black12,
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
                       ],
                     ),
-                    labelColor: AppTheme.jade,
-                    unselectedLabelColor: const Color(0xFF60736A),
+                    labelColor: isDark ? const Color(0xFF4DB697) : AppTheme.jade,
+                    unselectedLabelColor: isDark ? const Color(0xFF90A89D) : const Color(0xFF60736A),
                     labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                     tabs: const [
                       Tab(text: '✨ Tạo đề thi mới'),
@@ -581,6 +585,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
   }
 
   Widget _buildCreateExamTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       children: [
@@ -589,22 +594,29 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Color(0xFFDDE5E0)),
+            side: BorderSide(color: isDark ? const Color(0xFF283B34) : const Color(0xFFDDE5E0)),
           ),
-          color: Colors.white,
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Yêu cầu AI tạo đề thi tự chọn',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? const Color(0xFFE2ECE7) : AppTheme.ink,
+                  ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Chọn số lượng câu hỏi và nội dung học tập. Mỗi câu làm bài trong 1 phút.',
-                  style: TextStyle(color: Color(0xFF60736A), fontSize: 13, height: 1.4),
+                  style: TextStyle(
+                    color: isDark ? const Color(0xFF90A89D) : const Color(0xFF60736A),
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 20),
 
@@ -854,7 +866,6 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
           if (customPending.isEmpty)
             const Card(
               elevation: 0,
-              color: Colors.white,
               child: Padding(
                 padding: EdgeInsets.all(20),
                 child: Text('Không có đề thi tự tạo nào đang chờ làm.', style: TextStyle(color: Colors.grey)),
@@ -866,9 +877,12 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                   margin: const EdgeInsets.only(bottom: 10),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
-                    side: const BorderSide(color: Color(0xFFDDE5E0)),
+                    side: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF283B34)
+                          : const Color(0xFFDDE5E0),
+                    ),
                   ),
-                  color: Colors.white,
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     title: Text(exam.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
@@ -904,7 +918,13 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
               const SizedBox(width: 6),
               Text(
                 'Lịch sử bài thi đã nộp (${_completedExams.length})',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFFE2ECE7)
+                      : AppTheme.ink,
+                ),
               ),
             ],
           ),
@@ -912,7 +932,6 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
           if (_completedExams.isEmpty)
             const Card(
               elevation: 0,
-              color: Colors.white,
               child: Padding(
                 padding: EdgeInsets.all(20),
                 child: Text('Chưa có đề thi nào đã hoàn thành.', style: TextStyle(color: Colors.grey)),
@@ -927,9 +946,12 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 margin: const EdgeInsets.only(bottom: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
-                  side: const BorderSide(color: Color(0xFFDDE5E0)),
+                  side: BorderSide(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF283B34)
+                        : const Color(0xFFDDE5E0),
+                  ),
                 ),
-                color: Colors.white,
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   title: Text(exam.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
