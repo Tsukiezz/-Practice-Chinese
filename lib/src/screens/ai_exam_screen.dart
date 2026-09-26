@@ -664,10 +664,10 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                           _customCountController.text = count.toString();
                         });
                       },
-                      selectedColor: const Color(0xFFE8F0EC),
-                      side: BorderSide(color: selected ? AppTheme.jade : const Color(0xFFDDE5E0)),
+                      selectedColor: isDark ? const Color(0xFF285444) : const Color(0xFFE8F0EC),
+                      side: BorderSide(color: selected ? (isDark ? const Color(0xFF4DB697) : AppTheme.jade) : (isDark ? const Color(0xFF283B34) : const Color(0xFFDDE5E0))),
                       labelStyle: TextStyle(
-                        color: selected ? AppTheme.jade : Colors.black87,
+                        color: selected ? (isDark ? const Color(0xFFF0FDF4) : AppTheme.jade) : (isDark ? const Color(0xFFA3BFB3) : Colors.black87),
                         fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                       ),
                     );
@@ -677,17 +677,17 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFDF6E2),
+                    color: isDark ? const Color(0xFF2D2312) : const Color(0xFFFDF6E2),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.timer_outlined, size: 18, color: Color(0xFF8C6200)),
+                      Icon(Icons.timer_outlined, size: 18, color: isDark ? const Color(0xFFF6E05E) : const Color(0xFF8C6200)),
                       const SizedBox(width: 6),
                       Text(
                         'Thời gian làm bài: $_questionCount phút (1 phút / câu)',
-                        style: const TextStyle(color: Color(0xFF8C6200), fontWeight: FontWeight.w700, fontSize: 13),
+                        style: TextStyle(color: isDark ? const Color(0xFFF6E05E) : const Color(0xFF8C6200), fontWeight: FontWeight.w700, fontSize: 13),
                       ),
                     ],
                   ),
@@ -709,14 +709,14 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                   ].map((skill) {
                     final selected = _contentType == skill['id'];
                     return ChoiceChip(
-                      avatar: selected ? const Icon(Icons.check_circle, size: 18, color: AppTheme.jade) : null,
+                      avatar: selected ? Icon(Icons.check_circle, size: 18, color: isDark ? const Color(0xFF4DB697) : AppTheme.jade) : null,
                       label: Text(skill['label']!),
                       selected: selected,
                       onSelected: (_) => setState(() => _contentType = skill['id']!),
-                      selectedColor: const Color(0xFFE8F0EC),
-                      side: BorderSide(color: selected ? AppTheme.jade : const Color(0xFFDDE5E0), width: selected ? 1.5 : 1),
+                      selectedColor: isDark ? const Color(0xFF285444) : const Color(0xFFE8F0EC),
+                      side: BorderSide(color: selected ? (isDark ? const Color(0xFF4DB697) : AppTheme.jade) : (isDark ? const Color(0xFF283B34) : const Color(0xFFDDE5E0)), width: selected ? 1.5 : 1),
                       labelStyle: TextStyle(
-                        color: selected ? AppTheme.jade : Colors.black87,
+                        color: selected ? (isDark ? const Color(0xFFF0FDF4) : AppTheme.jade) : (isDark ? const Color(0xFFA3BFB3) : Colors.black87),
                         fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -731,9 +731,9 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF9FBF9),
+                    color: isDark ? const Color(0xFF14201C) : const Color(0xFFF9FBF9),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFDDE5E0)),
+                    border: Border.all(color: isDark ? const Color(0xFF283B34) : const Color(0xFFDDE5E0)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

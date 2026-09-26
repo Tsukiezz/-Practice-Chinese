@@ -113,15 +113,24 @@ class ProfileScreen extends StatelessWidget {
                     foregroundColor: Colors.white,
                     child: Icon(Icons.admin_panel_settings, size: 20),
                   ),
-                  title: const Text(
+                  title: Text(
                     'Không gian Quản trị viên',
-                    style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF7A271A)),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? const Color(0xFFFF8B7B) : const Color(0xFF7A271A),
+                    ),
                   ),
-                  subtitle: const Text(
+                  subtitle: Text(
                     'Quản lý học viên, kho từ, đề thi HSK 1–6 & hệ thống AI',
-                    style: TextStyle(fontSize: 12),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? const Color(0xFFD4BDB0) : const Color(0xFF4A5568),
+                    ),
                   ),
-                  trailing: const Icon(Icons.arrow_forward_rounded, color: Color(0xFF912018)),
+                  trailing: Icon(
+                    Icons.arrow_forward_rounded,
+                    color: isDark ? const Color(0xFFFF8B7B) : const Color(0xFF912018),
+                  ),
                   onTap: onOpenAdmin,
                 ),
               ),
@@ -410,18 +419,26 @@ class _ProfileStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Expanded(
       child: Column(
         children: [
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: AppTheme.jade,
+              color: isDark ? const Color(0xFF4DB697) : AppTheme.jade,
             ),
           ),
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 9)),
+          Text(
+            label,
+            style: TextStyle(
+              color: isDark ? const Color(0xFFA3BFB3) : Colors.grey.shade600,
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -460,6 +477,7 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final initial = widget.name.trim().isEmpty
         ? 'H'
         : widget.name.trim().characters.first.toUpperCase();
@@ -474,12 +492,12 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
           }
           return CircleAvatar(
           radius: 46,
-          backgroundColor: const Color(0xFFFFE6DA),
+          backgroundColor: isDark ? const Color(0xFF382320) : const Color(0xFFFFE6DA),
           backgroundImage: image,
           child: image != null ? null : Text(
             initial,
-            style: const TextStyle(
-              color: AppTheme.red,
+            style: TextStyle(
+              color: isDark ? const Color(0xFFFF7A66) : AppTheme.red,
               fontSize: 34,
               fontWeight: FontWeight.w800,
             ),
@@ -489,13 +507,20 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
         Text(
           widget.name,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            fontSize: 21,
+            fontWeight: FontWeight.w800,
+            color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+          ),
         ),
         if (widget.email.isNotEmpty)
           Text(
             widget.email,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey, fontSize: 12),
+            style: TextStyle(
+              color: isDark ? const Color(0xFFA3BFB3) : Colors.grey,
+              fontSize: 12,
+            ),
           ),
         if (_future != null)
           FutureBuilder<StudentDashboard>(
@@ -550,9 +575,12 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18),
-                        side: const BorderSide(color: Color(0xFFF0D5C3), width: 1.2),
+                        side: BorderSide(
+                          color: isDark ? const Color(0xFF5A3D22) : const Color(0xFFF0D5C3),
+                          width: 1.2,
+                        ),
                       ),
-                      color: const Color(0xFFFFF9F5),
+                      color: isDark ? const Color(0xFF2C2216) : const Color(0xFFFFF9F5),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
@@ -561,26 +589,34 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Row(
+                                Row(
                                   children: [
-                                    Icon(Icons.replay_circle_filled, color: AppTheme.orange, size: 22),
-                                    SizedBox(width: 8),
+                                    const Icon(Icons.replay_circle_filled, color: AppTheme.orange, size: 22),
+                                    const SizedBox(width: 8),
                                     Text(
                                       'Ôn tập dưới 80 điểm',
-                                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF8C3A00)),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 16,
+                                        color: isDark ? const Color(0xFFFFB074) : const Color(0xFF8C3A00),
+                                      ),
                                     ),
                                   ],
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: totalUnder80 > 0 ? const Color(0xFFFFECE0) : const Color(0xFFE8F5E9),
+                                    color: totalUnder80 > 0
+                                        ? (isDark ? const Color(0xFF381E1E) : const Color(0xFFFFECE0))
+                                        : (isDark ? const Color(0xFF1E3228) : const Color(0xFFE8F5E9)),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
                                     totalUnder80 > 0 ? '$totalUnder80 mục cần ôn' : 'Đã đạt chuẩn',
                                     style: TextStyle(
-                                      color: totalUnder80 > 0 ? AppTheme.red : Colors.green,
+                                      color: totalUnder80 > 0
+                                          ? (isDark ? const Color(0xFFFF7A66) : AppTheme.red)
+                                          : (isDark ? const Color(0xFF4DB697) : Colors.green),
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
                                     ),
@@ -589,9 +625,12 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
                               ],
                             ),
                             const SizedBox(height: 6),
-                            const Text(
+                            Text(
                               'Đồng bộ tự động từ kết quả làm bài của bạn trên tất cả 5 kỹ năng:',
-                              style: TextStyle(color: Color(0xFF7A5C4A), fontSize: 12),
+                              style: TextStyle(
+                                color: isDark ? const Color(0xFFD4BDB0) : const Color(0xFF7A5C4A),
+                                fontSize: 12,
+                              ),
                             ),
                             const SizedBox(height: 12),
                             Wrap(
@@ -693,21 +732,27 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18),
-                        side: const BorderSide(color: Color(0xFFDDE5E0)),
+                        side: BorderSide(
+                          color: isDark ? const Color(0xFF283B34) : const Color(0xFFDDE5E0),
+                        ),
                       ),
-                      color: Colors.white,
+                      color: isDark ? const Color(0xFF14201C) : Colors.white,
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Row(
+                            Row(
                               children: [
-                                Icon(Icons.analytics_outlined, color: AppTheme.jade, size: 20),
-                                SizedBox(width: 8),
+                                const Icon(Icons.analytics_outlined, color: AppTheme.jade, size: 20),
+                                const SizedBox(width: 8),
                                 Text(
                                   'Năng lực đồng bộ theo kỹ năng',
-                                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppTheme.ink),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                    color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+                                  ),
                                 ),
                               ],
                             ),
@@ -763,6 +808,7 @@ class _SkillReviewBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasItems = count > 0;
     return InkWell(
       onTap: onTap,
@@ -770,25 +816,41 @@ class _SkillReviewBadge extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: hasItems ? const Color(0xFFFFECE3) : Colors.white,
+          color: hasItems
+              ? (isDark ? const Color(0xFF381E1E) : const Color(0xFFFFECE3))
+              : (isDark ? const Color(0xFF192520) : Colors.white),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: hasItems ? const Color(0xFFF5B895) : const Color(0xFFE2EBE5),
+            color: hasItems
+                ? (isDark ? const Color(0xFF6B3A35) : const Color(0xFFF5B895))
+                : (isDark ? const Color(0xFF283B34) : const Color(0xFFE2EBE5)),
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: hasItems ? AppTheme.red : AppTheme.jade),
+            Icon(
+              icon,
+              size: 16,
+              color: hasItems
+                  ? (isDark ? const Color(0xFFFF7A66) : AppTheme.red)
+                  : (isDark ? const Color(0xFF4DB697) : AppTheme.jade),
+            ),
             const SizedBox(width: 6),
             Text(
               '$label: ',
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+                color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+              ),
             ),
             Text(
               '$count $unit',
               style: TextStyle(
-                color: hasItems ? AppTheme.red : const Color(0xFF5C6F64),
+                color: hasItems
+                    ? (isDark ? const Color(0xFFFF7A66) : AppTheme.red)
+                    : (isDark ? const Color(0xFFA3BFB3) : const Color(0xFF5C6F64)),
                 fontWeight: hasItems ? FontWeight.bold : FontWeight.w500,
                 fontSize: 12,
               ),
@@ -813,6 +875,7 @@ class _SkillProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final percent = (score / 100.0).clamp(0.0, 1.0);
     final color = score >= 80 ? Colors.green : (score >= 50 ? Colors.orange : AppTheme.red);
 
@@ -823,10 +886,17 @@ class _SkillProgressBar extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 15, color: const Color(0xFF5C6F64)),
+              Icon(icon, size: 15, color: isDark ? const Color(0xFFA3BFB3) : const Color(0xFF5C6F64)),
               const SizedBox(width: 6),
               Expanded(
-                child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+                  ),
+                ),
               ),
               Text(
                 '${score.toStringAsFixed(0)}%',
@@ -840,7 +910,7 @@ class _SkillProgressBar extends StatelessWidget {
             child: LinearProgressIndicator(
               value: percent,
               minHeight: 6,
-              backgroundColor: const Color(0xFFE5EDE8),
+              backgroundColor: isDark ? const Color(0xFF283B34) : const Color(0xFFE5EDE8),
               valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
           ),
@@ -856,11 +926,16 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+        style: TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w800,
+          color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+        ),
       ),
     );
   }
@@ -878,22 +953,33 @@ class _Setting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 9),
       child: ListTile(
-        leading: Icon(icon, color: AppTheme.jade),
+        leading: Icon(icon, color: isDark ? const Color(0xFF4DB697) : AppTheme.jade),
         title: Text(
           title,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+          ),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               value,
-              style: const TextStyle(color: Colors.grey, fontSize: 11),
+              style: TextStyle(
+                color: isDark ? const Color(0xFFA3BFB3) : Colors.grey,
+                fontSize: 11,
+              ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: isDark ? const Color(0xFF4DB697) : Colors.grey,
+            ),
           ],
         ),
       ),

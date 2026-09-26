@@ -647,15 +647,36 @@ class _WordCard extends StatelessWidget {
               ),
               title: Text(
                 word.hanzi,
-                style: const TextStyle(fontWeight: FontWeight.w800),
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFFF0FDF4)
+                      : AppTheme.ink,
+                ),
               ),
-              subtitle: Text('${word.pinyin}\n${word.meaning}'),
+              subtitle: Text(
+                '${word.pinyin}\n${word.meaning}',
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFFA3BFB3)
+                      : const Color(0xFF4A5568),
+                ),
+              ),
               trailing: word.lookupCount > 0
                   ? Text(
                       '${word.lookupCount} lần',
-                      style: const TextStyle(color: AppTheme.jade),
+                      style: TextStyle(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF4DB697)
+                            : AppTheme.jade,
+                      ),
                     )
-                  : const Icon(Icons.chevron_right),
+                  : Icon(
+                      Icons.chevron_right,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF4DB697)
+                          : Colors.grey,
+                    ),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,

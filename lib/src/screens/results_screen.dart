@@ -86,6 +86,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
           itemBuilder: (context, index) {
             final result = results[index];
             final passed = result.score >= 80;
+            final isDark = Theme.of(context).brightness == Brightness.dark;
             return Card(
               child: Padding(
                 padding: const EdgeInsets.all(18),
@@ -96,15 +97,17 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       height: 48,
                       decoration: BoxDecoration(
                         color: passed
-                            ? const Color(0xFFE4F4E9)
-                            : const Color(0xFFFFF1E8),
+                            ? (isDark ? const Color(0xFF1E3228) : const Color(0xFFE4F4E9))
+                            : (isDark ? const Color(0xFF382320) : const Color(0xFFFFF1E8)),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Center(
                         child: Text(
                           '${result.score.toInt()}',
                           style: TextStyle(
-                            color: passed ? AppTheme.jade : AppTheme.orange,
+                            color: passed
+                                ? (isDark ? const Color(0xFF4DB697) : AppTheme.jade)
+                                : (isDark ? const Color(0xFFFF7A66) : AppTheme.orange),
                             fontWeight: FontWeight.w900,
                             fontSize: 18,
                           ),
@@ -118,13 +121,16 @@ class _ResultsScreenState extends State<ResultsScreen> {
                         children: [
                           Text(
                             '${result.examId ?? 'Bài'} · ${_kindLabel(result.kind)}',
-                            style: const TextStyle(fontWeight: FontWeight.w800),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             'Chấm bởi: ${_gradedByLabel(result.gradedBy)}',
                             style: TextStyle(
-                              color: Colors.grey.shade600,
+                              color: isDark ? const Color(0xFFA3BFB3) : Colors.grey.shade600,
                               fontSize: 12,
                             ),
                           ),
@@ -135,7 +141,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       passed
                           ? Icons.check_circle_rounded
                           : Icons.arrow_circle_right_rounded,
-                      color: passed ? AppTheme.jade : Colors.grey,
+                      color: passed
+                          ? (isDark ? const Color(0xFF4DB697) : AppTheme.jade)
+                          : (isDark ? const Color(0xFFA3BFB3) : Colors.grey),
                     ),
                   ],
                 ),

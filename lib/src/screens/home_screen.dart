@@ -35,12 +35,14 @@ class HomeScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'HANZIGO · KHÔNG GIAN HỌC TẬP',
                         style: TextStyle(
                           fontSize: 11,
                           letterSpacing: 1.2,
-                          color: AppTheme.jade,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF4DB697)
+                              : AppTheme.jade,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -53,7 +55,7 @@ class HomeScreen extends StatelessWidget {
                           fontSize: 26,
                           fontWeight: FontWeight.w800,
                           color: Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFFE2ECE7)
+                              ? const Color(0xFFF0FDF4)
                               : AppTheme.ink,
                         ),
                       ),
@@ -121,15 +123,27 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 28),
-            const Text(
+            Text(
               'Hôm nay bạn muốn học gì?',
-              style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                fontSize: 21,
+                fontWeight: FontWeight.w800,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFFF0FDF4)
+                    : AppTheme.ink,
+              ),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Chạm để bắt đầu, học từng bước vừa sức.',
-              style: TextStyle(color: Color(0xFF60736A), height: 1.5),
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFFA3BFB3)
+                    : const Color(0xFF60736A),
+                height: 1.5,
+              ),
             ),
+
             const SizedBox(height: 16),
             _card(
               context,
@@ -223,20 +237,22 @@ class HomeScreen extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
+                          color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         subtitle,
                         style: TextStyle(
-                          color: isDark ? const Color(0xFF90A89D) : const Color(0xFF60736A),
+                          color: isDark ? const Color(0xFFA3BFB3) : const Color(0xFF60736A),
                           fontSize: 13,
                           height: 1.4,
                         ),
                       ),
+
                     ],
                   ),
                 ),

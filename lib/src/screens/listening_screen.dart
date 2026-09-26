@@ -597,6 +597,7 @@ class _ExamCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       child: InkWell(
         key: Key('listening-exam-${exam.id}'),
@@ -606,7 +607,11 @@ class _ExamCard extends StatelessWidget {
           padding: const EdgeInsets.all(18),
           child: Row(
             children: [
-              const HanziAvatar('听', size: 58, color: Color(0xFFE9F3ED)),
+              HanziAvatar(
+                '听',
+                size: 58,
+                color: isDark ? const Color(0xFF1E3228) : const Color(0xFFE9F3ED),
+              ),
               const SizedBox(width: 15),
               Expanded(
                 child: Column(
@@ -623,36 +628,37 @@ class _ExamCard extends StatelessWidget {
                     const SizedBox(height: 5),
                     Text(
                       exam.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
+                        color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.help_outline_rounded,
                           size: 15,
-                          color: Colors.grey,
+                          color: isDark ? const Color(0xFFA3BFB3) : Colors.grey,
                         ),
                         Text(
                           ' ${exam.questions.length} câu',
-                          style: const TextStyle(
-                            color: Colors.grey,
+                          style: TextStyle(
+                            color: isDark ? const Color(0xFFA3BFB3) : Colors.grey.shade600,
                             fontSize: 11,
                           ),
                         ),
                         const SizedBox(width: 14),
-                        const Icon(
+                        Icon(
                           Icons.schedule_rounded,
                           size: 15,
-                          color: Colors.grey,
+                          color: isDark ? const Color(0xFFA3BFB3) : Colors.grey,
                         ),
                         Text(
                           ' ${exam.durationMinutes} phút',
-                          style: const TextStyle(
-                            color: Colors.grey,
+                          style: TextStyle(
+                            color: isDark ? const Color(0xFFA3BFB3) : Colors.grey.shade600,
                             fontSize: 11,
                           ),
                         ),
@@ -661,7 +667,10 @@ class _ExamCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: isDark ? const Color(0xFF4DB697) : Colors.grey,
+              ),
             ],
           ),
         ),

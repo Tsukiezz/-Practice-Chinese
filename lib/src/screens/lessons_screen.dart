@@ -266,6 +266,9 @@ class _LessonsScreenState extends State<LessonsScreen> {
                               decoration: BoxDecoration(
                                 color: isDark ? const Color(0xFF1E322A) : const Color(0xFFE6F0EB),
                                 borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isDark ? const Color(0xFF2C4A3E) : const Color(0xFFD4E5DB),
+                                ),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,14 +280,17 @@ class _LessonsScreenState extends State<LessonsScreen> {
                                     style: TextStyle(
                                       fontSize: 19,
                                       fontWeight: FontWeight.w800,
-                                      color: primary,
+                                      color: isDark ? const Color(0xFFF0FDF4) : primary,
                                     ),
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
                                     info?['description'] as String? ??
                                         'Bắt đầu từ HSK 1 hoặc chọn cấp phù hợp. Bạn có thể học lại và chuyển cấp bất cứ lúc nào.',
-                                    style: const TextStyle(height: 1.5),
+                                    style: TextStyle(
+                                      height: 1.5,
+                                      color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF4A5568),
+                                    ),
                                   ),
                                   if (info != null) ...[
                                     const SizedBox(height: 8),
@@ -292,7 +298,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
                                       'Trước khi học: ${info['prerequisite']}',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: isDark ? const Color(0xFF9CB2A8) : Colors.grey.shade800,
+                                        color: isDark ? const Color(0xFFA3BFB3) : Colors.grey.shade800,
                                         height: 1.5,
                                       ),
                                     ),
@@ -308,7 +314,10 @@ class _LessonsScreenState extends State<LessonsScreen> {
                                   const SizedBox(height: 8),
                                   Text(
                                     '$completed/${inLevel.length} bài hoàn thành • Đạt từ 75% câu đúng để hoàn thành',
-                                    style: const TextStyle(fontSize: 12),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark ? const Color(0xFFA3BFB3) : Colors.grey.shade700,
+                                    ),
                                   ),
                                   if (next != null) ...[
                                     const SizedBox(height: 14),
@@ -326,8 +335,11 @@ class _LessonsScreenState extends State<LessonsScreen> {
                                   ],
                                   if (next == null) ...[
                                     const SizedBox(height: 12),
-                                    const Text(
+                                    Text(
                                       'Bạn đã hoàn thành phần này. Hãy ôn lại hoặc chọn cấp tiếp theo.',
+                                      style: TextStyle(
+                                        color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF4A5568),
+                                      ),
                                     ),
                                   ],
                                 ],
@@ -337,25 +349,46 @@ class _LessonsScreenState extends State<LessonsScreen> {
                             TextField(
                               controller: _search,
                               onChanged: (_) => setState(() {}),
+                              style: TextStyle(
+                                color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+                              ),
                               decoration: InputDecoration(
                                 hintText: 'Tìm chủ đề, mẫu câu…',
-                                prefixIcon: const Icon(Icons.search),
+                                hintStyle: TextStyle(
+                                  color: isDark ? const Color(0xFF7A9388) : const Color(0xFF94A3B8),
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.search,
+                                  color: isDark ? const Color(0xFF4DB697) : primary,
+                                ),
                                 suffixIcon: _search.text.isEmpty
                                     ? null
                                     : IconButton(
                                         tooltip: 'Xóa tìm kiếm',
                                         onPressed: () =>
                                             setState(_search.clear),
-                                        icon: const Icon(Icons.close),
+                                        icon: Icon(
+                                          Icons.close,
+                                          color: isDark ? const Color(0xFFA3BFB3) : Colors.grey,
+                                        ),
                                       ),
                                 filled: true,
                                 fillColor: isDark ? const Color(0xFF1A2924) : Colors.white,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide.none,
+                                  borderSide: BorderSide(
+                                    color: isDark ? const Color(0xFF283B34) : const Color(0xFFDDE5E0),
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(
+                                    color: isDark ? const Color(0xFF283B34) : const Color(0xFFDDE5E0),
+                                  ),
                                 ),
                               ),
                             ),
+
                             const SizedBox(height: 12),
                             SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
@@ -385,8 +418,9 @@ class _LessonsScreenState extends State<LessonsScreen> {
                             const SizedBox(height: 12),
                             Text(
                               '${visible.length} bài học',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w700,
+                                color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
                               ),
                             ),
                           ],
@@ -512,16 +546,17 @@ class _LessonsScreenState extends State<LessonsScreen> {
               const SizedBox(height: 12),
               Text(
                 lesson['title'] as String,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
+                  color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 lesson['objective'] as String,
                 style: TextStyle(
-                  color: isDark ? const Color(0xFF9CB2A8) : Colors.grey.shade700,
+                  color: isDark ? const Color(0xFFA3BFB3) : const Color(0xFF5C6F66),
                   fontSize: 13,
                   height: 1.5,
                 ),
@@ -533,12 +568,19 @@ class _LessonsScreenState extends State<LessonsScreen> {
                 children: [
                   Text(
                     '${lesson['minutes']} phút',
-                    style: const TextStyle(fontSize: 12),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? const Color(0xFF8FA69C) : Colors.grey.shade600,
+                    ),
                   ),
                   if (lesson['review'] == true)
-                    const Text(
+                    Text(
                       'Bài tổng kết',
-                      style: TextStyle(fontSize: 12, color: AppTheme.jade),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? const Color(0xFF4DB697) : AppTheme.jade,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   Text(
                     done
@@ -548,12 +590,15 @@ class _LessonsScreenState extends State<LessonsScreen> {
                             : 'Đang học · Bước ${stage + 1}/4',
                     style: TextStyle(
                       fontSize: 12,
-                      color: done ? AppTheme.jade : AppTheme.ink,
+                      color: done
+                          ? (isDark ? const Color(0xFF4DB697) : AppTheme.jade)
+                          : (isDark ? const Color(0xFF8FA69C) : AppTheme.ink),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
+
               const SizedBox(height: 10),
               LinearProgressIndicator(
                 value: stage / 4,

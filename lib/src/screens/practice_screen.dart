@@ -1381,6 +1381,7 @@ class _ExamCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isComprehensive = exam.questions.length >= 40 ||
         exam.questions.map((q) => q.section).toSet().length > 1;
 
@@ -1398,9 +1399,11 @@ class _ExamCard extends StatelessWidget {
               HanziAvatar(
                 isComprehensive ? '全' : '读',
                 size: 58,
-                color: isComprehensive
-                    ? const Color(0xFFE2F0D9)
-                    : const Color(0xFFE9F3ED),
+                color: isDark
+                    ? const Color(0xFF1E3228)
+                    : (isComprehensive
+                        ? const Color(0xFFE2F0D9)
+                        : const Color(0xFFE9F3ED)),
               ),
               const SizedBox(width: 15),
               Expanded(
@@ -1415,13 +1418,17 @@ class _ExamCard extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFECE5),
+                            color: isDark
+                                ? const Color(0xFF381E1E)
+                                : const Color(0xFFFFECE5),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             'HSK ${exam.hsk}',
-                            style: const TextStyle(
-                              color: AppTheme.red,
+                            style: TextStyle(
+                              color: isDark
+                                  ? const Color(0xFFFF7A66)
+                                  : AppTheme.red,
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
                             ),
@@ -1435,13 +1442,17 @@ class _ExamCard extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE9F3ED),
+                              color: isDark
+                                  ? const Color(0xFF1E3228)
+                                  : const Color(0xFFE9F3ED),
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: const Text(
+                            child: Text(
                               'Đề thi Tổng hợp 3 phần',
                               style: TextStyle(
-                                color: AppTheme.jade,
+                                color: isDark
+                                    ? const Color(0xFF4DB697)
+                                    : AppTheme.jade,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -1453,37 +1464,46 @@ class _ExamCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       exam.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
+                        color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.help_outline_rounded,
                           size: 15,
-                          color: Colors.grey,
+                          color: isDark
+                              ? const Color(0xFFA3BFB3)
+                              : Colors.grey,
                         ),
                         Text(
                           ' ${exam.questions.length} câu',
-                          style: const TextStyle(
-                            color: Colors.grey,
+                          style: TextStyle(
+                            color: isDark
+                                ? const Color(0xFFA3BFB3)
+                                : Colors.grey,
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                         const SizedBox(width: 14),
-                        const Icon(
+                        Icon(
                           Icons.schedule_rounded,
                           size: 15,
-                          color: Colors.grey,
+                          color: isDark
+                              ? const Color(0xFFA3BFB3)
+                              : Colors.grey,
                         ),
                         Text(
                           ' ${exam.durationMinutes} phút',
-                          style: const TextStyle(
-                            color: Colors.grey,
+                          style: TextStyle(
+                            color: isDark
+                                ? const Color(0xFFA3BFB3)
+                                : Colors.grey,
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                           ),
@@ -1493,7 +1513,10 @@ class _ExamCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: isDark ? const Color(0xFF4DB697) : Colors.grey,
+              ),
             ],
           ),
         ),
