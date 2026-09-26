@@ -37,9 +37,38 @@ class Register(Login):
 
 
 class UserUpdate(Body):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    email: str | None = Field(default=None, min_length=3, max_length=120)
     role: Literal["student", "admin"]
     is_active: bool
+    password: str | None = Field(default=None, max_length=128)
     version: int = Field(ge=1)
+
+    @field_validator("email")
+    @classmethod
+    def valid_email(cls, value):
+        if value is None:
+            return None
+        import re
+        if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value):
+            raise ValueError("Email không hợp lệ")
+        return value.lower()
+
+
+class AdminCreateUser(Body):
+    name: str = Field(min_length=1, max_length=100)
+    email: str = Field(min_length=3, max_length=120)
+    password: str = Field(min_length=8, max_length=128)
+    role: Literal["student", "admin"] = "student"
+    is_active: bool = True
+
+    @field_validator("email")
+    @classmethod
+    def valid_email(cls, value):
+        import re
+        if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value):
+            raise ValueError("Email không hợp lệ")
+        return value.lower()
 
 
 class AdminResetPassword(Body):

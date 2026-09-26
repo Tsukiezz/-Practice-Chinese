@@ -21,7 +21,7 @@ from database import audit, database, init_db, row_to_dict, ensure_default_admin
 from email_service import (get_smtp_status, send_verification_email,
                           smtp_is_configured)
 from models import Appeal, AppealReview
-from models import (AIConfig, AdminResetPassword, DictionaryLookup, Exam, ExamUpdate,
+from models import (AIConfig, AdminCreateUser, AdminResetPassword, DictionaryLookup, Exam, ExamUpdate,
                     EssayGradeRequest, EssayGradeResponse,
                     ExamCanvasGradeRequest,
                     ForgotPasswordRequest, ForgotPasswordVerify,
@@ -351,7 +351,27 @@ def users(search: str = Query(default="", max_length=120), role: Literal["studen
         return [public_user(row) for row in conn.execute(query + " ORDER BY id DESC", values)]
 
 
+@app.post("/api/admin/users", status_code=201)
+def create_user_by_admin(body: AdminCreateUser, admin=Depends(admin_user)):
+    email = body.email.strip().lower()
+    with database() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        exists = conn.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+        if exists:
+            raise HTTPException(409, "Email đã được sử dụng")
+        salt = secrets.token_hex(16)
+        pw_hash = hash_password(body.password, salt)
+        user_id = conn.execute(
+            "INSERT INTO users(name, email, password_hash, salt, role, is_active, version, created_at) VALUES(?,?,?,?,?,?,1,?)",
+            (body.name.strip(), email, pw_hash, salt, body.role, int(body.is_active), int(time.time()))
+        ).lastrowid
+        after = public_user(require_row(conn, "users", user_id))
+        audit(conn, admin["id"], "create", "user", user_id, None, after)
+    return after
+
+
 @app.patch("/api/admin/users/{user_id}")
+@app.put("/api/admin/users/{user_id}")
 def update_user(user_id: int, body: UserUpdate, admin=Depends(admin_user)):
     if user_id == admin["id"] and (not body.is_active or body.role != "admin"):
         raise HTTPException(400, "Không thể tự khóa hoặc hạ quyền tài khoản đang dùng")
@@ -363,12 +383,64 @@ def update_user(user_id: int, body: UserUpdate, admin=Depends(admin_user)):
             admin_count = conn.execute("SELECT COUNT(*) FROM users WHERE role='admin' AND is_active=1").fetchone()
             if admin_count and admin_count[0] <= 1:
                 raise HTTPException(409, "Phải giữ ít nhất một quản trị viên hoạt động")
-        conn.execute("UPDATE users SET role=?,is_active=?,version=version+1 WHERE id=?", (body.role, int(body.is_active), user_id))
-        if not body.is_active or body.role != before["role"]:
+        
+        target_name = body.name.strip() if body.name else before["name"]
+        target_email = body.email.strip().lower() if body.email else before["email"]
+        if target_email != before["email"]:
+            exists = conn.execute("SELECT id FROM users WHERE email=? AND id!=?", (target_email, user_id)).fetchone()
+            if exists:
+                raise HTTPException(409, "Email đã được sử dụng bởi tài khoản khác")
+
+        new_hash = None
+        new_salt = None
+        if body.password and body.password.strip():
+            pw = body.password.strip()
+            if len(pw) < 8:
+                raise HTTPException(422, "Mật khẩu mới phải có ít nhất 8 ký tự")
+            new_salt = secrets.token_hex(16)
+            new_hash = hash_password(pw, new_salt)
+
+        if new_hash and new_salt:
+            conn.execute(
+                "UPDATE users SET name=?,email=?,role=?,is_active=?,password_hash=?,salt=?,version=version+1 WHERE id=?",
+                (target_name, target_email, body.role, int(body.is_active), new_hash, new_salt, user_id)
+            )
+        else:
+            conn.execute(
+                "UPDATE users SET name=?,email=?,role=?,is_active=?,version=version+1 WHERE id=?",
+                (target_name, target_email, body.role, int(body.is_active), user_id)
+            )
+
+        if not body.is_active or body.role != before["role"] or new_hash:
             conn.execute("DELETE FROM sessions WHERE user_id=?", (user_id,))
         after = public_user(require_row(conn, "users", user_id))
         audit(conn, admin["id"], "update", "user", user_id, public_user(before), after)
     return after
+
+
+@app.delete("/api/admin/users/{user_id}")
+def delete_user(user_id: int, admin=Depends(admin_user)):
+    if user_id == admin["id"]:
+        raise HTTPException(400, "Không thể tự xóa tài khoản quản trị viên đang đăng nhập")
+    with database() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        before = require_row(conn, "users", user_id)
+        if before["role"] == "admin" and before["is_active"]:
+            admin_count = conn.execute("SELECT COUNT(*) FROM users WHERE role='admin' AND is_active=1 AND id!=?", (user_id,)).fetchone()
+            if admin_count and admin_count[0] < 1:
+                raise HTTPException(409, "Phải giữ lại ít nhất một quản trị viên hoạt động")
+        
+        # Clean up related tables
+        for tbl in ["sessions", "profiles", "lesson_progress", "review_items",
+                    "student_notebook", "student_reading_history", "student_ai_exams",
+                    "exam_submissions", "results", "ai_usage", "personalized_practice"]:
+            try:
+                conn.execute(f"DELETE FROM {tbl} WHERE user_id=?", (user_id,))
+            except sqlite3.OperationalError:
+                pass
+        conn.execute("DELETE FROM users WHERE id=?", (user_id,))
+        audit(conn, admin["id"], "delete", "user", user_id, public_user(before), None)
+    return {"status": "ok", "message": f"Đã xóa tài khoản {before['email']} thành công"}
 
 
 @app.post("/api/admin/users/{user_id}/reset-password")
@@ -494,6 +566,76 @@ def admin_student_vocab(user_id: int | None = None, user=Depends(admin_user)):
             top_looked_up = []
 
         return {"saved_words": saved, "top_looked_up": top_looked_up}
+
+
+@app.get("/api/admin/student-ai-exams")
+def admin_student_ai_exams(
+    user_id: int | None = None,
+    hsk: int | None = None,
+    status: str | None = None,
+    search: str | None = None,
+    user=Depends(admin_user)
+):
+    query = """
+        SELECT e.id, e.user_id, e.title, e.content_type, e.hsk_level, e.topic,
+               e.question_count, e.duration_minutes, e.status, e.score,
+               e.submitted_at, e.created_at, u.name as student_name, u.email as student_email
+        FROM student_ai_exams e
+        JOIN users u ON e.user_id = u.id
+        WHERE 1=1
+    """
+    params: list[Any] = []
+    if user_id is not None:
+        query += " AND e.user_id = ?"
+        params.append(user_id)
+    if hsk is not None:
+        query += " AND e.hsk_level = ?"
+        params.append(hsk)
+    if status:
+        query += " AND e.status = ?"
+        params.append(status)
+    if search:
+        query += " AND (u.name LIKE ? OR u.email LIKE ? OR e.title LIKE ? OR e.topic LIKE ?)"
+        s = f"%{search}%"
+        params.extend([s, s, s, s])
+    query += " ORDER BY e.created_at DESC LIMIT 200"
+    with database() as conn:
+        try:
+            rows = conn.execute(query, params).fetchall()
+            return [dict(r) for r in rows]
+        except Exception:
+            return []
+
+
+@app.get("/api/admin/student-ai-exams/{exam_id}")
+def admin_student_ai_exam_detail(exam_id: int, user=Depends(admin_user)):
+    with database() as conn:
+        row = conn.execute("""
+            SELECT e.*, u.name as student_name, u.email as student_email
+            FROM student_ai_exams e
+            JOIN users u ON e.user_id = u.id
+            WHERE e.id = ?
+        """, (exam_id,)).fetchone()
+        if not row:
+            raise HTTPException(404, "Không tìm thấy đề thi AI")
+        d = dict(row)
+        d["questions"] = json.loads(d.pop("questions_json", "[]") or "[]")
+        d["user_answers"] = json.loads(d.pop("user_answers_json", "{}") or "{}")
+        d["ai_feedback"] = json.loads(d.pop("ai_feedback_json", "{}") or "{}")
+        return d
+
+
+@app.delete("/api/admin/student-ai-exams/{exam_id}")
+def admin_delete_student_ai_exam(exam_id: int, user=Depends(admin_user)):
+    with database() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        before = conn.execute("SELECT * FROM student_ai_exams WHERE id = ?", (exam_id,)).fetchone()
+        if not before:
+            raise HTTPException(404, "Không tìm thấy đề thi AI")
+        conn.execute("DELETE FROM student_ai_exams WHERE id = ?", (exam_id,))
+        audit(conn, user["id"], "delete", "student_ai_exam", exam_id, dict(before), None)
+    return {"status": "ok", "message": f"Đã xóa đề thi AI #{exam_id}"}
+
 
 
 

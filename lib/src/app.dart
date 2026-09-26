@@ -81,6 +81,8 @@ class _AppShellState extends State<AppShell> {
   ReadingExamRepository? _readingRepository;
   ReadingExamRepository? _comprehensiveRepository;
   ListeningExamRepository? _listeningRepository;
+  int _index = 0;
+  final List<int> _tabHistory = [];
 
   @override
   void initState() {
@@ -202,10 +204,31 @@ class _AppShellState extends State<AppShell> {
     setState(() => _authenticated = true);
   }
 
+  void _navigateToTab(int newIndex) {
+    if (_index == newIndex) return;
+    setState(() {
+      _tabHistory.add(_index);
+      _index = newIndex;
+    });
+  }
+
+  void _navigateBack() {
+    if (_tabHistory.isNotEmpty) {
+      setState(() {
+        _index = _tabHistory.removeLast();
+      });
+    } else {
+      setState(() {
+        _index = 0;
+      });
+    }
+  }
+
   Future<void> _logout() async {
     await _authService.logout();
     _readingRepository = null;
     _index = 0;
+    _tabHistory.clear();
     if (!mounted) return;
     setState(() => _authenticated = false);
   }
@@ -232,8 +255,16 @@ class _AppShellState extends State<AppShell> {
           client: _httpClient,
         );
 
-    return Scaffold(
-      appBar: PreferredSize(
+    return PopScope(
+      canPop: _tabHistory.isEmpty,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_tabHistory.isNotEmpty) {
+          _navigateBack();
+        }
+      },
+      child: Scaffold(
+        appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60),
         child: Container(
           decoration: BoxDecoration(
@@ -316,7 +347,7 @@ class _AppShellState extends State<AppShell> {
                   const SizedBox(width: 8),
                   if (_authService.currentUser != null)
                     GestureDetector(
-                      onTap: () => setState(() => _index = 6),
+                      onTap: () => _navigateToTab(6),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: const BoxDecoration(
@@ -359,41 +390,41 @@ class _AppShellState extends State<AppShell> {
         children: [
           HomeScreen(
             userName: _authService.currentUser?.name ?? '',
-            onOpenLessons: () => setState(() => _index = 1),
-            onOpenListening: () => setState(() => _index = 2),
-            onOpenReading: () => setState(() => _index = 3),
-            onOpenDictionary: () => setState(() => _index = 4),
-            onOpenAiExam: () => setState(() => _index = 5),
-            onOpenProfile: () => setState(() => _index = 6),
+            onOpenLessons: () => _navigateToTab(1),
+            onOpenListening: () => _navigateToTab(2),
+            onOpenReading: () => _navigateToTab(3),
+            onOpenDictionary: () => _navigateToTab(4),
+            onOpenAiExam: () => _navigateToTab(5),
+            onOpenProfile: () => _navigateToTab(6),
           ),
           LessonsScreen(
             service: _studentService,
-            onBack: () => setState(() => _index = 0),
+            onBack: _navigateBack,
           ),
           ListeningScreen(
             repository: _listeningRepository!,
             draftOwner: _authService.currentUser?.id,
-            onBack: () => setState(() => _index = 0),
+            onBack: _navigateBack,
           ),
           PracticeScreen(
             repository: _readingRepository!,
             draftOwner: _authService.currentUser?.id,
-            onBack: () => setState(() => _index = 0),
+            onBack: _navigateBack,
           ),
           VocabularyScreen(
             service: _studentService,
-            onBack: () => setState(() => _index = 0),
+            onBack: _navigateBack,
           ),
           AiExamScreen(
             service: _aiExamService,
-            onBack: () => setState(() => _index = 0),
+            onBack: _navigateBack,
           ),
           ProfileScreen(
             onLogout: _logout,
             studentService: _studentService,
             comprehensiveRepository: _comprehensiveRepository,
             user: _authService.currentUser,
-            onBack: () => setState(() => _index = 0),
+            onBack: _navigateBack,
             onEditProfile: kIsWeb
                 ? () => openAccount(_authService.token!)
                 : null,
@@ -405,7 +436,7 @@ class _AppShellState extends State<AppShell> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (value) => setState(() => _index = value),
+        onDestinationSelected: (value) => _navigateToTab(value),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
@@ -444,8 +475,7 @@ class _AppShellState extends State<AppShell> {
           ),
         ],
       ),
+      ),
     );
   }
-
-  int _index = 0;
 }

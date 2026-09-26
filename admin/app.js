@@ -2,11 +2,12 @@ const root = document.querySelector('#app');
 const dialog = document.querySelector('#editor');
 const pages = {
   dashboard: ['Tổng quan', 'Bức tranh học tập toàn hệ thống, cập nhật từ cơ sở dữ liệu.'],
-  users: ['Tài khoản học viên', 'Quản lý tài khoản học viên, quyền truy cập và đặt lại mật khẩu.'],
+  users: ['Quản lý tài khoản', 'Quản lý tài khoản học viên và quản trị viên, thêm mới, chỉnh sửa, xóa và phân quyền.'],
   student_lessons: ['Tiến độ 48 Bài học', 'Theo dõi tiến trình 48 bài học theo 4 giai đoạn chuẩn sư phạm và điểm số.'],
   student_reading: ['Luyện Đọc Phát Âm AI', 'Lịch sử phát âm qua mic, độ chính xác AI và phân tích lỗi đọc của học viên.'],
   student_writing: ['Luyện Viết Canvas & Tự luận', 'Theo dõi nét vẽ chữ Hán trên canvas và các bài tập viết tự luận của học viên.'],
   student_vocab: ['Sổ tay & Tra từ', 'Từ vựng học viên đã lưu vào sổ tay cá nhân và các từ được tra cứu nhiều nhất.'],
+  student_ai_exams: ['Đề thi AI Học viên', 'Quản lý lịch sử tạo đề thi AI của từng học viên, trạng thái nộp bài và kết quả.'],
   results: ['Duyệt bài thi & Khiếu nại', 'Xem bài làm đề thi HSK 1–6, xử lý khiếu nại và lịch sử điều chỉnh điểm.'],
   vocabulary: ['Kho 5.000 từ & nét chuẩn', 'Nguồn 5.000 từ vựng HSK 1–6 và thứ tự nét canvas chuẩn.'],
   exams: ['Ngân hàng đề thi HSK', 'Biên soạn và quản lý đề thi Nghe, Đọc, Viết theo chuẩn HSK 1–6.'],
@@ -121,7 +122,7 @@ function loginView(error = '') {
 
 function shell() {
   const navButton = key => `<button data-page="${key}">${pages[key][0]}</button>`;
-  root.innerHTML = `<div class="layout"><aside class="sidebar">${brand}<button type="button" id="menu-toggle" class="menu-toggle" aria-label="Mở menu quản trị" aria-expanded="false" aria-controls="admin-menu"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div id="admin-menu" class="sidebar-menu"><a href="/" class="app-return-link" style="display:flex;align-items:center;gap:8px;padding:9px 12px;margin:4px 8px 10px;background:#eef6ee;color:#1e5e2e;border:1px solid #cce5cc;border-radius:8px;font-weight:600;font-size:13px;text-decoration:none">← Về ứng dụng HanziGo</a><nav aria-label="Quản trị">${navButton('dashboard')}<div class="nav-group"><span class="nav-label">🎓 Quản trị Chức năng Học viên</span>${['users','student_lessons','student_reading','student_writing','student_vocab','results'].map(navButton).join('')}</div><div class="nav-group"><span class="nav-label">📚 Kho Học liệu & Đề thi</span>${['vocabulary','exams','lessons'].map(navButton).join('')}</div><div class="nav-group"><span class="nav-label">⚙️ Hệ thống & Trí tuệ AI</span>${['ai','logs'].map(navButton).join('')}</div></nav><div class="account"><div><b>${escape(user.name)}</b><small>${escape(user.email)}</small></div><a href="/">← Về trang học viên</a><button id="logout">Đăng xuất</button></div></div></aside><main class="main"><div class="topline"><span>CHINESE LEARNING / QUẢN TRỊ</span><a href="/" style="font-size:12px;color:#2c7a3f;text-decoration:none;font-weight:600;margin-right:12px">← Mở ứng dụng học tập</a><span class="pill">Không gian quản trị</span></div><div id="content"></div></main></div>`;
+  root.innerHTML = `<div class="layout"><aside class="sidebar">${brand}<button type="button" id="menu-toggle" class="menu-toggle" aria-label="Mở menu quản trị" aria-expanded="false" aria-controls="admin-menu"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><div id="admin-menu" class="sidebar-menu"><a href="/" class="app-return-link" style="display:flex;align-items:center;gap:8px;padding:9px 12px;margin:4px 8px 10px;background:#eef6ee;color:#1e5e2e;border:1px solid #cce5cc;border-radius:8px;font-weight:600;font-size:13px;text-decoration:none">← Về ứng dụng HanziGo</a><nav aria-label="Quản trị">${navButton('dashboard')}<div class="nav-group"><span class="nav-label">🎓 Quản trị Chức năng Học viên</span>${['users','student_lessons','student_reading','student_writing','student_vocab','student_ai_exams','results'].map(navButton).join('')}</div><div class="nav-group"><span class="nav-label">📚 Kho Học liệu & Đề thi</span>${['vocabulary','exams','lessons'].map(navButton).join('')}</div><div class="nav-group"><span class="nav-label">⚙️ Hệ thống & Trí tuệ AI</span>${['ai','logs'].map(navButton).join('')}</div></nav><div class="account"><div><b>${escape(user.name)}</b><small>${escape(user.email)}</small></div><a href="/">← Về trang học viên</a><button id="logout">Đăng xuất</button></div></div></aside><main class="main"><div class="topline"><span>CHINESE LEARNING / QUẢN TRỊ</span><a href="/" style="font-size:12px;color:#2c7a3f;text-decoration:none;font-weight:600;margin-right:12px">← Mở ứng dụng học tập</a><span class="pill">Không gian quản trị</span></div><div id="content"></div></main></div>`;
   document.querySelector('#menu-toggle').onclick = event => {
     setMenu(event.currentTarget.getAttribute('aria-expanded') !== 'true');
   };
@@ -175,6 +176,7 @@ async function loadPage(params = '') {
       student_reading: '/admin/student-reading',
       student_writing: '/admin/student-writing',
       student_vocab: '/admin/student-vocab',
+      student_ai_exams: '/admin/student-ai-exams',
       results: '/admin/results',
       vocabulary: '/admin/vocabulary',
       exams: '/admin/exams',
@@ -192,6 +194,7 @@ async function loadPage(params = '') {
       student_reading: renderStudentReading,
       student_writing: renderStudentWriting,
       student_vocab: renderStudentVocab,
+      student_ai_exams: renderStudentAiExams,
       results: renderResults,
       vocabulary: renderWords,
       exams: renderExams,
@@ -215,22 +218,284 @@ function renderDashboard(content, data) {
 
 function renderUsers(content, data, params) {
   const filter = new URLSearchParams(params);
-  content.innerHTML += `<section class="panel"><form id="filters" class="toolbar"><label>Tìm tài khoản<input name="search" placeholder="Tên hoặc email" value="${escape(filter.get('search') || '')}"></label><label>Vai trò<select name="role"><option value="">Tất cả</option><option value="student">Học viên</option><option value="admin">Quản trị viên</option></select></label><label>Trạng thái<select name="active"><option value="">Tất cả</option><option value="true">Hoạt động</option><option value="false">Đã khóa</option></select></label><button>Tìm kiếm</button></form>${table(['Người dùng','Vai trò','Trạng thái','Thao tác'], data.map(r => `<tr><td><b>${escape(r.name)}</b><small>${escape(r.email)}</small></td><td>${statusLabel(r.role)}</td><td><span class="tag ${r.is_active?'':'locked'}">${r.is_active?'Hoạt động':'Đã khóa'}</span></td><td><div class="actions"><button data-edit="${r.id}">Phân quyền</button><button data-reset-pw="${r.id}">Đặt lại MK</button></div></td></tr>`))}</section>`;
+  content.innerHTML += `<section class="panel">
+    <form id="filters" class="toolbar">
+      <label>Tìm tài khoản<input name="search" placeholder="Tên hoặc email" value="${escape(filter.get('search') || '')}"></label>
+      <label>Vai trò
+        <select name="role">
+          <option value="">Tất cả</option>
+          <option value="student">Học viên</option>
+          <option value="admin">Quản trị viên</option>
+        </select>
+      </label>
+      <label>Trạng thái
+        <select name="active">
+          <option value="">Tất cả</option>
+          <option value="true">Hoạt động</option>
+          <option value="false">Đã khóa</option>
+        </select>
+      </label>
+      <button>Tìm kiếm</button>
+      <button type="button" id="add-user" class="primary">+ Thêm tài khoản</button>
+    </form>
+    ${table(['Người dùng', 'Vai trò', 'Trạng thái', 'Thao tác'], data.map(r => `<tr>
+      <td><b>${escape(r.name)}</b><br><small>${escape(r.email)}</small></td>
+      <td><span class="tag ${r.role === 'admin' ? 'published' : ''}">${statusLabel(r.role)}</span></td>
+      <td><span class="tag ${r.is_active ? '' : 'locked'}">${r.is_active ? 'Hoạt động' : 'Đã khóa'}</span></td>
+      <td>
+        <div class="actions">
+          <button data-edit-user="${r.id}">Sửa</button>
+          <button class="danger" data-delete-user="${r.id}">Xóa</button>
+          <button data-reset-pw="${r.id}">Đổi MK</button>
+          <button data-user-ai-exams="${r.id}">Đề thi AI</button>
+        </div>
+      </td>
+    </tr>`))}
+  </section>`;
   bindFilter(params);
-  document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => {
-    const row = data.find(r => r.id === Number(b.dataset.edit));
-    openEditor('Quản lý tài khoản', `<p><b>${escape(row.name)}</b><br>${escape(row.email)}</p><label>Vai trò<select name="role"><option value="student">Học viên</option><option value="admin">Quản trị viên</option></select></label><label class="check"><input type="checkbox" name="is_active" ${row.is_active?'checked':''}> Tài khoản hoạt động</label><p class="note">Đổi vai trò hoặc khóa tài khoản sẽ thu hồi các phiên đăng nhập hiện tại.</p>`, async form => {
-      await api(`/admin/users/${row.id}`, 'PATCH', {role:form.elements.role.value,is_active:form.elements.is_active.checked,version:row.version});
+
+  // Add User
+  document.querySelector('#add-user').onclick = () => {
+    openEditor('Thêm tài khoản mới', `
+      <div class="grid">
+        <label>Họ và tên<input name="name" required maxlength="100" placeholder="Nguyễn Văn A"></label>
+        <label>Email đăng nhập<input name="email" type="email" required maxlength="120" placeholder="user@hanzigo.com"></label>
+        <label>Mật khẩu ban đầu (tối thiểu 8 ký tự)<input name="password" type="password" required minlength="8" maxlength="128" placeholder="Nhập mật khẩu"></label>
+        <label>Vai trò
+          <select name="role">
+            <option value="student">Học viên</option>
+            <option value="admin">Quản trị viên</option>
+          </select>
+        </label>
+      </div>
+      <label class="check" style="margin-top:12px">
+        <input type="checkbox" name="is_active" checked> Kích hoạt tài khoản ngay
+      </label>
+    `, async form => {
+      const body = {
+        name: form.elements.name.value.trim(),
+        email: form.elements.email.value.trim().toLowerCase(),
+        password: form.elements.password.value,
+        role: form.elements.role.value,
+        is_active: form.elements.is_active.checked,
+      };
+      await api('/admin/users', 'POST', body);
+      notify('Tạo tài khoản mới thành công');
+    }, '+ Tạo tài khoản');
+  };
+
+  // Edit User
+  document.querySelectorAll('[data-edit-user]').forEach(b => b.onclick = () => {
+    const row = data.find(r => r.id === Number(b.dataset.editUser));
+    openEditor(`Chỉnh sửa tài khoản: ${escape(row.name)}`, `
+      <div class="grid">
+        <label>Họ và tên<input name="name" required maxlength="100" value="${escape(row.name)}"></label>
+        <label>Email đăng nhập<input name="email" type="email" required maxlength="120" value="${escape(row.email)}"></label>
+        <label>Vai trò
+          <select name="role">
+            <option value="student" ${row.role === 'student' ? 'selected' : ''}>Học viên</option>
+            <option value="admin" ${row.role === 'admin' ? 'selected' : ''}>Quản trị viên</option>
+          </select>
+        </label>
+        <label>Mật khẩu mới (tùy chọn)
+          <input name="password" type="password" minlength="8" maxlength="128" placeholder="Để trống nếu không đổi">
+        </label>
+      </div>
+      <label class="check" style="margin-top:12px">
+        <input type="checkbox" name="is_active" ${row.is_active ? 'checked' : ''}> Tài khoản hoạt động
+      </label>
+      <p class="note">Thay đổi quyền hoặc khóa tài khoản sẽ tự động thu hồi các phiên đăng nhập đang hoạt động của người dùng.</p>
+    `, async form => {
+      const body = {
+        name: form.elements.name.value.trim(),
+        email: form.elements.email.value.trim().toLowerCase(),
+        role: form.elements.role.value,
+        is_active: form.elements.is_active.checked,
+        version: row.version,
+      };
+      if (form.elements.password && form.elements.password.value.trim()) {
+        body.password = form.elements.password.value.trim();
+      }
+      await api(`/admin/users/${row.id}`, 'PUT', body);
+      notify(`Đã cập nhật tài khoản ${row.name}`);
     });
-    dialog.querySelector('[name=role]').value = row.role;
   });
+
+  // Delete User
+  document.querySelectorAll('[data-delete-user]').forEach(b => b.onclick = async () => {
+    const row = data.find(r => r.id === Number(b.dataset.deleteUser));
+    if (user && row.id === user.id) {
+      alert('Không thể tự xóa tài khoản của chính bạn!');
+      return;
+    }
+    const confirmed = confirm(`Bạn có chắc chắn muốn xóa tài khoản "${row.name}" (${row.email})?\n\nToàn bộ dữ liệu tiến độ bài học, bài thi và lịch sử học tập của tài khoản này sẽ được xóa khỏi hệ thống.`);
+    if (!confirmed) return;
+    try {
+      await api(`/admin/users/${row.id}`, 'DELETE');
+      notify(`Đã xóa tài khoản ${row.name} thành công`);
+      loadPage(params);
+    } catch (err) {
+      notify(err.message);
+    }
+  });
+
+  // Reset Password quick button
   document.querySelectorAll('[data-reset-pw]').forEach(b => b.onclick = () => {
     const row = data.find(r => r.id === Number(b.dataset.resetPw));
-    openEditor(`Đặt lại mật khẩu cho ${escape(row.name)}`, `<p>Tài khoản: <b>${escape(row.email)}</b></p><label>Mật khẩu mới (tối thiểu 8 ký tự)<input name="new_password" type="password" required minlength="8" maxlength="128" placeholder="Nhập mật khẩu mới"></label><p class="note">Sau khi đặt lại thành công, tài khoản này sẽ được cập nhật mật khẩu mới trên hệ thống.</p>`, async form => {
+    openEditor(`Đặt lại mật khẩu cho ${escape(row.name)}`, `
+      <p>Tài khoản: <b>${escape(row.email)}</b></p>
+      <label>Mật khẩu mới (tối thiểu 8 ký tự)
+        <input name="new_password" type="password" required minlength="8" maxlength="128" placeholder="Nhập mật khẩu mới">
+      </label>
+      <p class="note">Sau khi đặt lại thành công, tài khoản này sẽ được cập nhật mật khẩu mới trên hệ thống.</p>
+    `, async form => {
       await api(`/admin/users/${row.id}/reset-password`, 'POST', {new_password: form.elements.new_password.value});
     }, 'Cập nhật mật khẩu');
   });
+
+  // Go to student's AI exams
+  document.querySelectorAll('[data-user-ai-exams]').forEach(b => b.onclick = () => {
+    const uid = b.dataset.userAiExams;
+    page = 'student_ai_exams';
+    loadPage(`?user_id=${uid}`);
+  });
 }
+
+function renderStudentAiExams(content, data, params) {
+  const filter = new URLSearchParams(params);
+  content.innerHTML += `<section class="panel">
+    <form id="filters" class="toolbar">
+      <label>Tìm kiếm<input name="search" placeholder="Học viên, email, tên đề, chủ đề..." value="${escape(filter.get('search') || '')}"></label>
+      <label>Cấp độ
+        <select name="hsk">
+          <option value="">Tất cả HSK</option>
+          ${[1,2,3,4,5,6].map(n => `<option value="${n}">HSK ${n}</option>`).join('')}
+        </select>
+      </label>
+      <label>Trạng thái
+        <select name="status">
+          <option value="">Tất cả trạng thái</option>
+          <option value="completed">Đã nộp bài</option>
+          <option value="pending">Đang làm</option>
+        </select>
+      </label>
+      <button>Tìm kiếm</button>
+      <span class="pill" style="margin-left:auto">${data.length} đề thi AI</span>
+    </form>
+    ${table(['Học viên', 'Đề thi AI', 'Cấp độ', 'Số câu / Thời gian', 'Trạng thái', 'Điểm số', 'Thời gian', 'Thao tác'],
+      data.map(r => `<tr>
+        <td><b>${escape(r.student_name)}</b><br><small>${escape(r.student_email)}</small></td>
+        <td><b>${escape(r.title)}</b><br><small>${r.content_type === 'vocabulary' ? '📖 Ôn từ vựng' : '🎲 Đề ngẫu nhiên'}${r.topic ? ' · Chủ đề: ' + escape(r.topic) : ''}</small></td>
+        <td><span class="tag">HSK ${r.hsk_level || '1'}</span></td>
+        <td>${r.question_count} câu · ${r.duration_minutes} phút</td>
+        <td><span class="tag ${r.status === 'completed' ? 'published' : 'draft'}">${r.status === 'completed' ? 'Đã nộp bài' : 'Đang làm'}</span></td>
+        <td>${r.score != null ? `<b style="color:${r.score >= 80 ? '#1b4d3e' : '#c53030'};font-size:14px">${r.score}</b>/100` : '<span style="color:#888">—</span>'}</td>
+        <td><small>Tạo: ${date(r.created_at)}${r.submitted_at ? `<br>Nộp: ${date(r.submitted_at)}` : ''}</small></td>
+        <td>
+          <div class="actions">
+            <button data-view-exam="${r.id}">Chi tiết</button>
+            <button class="danger" data-delete-exam="${r.id}">Xóa</button>
+          </div>
+        </td>
+      </tr>`))}
+  </section>`;
+  bindFilter(params);
+
+  document.querySelectorAll('[data-view-exam]').forEach(b => {
+    b.onclick = async () => {
+      const examId = Number(b.dataset.viewExam);
+      try {
+        const detail = await api(`/admin/student-ai-exams/${examId}`);
+        showStudentAiExamModal(detail);
+      } catch (err) {
+        notify(err.message);
+      }
+    };
+  });
+
+  document.querySelectorAll('[data-delete-exam]').forEach(b => {
+    b.onclick = async () => {
+      const examId = Number(b.dataset.deleteExam);
+      if (!confirm(`Bạn có chắc muốn xóa đề thi AI #${examId} này không?`)) return;
+      try {
+        await api(`/admin/student-ai-exams/${examId}`, 'DELETE');
+        notify(`Đã xóa đề thi AI #${examId} thành công`);
+        loadPage(params);
+      } catch (err) {
+        notify(err.message);
+      }
+    };
+  });
+}
+
+function showStudentAiExamModal(detail) {
+  const qs = detail.questions || [];
+  const userAnswers = detail.user_answers || {};
+  const feedback = detail.ai_feedback || {};
+
+  let html = `
+    <div style="margin-bottom:16px;padding:12px 16px;background:#f5f8f6;border-radius:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div>
+          <b>Học viên: ${escape(detail.student_name)}</b> (${escape(detail.student_email)})<br>
+          <small>Đề thi: ${escape(detail.title)} · Cấp độ: HSK ${detail.hsk_level || 1} · ${detail.question_count} câu · ${detail.duration_minutes} phút</small>
+        </div>
+        <div>
+          <span class="tag ${detail.status === 'completed' ? 'published' : 'draft'}">${detail.status === 'completed' ? 'Đã nộp bài' : 'Đang làm'}</span>
+          ${detail.score != null ? `<b style="font-size:16px;margin-left:8px;color:${detail.score >= 80 ? '#1b4d3e' : '#c53030'}">${detail.score} / 100 điểm</b>` : ''}
+        </div>
+      </div>
+      ${feedback.summary ? `<p style="margin:8px 0 0;font-size:13px;color:#2c5234"><b>Nhận xét AI:</b> ${escape(feedback.summary)}</p>` : ''}
+    </div>
+    <div style="max-height:480px;overflow-y:auto;padding-right:8px">
+  `;
+
+  if (qs.length === 0) {
+    html += '<p>Không có câu hỏi nào trong đề thi này.</p>';
+  } else {
+    qs.forEach((q, idx) => {
+      const userAns = userAnswers[String(idx)] || userAnswers[q.id] || '';
+      const isCorrect = userAns && (userAns === q.correct_answer || userAns === q.answer);
+      const correctAns = q.correct_answer || q.answer || '';
+      html += `
+        <div style="margin-bottom:14px;padding:12px;border:1px solid #e2e8e4;border-radius:8px;background:#fff">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <b>Câu ${idx + 1}: ${escape(q.prompt || q.question || '')}</b>
+            ${detail.status === 'completed' ? `
+              <span class="tag ${isCorrect ? 'published' : 'locked'}" style="font-size:11px">
+                ${isCorrect ? '✓ Đúng' : (userAns ? '✗ Sai' : 'Chưa làm')}
+              </span>
+            ` : ''}
+          </div>
+          ${q.pinyin ? `<div style="font-size:12px;color:#666;margin-bottom:6px">${escape(q.pinyin)}</div>` : ''}
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+            ${(q.options || []).map(opt => {
+              const isSelected = userAns === opt || (userAns && opt && userAns.trim().startsWith(opt.trim().slice(0, 1)));
+              const isRight = opt === correctAns || (correctAns && opt && correctAns.trim().startsWith(opt.trim().slice(0, 1)));
+              let bg = '#fafafa';
+              let border = '#eee';
+              if (detail.status === 'completed') {
+                if (isRight) { bg = '#eaf7ed'; border = '#68d391'; }
+                else if (isSelected) { bg = '#fff5f5'; border = '#fc8181'; }
+              } else if (isSelected) {
+                bg = '#eef6ee'; border = '#1b4d3e';
+              }
+              return `<div style="padding:6px 10px;border-radius:6px;font-size:13px;border:1px solid ${border};background:${bg}">
+                ${escape(opt)} ${isSelected ? '<b>(Đã chọn)</b>' : ''} ${isRight && detail.status === 'completed' ? '<b>(Đáp án đúng)</b>' : ''}
+              </div>`;
+            }).join('')}
+          </div>
+          ${q.explanation ? `<div style="font-size:12px;color:#4a5568;background:#f7fafc;padding:6px 10px;border-radius:6px">💡 <b>Giải thích:</b> ${escape(q.explanation)}</div>` : ''}
+        </div>
+      `;
+    });
+  }
+
+  html += '</div>';
+
+  openEditor(`Chi tiết Đề thi AI #${detail.id}`, html, null, 'Đóng');
+}
+
 
 function bindFilter(params) {
   const form = document.querySelector('#filters');
@@ -503,9 +768,22 @@ function hskSelect(name = 'hsk') {
   return `<select name="${name}">${[1,2,3,4,5,6].map(n => `<option value="${n}">HSK ${n}</option>`).join('')}</select>`;
 }
 
+const HANZI_STROKE_MAP = {
+  '爱':10,'八':2,'爸':8,'杯':8,'子':3,'北':5,'京':8,'本':5,'不':4,'客':9,'气':4,'菜':11,'茶':9,'吃':6,'出':5,'租':10,'车':7,'点':9,'电':5,'脑':13,'视':9,'影':15,'东':5,'西':6,'都':10,'读':10,'对':5,'起':10,'多':6,'少':4,'儿':2,'二':2,'饭':7,'馆':11,'高':10,'兴':6,'个':3,'工':3,'作':7,'狗':8,'语':9,'汉':5,'好':6,'喝':12,'和':8,'很':9,'后':6,'面':9,'回':6,'会':6,'几':2,'家':10,'叫':5,'今':4,'天':4,'九':2,'开':4,'看':9,'见':4,'块':7,'来':7,'老':6,'师':6,'了':2,'冷':7,'里':7,'零':13,'六':4,'妈':6,'吗':6,'买':6,'猫':11,'没':7,'关':6,'系':7,'米':6,'明':8,'名':6,'字':6,'哪':9,'那':6,'呢':8,'能':10,'你':7,'年':6,'朋':8,'友':4,'漂':14,'亮':9,'苹':8,'果':8,'七':2,'钱':10,'前':9,'请':10,'去':5,'热':10,'人':2,'认':4,'识':7,'日':4,'三':3,'商':11,'店':8,'上':3,'午':4,'谁':10,'什':4,'么':3,'十':2,'时':7,'候':10,'是':9,'书':4,'水':4,'果':8,'睡':13,'觉':9,'说':9,'话':8,'四':5,'岁':6,'他':5,'她':6,'太':4,'听':7,'同':6,'喂':12,'我':7,'们':5,'五':4,'喜':12,'欢':6,'下':3,'雨':8,'先':6,'生':5,'现':8,'在':6,'想':13,'小':3,'姐':8,'些':8,'写':5,'谢':12,'星':9,'期':12,'学':8,'习':3,'校':10,'一':1,'衣':6,'服':8,'医':7,'院':9,'椅':12,'有':6,'月':4,'再':6,'怎':9,'样':10,'这':7,'中':4,'国':8,'住':7,'桌':10,'昨':9,'坐':7,'做':11,'帮':17,'助':7,'环':8,'境':14,'经':8,'验':10,'效':10,'率':11,'毅':15,'力':2
+};
+
+function getStrokeCountLabel(r) {
+  if (r.strokes && r.strokes.length > 0) return `${r.strokes.length} nét`;
+  let total = 0;
+  for (const ch of (r.hanzi || '')) {
+    total += HANZI_STROKE_MAP[ch] || 0;
+  }
+  return total > 0 ? `${total} nét` : 'Chưa có nét';
+}
+
 function renderWords(content, data, params) {
   const filter = new URLSearchParams(params);
-  content.innerHTML += `<section class="panel"><form id="filters" class="toolbar"><label>Tìm từ<input name="search" placeholder="Chữ Hán, Pinyin, nghĩa" value="${escape(filter.get('search') || '')}"></label><label>Cấp độ<select name="hsk"><option value="">Tất cả HSK</option>${[1,2,3,4,5,6].map(n=>`<option value="${n}">HSK ${n}</option>`).join('')}</select></label><button>Tìm</button><button type="button" id="add" class="primary">+ Thêm từ</button></form>${table(['Chữ Hán','Pinyin / Nghĩa','Cấp độ','Nét chuẩn','Thao tác'],data.map(r=>`<tr><td class="hanzi">${escape(r.hanzi)}</td><td>${escape(r.pinyin)}<small>${escape(r.meaning)}</small></td><td><span class="tag">HSK ${r.hsk}</span></td><td>${r.strokes.length} nét</td><td><div class="actions"><button data-edit="${r.id}">Sửa</button><button class="danger" data-delete="${r.id}">Xóa</button></div></td></tr>`))}</section>`;
+  content.innerHTML += `<section class="panel"><form id="filters" class="toolbar"><label>Tìm từ<input name="search" placeholder="Chữ Hán, Pinyin, nghĩa" value="${escape(filter.get('search') || '')}"></label><label>Cấp độ<select name="hsk"><option value="">Tất cả HSK</option>${[1,2,3,4,5,6].map(n=>`<option value="${n}">HSK ${n}</option>`).join('')}</select></label><button>Tìm</button><button type="button" id="add" class="primary">+ Thêm từ</button></form>${table(['Chữ Hán','Pinyin / Nghĩa','Cấp độ','Nét chuẩn','Thao tác'],data.map(r=>`<tr><td class="hanzi">${escape(r.hanzi)}</td><td>${escape(r.pinyin)}<small>${escape(r.meaning)}</small></td><td><span class="tag">HSK ${r.hsk}</span></td><td>${getStrokeCountLabel(r)}</td><td><div class="actions"><button data-edit="${r.id}">Sửa</button><button class="danger" data-delete="${r.id}">Xóa</button></div></td></tr>`))}</section>`;
   bindFilter(params);
   document.querySelector('#add').onclick = () => wordEditor();
   document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => wordEditor(data.find(r=>r.id === Number(b.dataset.edit))));

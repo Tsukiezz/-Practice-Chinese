@@ -704,6 +704,42 @@ class AdminIntegrationTest(unittest.TestCase):
         self.assertEqual(data["ai_success"],0)
         self.assertEqual(data["average_score"],0)
 
+    def test_admin_user_crud_and_student_ai_exams(self):
+        # 1. Admin creates a new user
+        create_res = self.client.post("/api/admin/users", json={
+            "name": "Học viên Mới",
+            "email": "hocvien.moi@example.test",
+            "password": "Password123@",
+            "role": "student",
+            "is_active": True
+        }, headers=self.headers)
+        self.assertEqual(create_res.status_code, 201)
+        user_id = create_res.json()["id"]
+
+        # 2. Admin edits the user
+        edit_res = self.client.put(f"/api/admin/users/{user_id}", json={
+            "name": "Học viên Đã Đổi Tên",
+            "email": "hocvien.doiten@example.test",
+            "role": "student",
+            "is_active": True,
+            "version": create_res.json()["version"]
+        }, headers=self.headers)
+        self.assertEqual(edit_res.status_code, 200)
+        self.assertEqual(edit_res.json()["name"], "Học viên Đã Đổi Tên")
+
+        # 3. Check student AI exams listing
+        exams_res = self.client.get("/api/admin/student-ai-exams", headers=self.headers)
+        self.assertEqual(exams_res.status_code, 200)
+
+        # 4. Admin deletes the user
+        del_res = self.client.delete(f"/api/admin/users/{user_id}", headers=self.headers)
+        self.assertEqual(del_res.status_code, 200)
+
+        # 5. Cannot self-delete admin
+        self_del = self.client.delete(f"/api/admin/users/{self.admin['user']['id']}", headers=self.headers)
+        self.assertEqual(self_del.status_code, 400)
+
 
 if __name__ == "__main__":
     unittest.main()
+
