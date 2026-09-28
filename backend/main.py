@@ -3,6 +3,8 @@ import hashlib
 import hmac
 import json
 import os
+import logging
+import re
 import secrets
 import sqlite3
 import sys
@@ -844,6 +846,104 @@ def _exam_answer_json(value):
     return value if isinstance(value, str) else value.model_dump()
 
 
+def normalize_answer_text(ans: Any) -> str:
+    if ans is None:
+        return ""
+    text = str(ans).strip().lower()
+    text = re.sub(r'^[a-d0-9][\.\)\:\-\s]+', '', text).strip()
+    return text
+
+
+def is_answer_correct(submitted: Any, correct: Any, options: list[str] | None = None) -> bool:
+    sub_raw = str(submitted or "").strip()
+    cor_raw = str(correct or "").strip()
+    if not sub_raw or not cor_raw:
+        return False
+    if sub_raw.lower() == cor_raw.lower():
+        return True
+    sub_norm = normalize_answer_text(sub_raw)
+    cor_norm = normalize_answer_text(cor_raw)
+    if sub_norm and cor_norm and sub_norm == cor_norm:
+        return True
+    if options and isinstance(options, list):
+        letters = ["a", "b", "c", "d", "e", "f"]
+        sub_low = sub_raw.lower()
+        cor_low = cor_raw.lower()
+        if sub_low in letters:
+            idx = letters.index(sub_low)
+            if 0 <= idx < len(options):
+                opt_norm = normalize_answer_text(options[idx])
+                if opt_norm == cor_norm or options[idx].strip().lower() == cor_low:
+                    return True
+        if cor_low in letters:
+            idx = letters.index(cor_low)
+            if 0 <= idx < len(options):
+                opt_norm = normalize_answer_text(options[idx])
+                if opt_norm == sub_norm or options[idx].strip().lower() == sub_low:
+                    return True
+    return False
+
+
+def grade_objective_exam(questions: list[dict], answers: dict[str, Any]) -> dict[str, Any]:
+    total_weight = 0.0
+    weighted_score = 0.0
+    review_items = []
+    section_totals: dict[str, list[float]] = {}
+    correct_count = 0
+
+    for q in questions:
+        qid = q["id"]
+        section = q.get("section", "exam")
+        weight = float(q.get("weight", 1.0))
+        total_weight += weight
+        sub_ans = answers.get(str(qid), answers.get(qid, ""))
+        cor_ans = q.get("answer", "")
+        options = q.get("options")
+        transcript = (q.get("transcript") or "").strip()
+        explanation = (q.get("explanation") or "").strip()
+
+        correct = is_answer_correct(sub_ans, cor_ans, options)
+        q_score = 100.0 if correct else 0.0
+        weighted_score += q_score * weight
+        if correct:
+            correct_count += 1
+
+        if section not in section_totals:
+            section_totals[section] = [0.0, 0.0]
+        section_totals[section][0] += q_score * weight
+        section_totals[section][1] += weight
+
+        parts = []
+        if correct:
+            parts.append(f"Chính xác! Đáp án đúng: {cor_ans}.")
+        else:
+            parts.append(f"Chưa chính xác. Đáp án đúng: {cor_ans}.")
+        if transcript:
+            parts.append(f"Nội dung nghe: \"{transcript}\".")
+        if explanation:
+            parts.append(f"Giải thích: {explanation}")
+
+        review_items.append({
+            "id": str(qid),
+            "explanation": " ".join(parts).strip()
+        })
+
+    overall_score = round(weighted_score / total_weight, 2) if total_weight > 0 else 0.0
+    section_scores = {
+        sec: round(tot[0] / tot[1], 2) if tot[1] > 0 else 0.0
+        for sec, tot in section_totals.items()
+    }
+    feedback = f"Bạn trả lời đúng {correct_count}/{len(questions)} câu ({overall_score}/100 điểm)."
+
+    return {
+        "score": overall_score,
+        "feedback": feedback,
+        "review_items": review_items,
+        "section_scores": section_scores,
+        "graded_by": "automatic",
+    }
+
+
 def _legacy_exam_grade(exam, questions, answers, user_id, grader):
     sections = {q["section"] for q in questions}
     ai_kind = next(iter(sections)) if len(sections) == 1 else "exam"
@@ -852,14 +952,22 @@ def _legacy_exam_grade(exam, questions, answers, user_id, grader):
         "questions": [{
             "id": q["id"], "section": q["section"], "prompt": q["prompt"],
             "options": q["options"], "answer": q["answer"],
-            "submitted_answer": answers[q["id"]],
+            "submitted_answer": answers.get(str(q["id"]), answers.get(q["id"], "")),
             "transcript": q.get("transcript", ""),
             "explanation": q.get("explanation", ""),
         } for q in questions]
     }, ensure_ascii=False)
     grade_function = ({"reading": grader, "listening": grade_listening_exam}
                       .get(ai_kind, grade_comprehensive_exam))
-    return grade_function(user_id, grading_content)
+    try:
+        res = grade_function(user_id, grading_content)
+        if "graded_by" not in res:
+            res["graded_by"] = "ai"
+        return res
+    except Exception as exc:
+        logging.warning("AI grading failed for exam %s (%s): %s; using deterministic fallback.",
+                        exam.get("id"), ai_kind, exc)
+        return grade_objective_exam(questions, answers)
 
 
 def fetch_or_get_stroke_guide(char: str) -> dict[str, Any]:
@@ -965,7 +1073,9 @@ def _submit_extended_exam(exam_id, exam, questions, body, user, grader):
             raise HTTPException(422, "Câu hỏi cũ cần đáp án dạng văn bản")
         legacy_grade = _legacy_exam_grade(
             exam, legacy_questions, answers, user["id"], grader)
-        used_ai = True
+        legacy_source = legacy_grade.get("graded_by", "ai")
+        if legacy_source == "ai":
+            used_ai = True
         if legacy_grade.get("feedback"):
             feedback_parts.append(legacy_grade["feedback"])
         ai_review_items.extend(legacy_grade.get("review_items", []))
@@ -973,7 +1083,7 @@ def _submit_extended_exam(exam_id, exam, questions, body, user, grader):
             question_scores[question["id"]] = {
                 "score": round(float(legacy_grade["score"]), 2),
                 "feedback": legacy_grade.get("feedback", ""),
-                "graded_by": "ai",
+                "graded_by": legacy_source,
             }
 
     for question in special_questions:
@@ -1081,15 +1191,23 @@ def submit(exam_id: int, body: Submission, user=Depends(current_user), grader=De
         }, ensure_ascii=False)
         grade_function = ({"reading": grader, "listening": grade_listening_exam}
                           .get(ai_kind, grade_comprehensive_exam))
-        grade = grade_function(user["id"], grading_content)
-        score, feedback, graded_by = grade["score"], grade["feedback"], "ai"
-        ai_review_items = grade.get("review_items", [])
-        section_scores = grade.get("section_scores", {section: score for section in sections})
+        try:
+            grade = grade_function(user["id"], grading_content)
+            score, feedback, graded_by = grade["score"], grade["feedback"], grade.get("graded_by", "ai")
+            ai_review_items = grade.get("review_items", [])
+            section_scores = grade.get("section_scores", {section: score for section in sections})
+        except Exception as exc:
+            logging.warning("AI grading failed in submit for exam %s: %s; falling back to objective grading.",
+                            exam_id, exc)
+            fallback = grade_objective_exam(questions, body.answers)
+            score, feedback, graded_by = fallback["score"], fallback["feedback"], "automatic"
+            ai_review_items = fallback.get("review_items", [])
+            section_scores = fallback.get("section_scores", {section: score for section in sections})
     else:
-        score = round(100 * sum(str(body.answers.get(q["id"], "")).strip() == str(q["answer"]).strip() for q in questions) / len(questions), 2)
-        feedback, graded_by = "", "automatic"
-        ai_review_items = []
-        section_scores = {}
+        fallback = grade_objective_exam(questions, body.answers)
+        score, feedback, graded_by = fallback["score"], fallback["feedback"], "automatic"
+        ai_review_items = fallback.get("review_items", [])
+        section_scores = fallback.get("section_scores", {})
 
     snapshot = json.dumps({"exam_title": exam["title"], "exam_version": exam["version"],
                            "questions": questions, "answers": body.answers,

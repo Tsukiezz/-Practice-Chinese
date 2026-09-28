@@ -123,6 +123,36 @@ class ListeningHskTest(unittest.TestCase):
             self.assertIn("transcript", item)
             self.assertIn("explanation", item)
 
+    def test_listening_exam_submit_fallback_when_ai_overloaded(self):
+        """Verify exam submits successfully with objective grading when AI throws 503 overloaded."""
+        from unittest.mock import patch
+        from fastapi import HTTPException
+        with storage.database() as conn:
+            storage.init_listening_exams(conn)
+
+        exams = self.client.get("/api/exams?hsk=1", headers=self.headers).json()
+        exam = exams[0]
+        exam_id = exam["id"]
+        q_ids = [q["id"] for q in exam["questions"]]
+        raw_exam = [e for e in LISTENING_EXAMS_HSK1_6 if e["hsk"] == 1][0]
+        correct_answers = {q["id"]: q["answer"] for q in raw_exam["questions"]}
+
+        with patch("main.grade_listening_exam", side_effect=HTTPException(503, "Dịch vụ AI đang quá tải. Vui lòng chờ một lát rồi thử lại; bài này chưa được chấm.")):
+            submit_resp = self.client.post(
+                f"/api/exams/{exam_id}/submit",
+                headers=self.headers,
+                json={"version": exam["version"], "answers": correct_answers},
+            )
+        self.assertEqual(submit_resp.status_code, 201)
+        result = submit_resp.json()
+        self.assertEqual(result["score"], 100.0)
+        self.assertEqual(result["graded_by"], "automatic")
+        snapshot = json.loads(result["content"])
+        self.assertEqual(len(snapshot["ai_review_items"]), len(q_ids))
+        # Ensure transcript is present in review
+        self.assertTrue(any("Nội dung nghe" in item["explanation"] for item in snapshot["ai_review_items"]))
+
 
 if __name__ == "__main__":
     unittest.main()
+
