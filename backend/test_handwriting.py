@@ -48,7 +48,8 @@ class HandwritingAlgorithmTest(unittest.TestCase):
             [self.vertical, self.horizontal],
         )
 
-        self.assertEqual(grade["score"], 30)
+        self.assertGreater(grade["score"], 30)
+        self.assertLess(grade["score"], 70)
         self.assertEqual(grade["details"]["wrong_strokes"], [1, 2])
 
     def test_missing_stroke_reduces_count_and_ordered_identity_scores(self):
@@ -57,7 +58,8 @@ class HandwritingAlgorithmTest(unittest.TestCase):
             [self.horizontal],
         )
 
-        self.assertEqual(grade["score"], 30)
+        self.assertGreater(grade["score"], 30)
+        self.assertLess(grade["score"], 70)
         self.assertEqual(grade["details"]["wrong_strokes"], [1, 2])
 
 

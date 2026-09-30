@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+from stroke_counts import stroke_metadata
 from ai_errors import ai_http_error
 from database import audit, database, init_db, row_to_dict, ensure_default_admin
 from email_service import (get_smtp_status, send_verification_email,
@@ -648,6 +649,7 @@ def admin_delete_student_ai_exam(exam_id: int, user=Depends(admin_user)):
 def word_json(row: Any) -> dict[str, Any]:
     item = row_to_dict(row)
     item["strokes"] = json.loads(item.pop("strokes_json", "[]") or "[]")
+    item.update(stroke_metadata(item["hanzi"]))
     return item
 
 

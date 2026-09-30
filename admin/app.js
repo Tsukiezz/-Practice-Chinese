@@ -124,11 +124,19 @@ function clearSession() {
 }
 
 function loginView(error = '') {
-  root.innerHTML = `<div class="login"><aside class="login-art">${brand}<div><div class="character"><img src="/admin/assets/logo.png" onerror="this.src='/admin/assets/logo.svg'" style="width:100px;height:100px;border-radius:24px;box-shadow:0 12px 36px rgba(0,0,0,0.35);border:2px solid #d7ed98" alt="Logo"></div><h1>Chăm chút từng<br>hành trình học.</h1><p>Không gian quản trị dành cho đội ngũ Chinese Learning. Nội dung tốt tạo nên trải nghiệm học tốt.</p></div><small>HanziGo · Chinese Learning</small></aside><section class="login-wrap"><form id="login" class="login-form"><div style="text-align:center"><img src="/admin/assets/logo.png" onerror="this.src='/admin/assets/logo.svg'" style="width:58px;height:58px;border-radius:16px;margin-bottom:10px;box-shadow:0 6px 20px rgba(21,62,53,0.2)" alt="Logo"><div class="eyebrow">CHÀO MỪNG TRỞ LẠI</div><h2>Đăng nhập quản trị</h2><p>Sử dụng tài khoản Admin được cấp cho dự án.</p></div><label>Email<input name="email" type="email" autocomplete="username" required maxlength="120"></label><label>Mật khẩu<input name="password" type="password" autocomplete="current-password" required maxlength="128"></label><div id="login-error" role="alert">${error ? `<div class="error">${escape(error)}</div>` : ''}</div><button class="primary">Đăng nhập →</button><a href="/" style="display:inline-block;margin-top:16px;color:#2c7a3f;text-decoration:none;font-weight:600;text-align:center">← Trở về ứng dụng học tập HanziGo</a><small>Quyền quản trị được xác minh trên máy chủ.</small></form></section></div>`;
+  root.innerHTML = `<div class="login"><aside class="login-art">${brand}<div><div class="character"><img src="/admin/assets/logo.png" onerror="this.src='/admin/assets/logo.svg'" style="width:100px;height:100px;border-radius:24px;box-shadow:0 12px 36px rgba(0,0,0,0.35);border:2px solid #d7ed98" alt="Logo"></div><h1>Chăm chút từng<br>hành trình học.</h1><p>Không gian quản trị dành cho đội ngũ Chinese Learning. Nội dung tốt tạo nên trải nghiệm học tốt.</p></div><small>HanziGo · Chinese Learning</small></aside><section class="login-wrap"><form id="login" class="login-form"><div style="text-align:center"><img src="/admin/assets/logo.png" onerror="this.src='/admin/assets/logo.svg'" style="width:58px;height:58px;border-radius:16px;margin-bottom:10px;box-shadow:0 6px 20px rgba(21,62,53,0.2)" alt="Logo"><div class="eyebrow">CHÀO MỪNG TRỞ LẠI</div><h2>Đăng nhập quản trị</h2><p>Sử dụng tài khoản Admin được cấp cho dự án.</p></div><label>Email<input name="email" type="email" autocomplete="username" required maxlength="120"></label><label>Mật khẩu<span class="password-field"><input id="admin-password" name="password" type="password" autocomplete="current-password" required maxlength="128"><button type="button" id="toggle-password" aria-controls="admin-password" aria-pressed="false">Hiện</button></span></label><div id="login-error" role="alert">${error ? `<div class="error">${escape(error)}</div>` : ''}</div><button type="submit" class="primary">Đăng nhập →</button><a href="/" style="display:inline-block;margin-top:16px;color:#2c7a3f;text-decoration:none;font-weight:600;text-align:center">← Trở về ứng dụng học tập HanziGo</a><small>Quyền quản trị được xác minh trên máy chủ.</small></form></section></div>`;
+  document.querySelector('#toggle-password').onclick = event => {
+    const input = document.querySelector('#admin-password');
+    const visible = input.type === 'password';
+    input.type = visible ? 'text' : 'password';
+    event.currentTarget.textContent = visible ? 'Ẩn' : 'Hiện';
+    event.currentTarget.setAttribute('aria-pressed', String(visible));
+    event.currentTarget.setAttribute('aria-label', visible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu');
+  };
   document.querySelector('#login').onsubmit = async event => {
     event.preventDefault();
     const form = event.currentTarget;
-    const button = form.querySelector('button');
+    const button = form.querySelector('button[type=submit]');
     button.disabled = true;
     try {
       const result = await api('/auth/login', 'POST', Object.fromEntries(new FormData(form)));
@@ -893,22 +901,16 @@ function hskSelect(name = 'hsk') {
   return `<select name="${name}">${[1,2,3,4,5,6].map(n => `<option value="${n}">HSK ${n}</option>`).join('')}</select>`;
 }
 
-const HANZI_STROKE_MAP = {
-  '爱':10,'八':2,'爸':8,'杯':8,'子':3,'北':5,'京':8,'本':5,'不':4,'客':9,'气':4,'菜':11,'茶':9,'吃':6,'出':5,'租':10,'车':7,'点':9,'电':5,'脑':13,'视':9,'影':15,'东':5,'西':6,'都':10,'读':10,'对':5,'起':10,'多':6,'少':4,'儿':2,'二':2,'饭':7,'馆':11,'高':10,'兴':6,'个':3,'工':3,'作':7,'狗':8,'语':9,'汉':5,'好':6,'喝':12,'和':8,'很':9,'后':6,'面':9,'回':6,'会':6,'几':2,'家':10,'叫':5,'今':4,'天':4,'九':2,'开':4,'看':9,'见':4,'块':7,'来':7,'老':6,'师':6,'了':2,'冷':7,'里':7,'零':13,'六':4,'妈':6,'吗':6,'买':6,'猫':11,'没':7,'关':6,'系':7,'米':6,'明':8,'名':6,'字':6,'哪':9,'那':6,'呢':8,'能':10,'你':7,'年':6,'朋':8,'友':4,'漂':14,'亮':9,'苹':8,'果':8,'七':2,'钱':10,'前':9,'请':10,'去':5,'热':10,'人':2,'认':4,'识':7,'日':4,'三':3,'商':11,'店':8,'上':3,'午':4,'谁':10,'什':4,'么':3,'十':2,'时':7,'候':10,'是':9,'书':4,'水':4,'果':8,'睡':13,'觉':9,'说':9,'话':8,'四':5,'岁':6,'他':5,'她':6,'太':4,'听':7,'同':6,'喂':12,'我':7,'们':5,'五':4,'喜':12,'欢':6,'下':3,'雨':8,'先':6,'生':5,'现':8,'在':6,'想':13,'小':3,'姐':8,'些':8,'写':5,'谢':12,'星':9,'期':12,'学':8,'习':3,'校':10,'一':1,'衣':6,'服':8,'医':7,'院':9,'椅':12,'有':6,'月':4,'再':6,'怎':9,'样':10,'这':7,'中':4,'国':8,'住':7,'桌':10,'昨':9,'坐':7,'做':11,'帮':17,'助':7,'环':8,'境':14,'经':8,'验':10,'效':10,'率':11,'毅':15,'力':2
-};
-
 function getStrokeCountLabel(r) {
-  if (r.strokes && r.strokes.length > 0) return `${r.strokes.length} nét`;
-  let total = 0;
-  for (const ch of (r.hanzi || '')) {
-    total += HANZI_STROKE_MAP[ch] || 0;
-  }
-  return total > 0 ? `${total} nét` : 'Chưa có nét';
+  const detail = (r.stroke_counts || []).map(p => `${p.hanzi}: ${p.count ?? '?'}`).join(' · ');
+  return Number.isInteger(r.stroke_count)
+    ? `<b>${r.stroke_count} nét</b><small>${escape(detail)}</small>`
+    : '<span class="muted">Chưa có số nét xác minh</span>';
 }
 
 function renderWords(content, data, params) {
   const filter = new URLSearchParams(params);
-  content.innerHTML += `<section class="panel"><form id="filters" class="toolbar"><label>Tìm từ<input name="search" placeholder="Chữ Hán, Pinyin, nghĩa" value="${escape(filter.get('search') || '')}"></label><label>Cấp độ<select name="hsk"><option value="">Tất cả HSK</option>${[1,2,3,4,5,6].map(n=>`<option value="${n}">HSK ${n}</option>`).join('')}</select></label><button>Tìm</button><button type="button" id="add" class="primary">+ Thêm từ</button></form>${table(['Chữ Hán','Pinyin / Nghĩa','Cấp độ','Nét chuẩn','Thao tác'],data.map(r=>`<tr><td class="hanzi">${escape(r.hanzi)}</td><td>${escape(r.pinyin)}<small>${escape(r.meaning)}</small></td><td><span class="tag">HSK ${r.hsk}</span></td><td>${getStrokeCountLabel(r)}</td><td><div class="actions"><button data-edit="${r.id}">Sửa</button><button class="danger" data-delete="${r.id}">Xóa</button></div></td></tr>`))}</section>`;
+  content.innerHTML += `<section class="panel"><form id="filters" class="toolbar"><label>Tìm từ<input name="search" placeholder="Chữ Hán, Pinyin, nghĩa" value="${escape(filter.get('search') || '')}"></label><label>Cấp độ<select name="hsk"><option value="">Tất cả HSK</option>${[1,2,3,4,5,6].map(n=>`<option value="${n}">HSK ${n}</option>`).join('')}</select></label><button>Tìm</button><button type="button" id="add" class="primary">+ Thêm từ</button></form>${table(['Chữ Hán','Pinyin / Nghĩa','Cấp độ','Số nét chữ Hán','Thao tác'],data.map(r=>`<tr><td class="hanzi">${escape(r.hanzi)}</td><td>${escape(r.pinyin)}<small>${escape(r.meaning)}</small></td><td><span class="tag">HSK ${r.hsk}</span></td><td>${getStrokeCountLabel(r)}</td><td><div class="actions"><button data-edit="${r.id}">Sửa</button><button class="danger" data-delete="${r.id}">Xóa</button></div></td></tr>`))}</section>`;
   bindFilter(params);
   document.querySelector('#add').onclick = () => wordEditor();
   document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => wordEditor(data.find(r=>r.id === Number(b.dataset.edit))));

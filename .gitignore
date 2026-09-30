@@ -66,4 +66,6 @@ playwright-report/
 .agents/
 skills-lock.json
 configs_backup/
+.local-backups/
+.pytest_cache/
 .env*

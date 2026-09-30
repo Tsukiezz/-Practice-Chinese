@@ -304,7 +304,7 @@ class AdminIntegrationTest(unittest.TestCase):
 
     def test_vocabulary_crud_validation_and_concurrent_edit(self):
         word = self.word()
-        body = {k:v for k,v in word.items() if k not in ("id","version")}
+        body = {k:v for k,v in word.items() if k not in ("id","version","stroke_count","stroke_counts","stroke_count_missing")}
         self.assertEqual(self.post("/vocabulary", body).status_code, 409)
         body["hanzi"]="二"
         body["strokes"]=[[{"x":-1,"y":0},{"x":10,"y":10}]]

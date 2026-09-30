@@ -136,6 +136,8 @@ def vocabulary_page(search: str = Query('', max_length=120),
             item['senses'] = json.loads(item.pop('senses_json') or '[]')
             item['strokes'] = json.loads(item.pop('strokes_json'))
             item['topics'] = sorted({s['topic'] for s in item['senses']})
+            from stroke_counts import stroke_metadata
+            item.update(stroke_metadata(item['hanzi']))
             items.append(item)
     return {'items': items, 'total': total, 'offset': offset, 'limit': limit,
             'edition': 'HSK 2.0',

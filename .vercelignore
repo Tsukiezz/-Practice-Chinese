@@ -21,3 +21,5 @@ backend/smoke_*.py
 
 .agents/
 skills-lock.json
+.local-backups/
+configs_backup/

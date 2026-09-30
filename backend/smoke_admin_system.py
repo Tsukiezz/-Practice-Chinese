@@ -61,6 +61,18 @@ def main():
         try:
             with sync_playwright() as p:
                 browser = p.chromium.launch(channel=os.getenv('PLAYWRIGHT_CHANNEL','msedge'),headless=True)
+                login_page = browser.new_page(viewport={'width':390,'height':844})
+                login_page.goto(f'http://127.0.0.1:{port}/admin')
+                password = login_page.locator('[name=password]')
+                password.fill('Visibility-only-test')
+                login_page.locator('#toggle-password').click()
+                expect(password).to_have_attribute('type', 'text')
+                expect(password).to_have_value('Visibility-only-test')
+                login_page.locator('#toggle-password').click()
+                expect(password).to_have_attribute('type', 'password')
+                expect(login_page.locator('#login button[type=submit]')).to_be_enabled()
+                login_page.screenshot(path=str(output / 'admin-password-mobile.png'))
+                login_page.close()
                 context = browser.new_context(viewport={'width':1440,'height':1100})
                 context.add_init_script("sessionStorage.setItem('hanzigo_admin_token','admin-system-smoke')")
                 page = context.new_page()

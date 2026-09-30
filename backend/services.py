@@ -714,10 +714,15 @@ def compare_handwriting_strokes(
                                 and costs[best_index] + 0.05 < same_cost)
         identity_matches = same_cost <= 0.35 and not clearly_out_of_order
         direction_matches = _direction_matches(submitted[index], standard[index])
-        if identity_matches:
-            correct_identity += 1
-        if direction_matches:
-            correct_direction += 1
+        # Give partial credit instead of an all-or-nothing coordinate cutoff.
+        identity_credit = max(0.0, 1.0 - max(0.0, same_cost - 0.12) / 0.65)
+        if clearly_out_of_order:
+            identity_credit *= 0.35
+        correct_identity += identity_credit
+        a, b = submitted[index]["direction"], standard[index]["direction"]
+        cosine = a[0] * b[0] + a[1] * b[1]
+        correct_direction += (min(1.0, max(0.0, cosine / 0.5))
+                              if a != (0.0, 0.0) and b != (0.0, 0.0) else 0.0)
         if not identity_matches or not direction_matches:
             wrong_strokes.add(index + 1)
 
@@ -726,6 +731,8 @@ def compare_handwriting_strokes(
     score = round(0.30 * count_score
                   + 0.40 * identity_score
                   + 0.30 * direction_score, 2)
+    # Every nonempty drawing receives encouragement, even with very few strokes.
+    score = max(5.0, score)
     wrong = sorted(wrong_strokes)
 
     messages = []
@@ -760,7 +767,7 @@ def grade_handwriting_offline(
         "target": target,
         "standard_strokes": standard_strokes,
         "submitted_strokes": submitted_strokes,
-        "grading_algorithm": "offline-vector-v1",
+        "grading_algorithm": "offline-vector-v2",
         "details": grade["details"],
     }, ensure_ascii=False)
     with database() as conn:

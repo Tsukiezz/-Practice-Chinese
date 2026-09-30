@@ -376,3 +376,5 @@ dialog { container-type: inline-size; }
   margin-top: 3px;
   line-height: 1.4;
 }
+
+.password-field{display:flex;align-items:center;gap:8px}.password-field input{flex:1;min-width:0}.password-field button{flex:none;min-width:58px}
