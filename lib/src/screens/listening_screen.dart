@@ -74,7 +74,7 @@ class _ListeningScreenState extends State<ListeningScreen> {
             title: 'Test Nghe',
             showBackButton: widget.onBack != null || Navigator.of(context).canPop(),
             onBack: widget.onBack ?? (Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null),
-            trailing: const Icon(Icons.headphones_rounded, color: AppTheme.jade),
+            trailing: Icon(Icons.headphones_rounded, color: Theme.of(context).colorScheme.primary),
           ),
           SizedBox(
             height: 48,
@@ -317,7 +317,7 @@ class _ListeningScreenState extends State<ListeningScreen> {
             onBack: _returnToExamList,
             trailing: Icon(
               passed ? Icons.emoji_events_rounded : Icons.headphones_rounded,
-              color: passed ? AppTheme.orange : AppTheme.jade,
+              color: passed ? AppTheme.orange : Theme.of(context).colorScheme.primary,
             ),
           ),
           Expanded(
@@ -792,16 +792,16 @@ class _AudioPlayerState extends State<_AudioPlayer> {
                     }
                   },
             icon: _loading
-                ? const SizedBox.square(
+                ? SizedBox.square(
                     dimension: 24,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppTheme.jade,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   )
                 : Icon(
                     _playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                    color: AppTheme.jade,
+                    color: Theme.of(context).colorScheme.primary,
                     size: 32,
                   ),
           ),
@@ -911,7 +911,7 @@ class _ReviewCard extends StatelessWidget {
               children: [
                 Icon(
                   item.isCorrect ? Icons.check_circle : Icons.cancel,
-                  color: item.isCorrect ? AppTheme.jade : AppTheme.red,
+                  color: item.isCorrect ? Theme.of(context).colorScheme.primary : AppTheme.red,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -922,7 +922,7 @@ class _ReviewCard extends StatelessWidget {
                 ),
                 IconButton(
                   tooltip: 'Nghe phát âm',
-                  icon: const Icon(Icons.volume_up_rounded, size: 20, color: AppTheme.jade),
+                  icon: Icon(Icons.volume_up_rounded, size: 20, color: Theme.of(context).colorScheme.primary),
                   onPressed: () => PronunciationService.playWord(item.prompt),
                 ),
               ],
@@ -946,7 +946,7 @@ class _ReviewCard extends StatelessWidget {
                   ),
                   IconButton(
                     tooltip: 'Nghe transcript',
-                    icon: const Icon(Icons.volume_up_rounded, size: 18, color: AppTheme.jade),
+                    icon: Icon(Icons.volume_up_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
                     onPressed: () => PronunciationService.playWord(item.transcript),
                   ),
                 ],
@@ -1027,7 +1027,7 @@ class _MessageState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppTheme.jade, size: 54),
+            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 54),
             const SizedBox(height: 14),
             Text(
               title,

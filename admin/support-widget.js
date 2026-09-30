@@ -5,13 +5,13 @@
   document.body.append(host);
   const root = host.attachShadow({mode: 'open'});
   root.innerHTML = `<style>
-    :host{font:14px system-ui,sans-serif;color:#173c33}*{box-sizing:border-box}
-    button,textarea{font:inherit}button{cursor:pointer;border:0;border-radius:12px;padding:10px 14px;background:#17634e;color:white}
+    :host{font:14px system-ui,sans-serif;color:var(--chat-text,#173c33)}*{box-sizing:border-box}
+    button,textarea{font:inherit}button{cursor:pointer;border:0;border-radius:12px;padding:10px 14px;background:var(--chat-accent,#17634e);color:white}
     button:disabled{opacity:.55;cursor:wait}button:focus-visible,textarea:focus-visible{outline:3px solid #e2ac43;outline-offset:2px}
-    #launch{box-shadow:0 4px 20px #0003}#panel{width:min(380px,calc(100vw - 24px));height:min(540px,calc(100dvh - 130px));background:#fff;border:1px solid #cee0d8;border-radius:18px;box-shadow:0 12px 45px #0003;display:flex;flex-direction:column;overflow:hidden}
-    [hidden]{display:none!important}header{display:flex;align-items:center;justify-content:space-between;padding:12px;background:#17634e;color:white}header small{display:block;margin-top:4px;font-size:11px}header button{font-size:20px}
-    #messages{flex:1;overflow:auto;padding:12px;background:#f2f7f4}.message{white-space:pre-wrap;overflow-wrap:anywhere;padding:10px 12px;border-radius:12px;background:white;margin-bottom:10px;line-height:1.55}.user{background:#dcefe4;margin-left:26px}.admin{border:1px solid #bc9741}.label{font-size:11px;font-weight:700;display:block;margin-bottom:4px;color:#487265}
-    #status{font-size:12px;padding:8px 12px;min-height:30px}form{display:flex;gap:8px;padding:10px;border-top:1px solid #dce7e0}textarea{flex:1;min-width:0;resize:none;border:1px solid #bfd3c7;border-radius:10px;padding:10px}#retry{margin:0 10px 6px}
+    #launch{box-shadow:0 4px 20px #0003}#panel{width:min(380px,calc(100vw - 24px));height:min(540px,calc(100dvh - 130px));background:var(--chat-surface,#fff);border:1px solid var(--chat-border,#cee0d8);border-radius:18px;box-shadow:0 12px 45px #0003;display:flex;flex-direction:column;overflow:hidden}
+    [hidden]{display:none!important}header{display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--chat-accent,#17634e);color:white}header small{display:block;margin-top:4px;font-size:11px}header button{font-size:20px}
+    #messages{flex:1;overflow:auto;padding:12px;background:var(--chat-background,#f2f7f4)}.message{white-space:pre-wrap;overflow-wrap:anywhere;padding:10px 12px;border-radius:12px;background:var(--chat-surface,#fff);margin-bottom:10px;line-height:1.55}.user{background:var(--chat-bubble,#dcefe4);margin-left:26px}.admin{border:1px solid #bc9741}.label{font-size:11px;font-weight:700;display:block;margin-bottom:4px;color:var(--chat-muted,#487265)}
+    #status{font-size:12px;padding:8px 12px;min-height:30px}form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--chat-border,#dce7e0)}textarea{color:var(--chat-text,#173c33);background:var(--chat-surface,#fff);flex:1;min-width:0;resize:none;border:1px solid var(--chat-border,#bfd3c7);border-radius:10px;padding:10px}#retry{margin:0 10px 6px}
   </style>
   <button id="launch" aria-expanded="false" aria-controls="panel">💬 Hỏi HanziGo</button>
   <section id="panel" role="region" aria-label="Trò chuyện với HanziGo" hidden>
@@ -20,6 +20,15 @@
     <button id="retry" hidden>Thử tải lại</button>
     <form><textarea aria-label="Tin nhắn" placeholder="Hỏi về tiếng Trung hoặc cần hỗ trợ…" maxlength="3000" rows="2" required></textarea><button id="send">Gửi</button></form>
   </section>`;
+  window.addEventListener('hanzigo-chat-theme', event => {
+    let colors;
+    try { colors = JSON.parse(event.detail); } catch { return; }
+    for (const name of ['accent','background','surface','text','muted','border','bubble']) {
+      const value = colors[name];
+      if (typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)) host.style.setProperty('--chat-'+name,value);
+      else host.style.removeProperty('--chat-'+name);
+    }
+  });
   const $ = s => root.querySelector(s);
   let token = '', thread = null, last = 0, generation = 0, busy = false, loading = false;
   let pending = null;

@@ -1,5 +1,11 @@
 import 'dart:js_interop';
+import 'dart:convert';
 import 'package:web/web.dart' as web;
+
+void setChatTheme(Map<String, String> colors) {
+  web.window.dispatchEvent(web.CustomEvent('hanzigo-chat-theme',
+      web.CustomEventInit(detail: jsonEncode(colors).toJS)));
+}
 
 void setChatSession(String? token) {
   web.window.dispatchEvent(web.CustomEvent('hanzigo-chat-session',

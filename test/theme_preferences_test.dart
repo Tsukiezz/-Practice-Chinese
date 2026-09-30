@@ -24,7 +24,32 @@ void main() {
         expect(contrast(s.onSurface, background), greaterThanOrEqualTo(4.5), reason: palette.name);
       }
       expect(contrast(s.onPrimary, s.primary), greaterThanOrEqualTo(4.5), reason: palette.name);
+      if (palette.brightness == Brightness.light) {
+        expect(theme.scaffoldBackgroundColor.computeLuminance(), inExclusiveRange(.55, .86), reason: palette.name);
+        expect(contrast(s.onSurfaceVariant, theme.scaffoldBackgroundColor), greaterThanOrEqualTo(4.5), reason: palette.name);
+      }
     }
+  });
+
+  testWidgets('banner and chat accents follow each palette with readable white text', (tester) async {
+    final colors = <Color>{};
+    Color? banner;
+    for (final palette in InterfacePalette.values) {
+      await tester.pumpWidget(MaterialApp(theme: AppTheme.colored(palette), home: Builder(
+        builder: (context) {
+          final gradient = AppTheme.bannerGradient(context);
+          banner = gradient.colors.first;
+          for (final background in gradient.colors) {
+            expect(contrast(Colors.white, background), greaterThanOrEqualTo(4.5), reason: palette.name);
+          }
+          expect(AppTheme.chatColors(context)['accent'], startsWith('#'));
+          return Container(decoration: BoxDecoration(gradient: gradient));
+        },
+      )));
+      await tester.pumpAndSettle();
+      colors.add(banner!);
+    }
+    expect(colors.length, InterfacePalette.values.length);
   });
 
   test('selection persists and the switch returns to light without losing it', () async {

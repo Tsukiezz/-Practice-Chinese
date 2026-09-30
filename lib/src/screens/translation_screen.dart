@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../services/student_service.dart';
-import '../theme/app_theme.dart';
 import '../widgets/mini_chinese_keyboard.dart';
 
 class TranslationScreen extends StatefulWidget {
@@ -86,7 +85,7 @@ class _TranslationScreenState extends State<TranslationScreen> {
                           ? Icons.keyboard_hide_outlined
                           : Icons.keyboard_alt_outlined,
                       size: 16,
-                      color: AppTheme.jade,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                     label: Text(
                       _showMiniKeyboard && _activeInput == 'translation'
@@ -194,7 +193,7 @@ class _TranslationScreenState extends State<TranslationScreen> {
                           ? Icons.keyboard_hide_outlined
                           : Icons.keyboard_alt_outlined,
                       size: 16,
-                      color: AppTheme.jade,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                     label: Text(
                       _showMiniKeyboard && _activeInput == 'sentence'

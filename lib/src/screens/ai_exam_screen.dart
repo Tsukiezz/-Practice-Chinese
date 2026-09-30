@@ -128,9 +128,9 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.auto_awesome, color: AppTheme.jade),
+              Icon(Icons.auto_awesome, color: Theme.of(context).colorScheme.primary),
               SizedBox(width: 8),
               Text('Đã tạo đề thi thành công!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ],
@@ -163,7 +163,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
               child: const Text('⏱️ Làm sau'),
             ),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: AppTheme.jade),
+              style: FilledButton.styleFrom(backgroundColor: AppTheme.bannerColor(context)),
               onPressed: () {
                 Navigator.of(ctx).pop();
                 _startExam(exam);
@@ -190,14 +190,14 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
       showDialog<void>(
         context: context,
         barrierDismissible: false,
-        builder: (_) => const Center(
+        builder: (_) => Center(
           child: Card(
             child: Padding(
               padding: EdgeInsets.all(24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(color: AppTheme.jade),
+                  CircularProgressIndicator(color: Theme.of(context).colorScheme.primary),
                   SizedBox(height: 16),
                   Text('Đang nạp câu hỏi đề thi...', style: TextStyle(fontWeight: FontWeight.bold)),
                 ],
@@ -277,7 +277,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
             child: const Text('Làm tiếp'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppTheme.jade),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.bannerColor(context)),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Nộp bài ngay'),
           ),
@@ -389,7 +389,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                   title: 'Kiểm tra',
                   showBackButton: widget.onBack != null || Navigator.of(context).canPop(),
                   onBack: widget.onBack ?? (Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null),
-                  trailing: const Icon(Icons.assignment_turned_in_rounded, color: AppTheme.jade),
+                  trailing: Icon(Icons.assignment_turned_in_rounded, color: Theme.of(context).colorScheme.primary),
                 ),
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -444,11 +444,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0F382E), Color(0xFF1E5646)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: AppTheme.bannerGradient(context),
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
           BoxShadow(color: Color(0x26163F35), blurRadius: 10, offset: Offset(0, 4)),
@@ -478,7 +474,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                     ),
                     Text(
                       'Mỗi cấp độ 1 đề 40 câu · 40 phút · AI chấm điểm & sửa bài',
-                      style: TextStyle(color: Color(0xFFC7E0D6), fontSize: 12),
+                      style: TextStyle(color: Color(0xFFF1EDF5), fontSize: 12),
                     ),
                   ],
                 ),
@@ -529,7 +525,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
                             decoration: BoxDecoration(
-                              color: isDone ? const Color(0xFF38A169) : Colors.white.withValues(alpha: 0.2),
+                              color: Colors.black.withValues(alpha: 0.16),
                               borderRadius: BorderRadius.circular(7),
                             ),
                             child: Text(
@@ -550,7 +546,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                                 Text(
                                   isDone ? 'Làm lại ↺' : 'Làm ngay →',
                                   style: TextStyle(
-                                    color: isDone ? const Color(0xFFC7E0D6) : const Color(0xFFF6E05E),
+                                    color: isDone ? const Color(0xFFF1EDF5) : const Color(0xFFF6E05E),
                                     fontSize: 10,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -630,7 +626,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                   decoration: InputDecoration(
                     labelText: 'Số lượng câu hỏi (tùy chọn 1 - 50 câu)',
                     hintText: 'Nhập số câu (ví dụ: 10, 25, 50)',
-                    prefixIcon: const Icon(Icons.format_list_numbered_rounded, color: AppTheme.jade),
+                    prefixIcon: Icon(Icons.format_list_numbered_rounded, color: Theme.of(context).colorScheme.primary),
                     suffixText: 'câu',
                     helperText: 'Giới hạn tối đa 50 câu hỏi cho mỗi đề thi',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -793,7 +789,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                   height: 50,
                   child: FilledButton.icon(
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppTheme.jade,
+                      backgroundColor: AppTheme.bannerColor(context),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                     onPressed: _generating ? null : _generateExam,
@@ -854,7 +850,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
           // Pending Custom Exams (Do Later)
           Row(
             children: [
-              const Icon(Icons.timer_outlined, size: 18, color: AppTheme.jade),
+              Icon(Icons.timer_outlined, size: 18, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 6),
               Text(
                 'Đề thi tự tạo chờ làm (${customPending.length})',
@@ -895,7 +891,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                       children: [
                         FilledButton(
                           style: FilledButton.styleFrom(
-                            backgroundColor: AppTheme.jade,
+                            backgroundColor: AppTheme.bannerColor(context),
                             padding: const EdgeInsets.symmetric(horizontal: 14),
                           ),
                           onPressed: () => _startExam(exam),
@@ -1034,7 +1030,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                     children: [
                       _buildLegendPill('Đã trả lời', const Color(0xFFE8F5E9), const Color(0xFF2E7D32)),
                       const SizedBox(width: 8),
-                      _buildLegendPill('Đang xem', AppTheme.jade, Colors.white),
+                      _buildLegendPill('Đang xem', Theme.of(context).colorScheme.primary, Colors.white),
                       const SizedBox(width: 8),
                       _buildLegendPill('Chưa làm', const Color(0xFFF1F5F3), const Color(0xFF4A5568)),
                     ],
@@ -1053,13 +1049,13 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                         final isCurrent = i == _currentQuestionIndex;
                         final isAnswered = _userAnswers.containsKey(_activeExam!.questions[i].id);
                         final Color bg = isCurrent
-                            ? AppTheme.jade
+                            ? Theme.of(context).colorScheme.primary
                             : (isAnswered ? const Color(0xFFE8F5E9) : const Color(0xFFF1F5F3));
                         final Color textCol = isCurrent
                             ? Colors.white
                             : (isAnswered ? const Color(0xFF2E7D32) : const Color(0xFF2D3748));
                         final Border border = isCurrent
-                            ? Border.all(color: const Color(0xFF163F35), width: 2)
+                            ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
                             : (isAnswered
                                 ? Border.all(color: const Color(0xFFA5D6A7), width: 1.5)
                                 : Border.all(color: const Color(0xFFE2E8F0)));
@@ -1105,7 +1101,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                     width: double.infinity,
                     height: 46,
                     child: FilledButton(
-                      style: FilledButton.styleFrom(backgroundColor: AppTheme.jade),
+                      style: FilledButton.styleFrom(backgroundColor: AppTheme.bannerColor(context)),
                       onPressed: () {
                         Navigator.of(ctx).pop();
                         _confirmSubmit();
@@ -1148,7 +1144,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
 
     final timerColor = _remainingSeconds <= 60
         ? Colors.red
-        : (_remainingSeconds <= 120 ? Colors.orange : AppTheme.jade);
+        : (_remainingSeconds <= 120 ? Colors.orange : Theme.of(context).colorScheme.primary);
 
     return Scaffold(
       appBar: AppBar(
@@ -1186,7 +1182,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
         actions: [
           IconButton(
             tooltip: 'Bảng câu hỏi',
-            icon: const Icon(Icons.grid_view_rounded, color: AppTheme.jade),
+            icon: Icon(Icons.grid_view_rounded, color: Theme.of(context).colorScheme.primary),
             onPressed: () => _showQuestionMatrixSheet(context, total),
           ),
           Container(
@@ -1210,7 +1206,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: AppTheme.jade),
+              style: FilledButton.styleFrom(backgroundColor: AppTheme.bannerColor(context)),
               onPressed: _submitting ? null : _confirmSubmit,
               child: _submitting
                   ? const SizedBox(
@@ -1229,7 +1225,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
             LinearProgressIndicator(
               value: (_currentQuestionIndex + 1) / total,
               backgroundColor: const Color(0xFFE5EDE8),
-              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.jade),
+              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
             ),
             SizedBox(
               height: 48,
@@ -1245,9 +1241,9 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                     label: Text('${i + 1}'),
                     selected: isCurrent,
                     onSelected: (_) => setState(() => _currentQuestionIndex = i),
-                    selectedColor: AppTheme.jade,
+                    selectedColor: AppTheme.bannerColor(context),
                     labelStyle: TextStyle(
-                      color: isCurrent ? Colors.white : (isAnswered ? AppTheme.jade : Colors.black87),
+                      color: isCurrent ? Colors.white : (isAnswered ? Theme.of(context).colorScheme.primary : Colors.black87),
                       fontWeight: (isCurrent || isAnswered) ? FontWeight.bold : FontWeight.normal,
                     ),
                     backgroundColor: isAnswered ? const Color(0xFFE5EDE8) : Colors.white,
@@ -1285,7 +1281,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                               ),
                               IconButton.filledTonal(
                                 tooltip: 'Nghe phát âm',
-                                icon: const Icon(Icons.volume_up_rounded, size: 20, color: AppTheme.jade),
+                                icon: Icon(Icons.volume_up_rounded, size: 20, color: Theme.of(context).colorScheme.primary),
                                 onPressed: () => PronunciationService.playWord(q.prompt),
                               ),
                             ],
@@ -1301,7 +1297,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.headphones_rounded, color: AppTheme.jade, size: 22),
+                                  Icon(Icons.headphones_rounded, color: Theme.of(context).colorScheme.primary, size: 22),
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
@@ -1311,7 +1307,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                                   ),
                                   FilledButton.icon(
                                     style: FilledButton.styleFrom(
-                                      backgroundColor: AppTheme.jade,
+                                      backgroundColor: AppTheme.bannerColor(context),
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     ),
                                     onPressed: () {
@@ -1356,7 +1352,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                                     color: selected ? const Color(0xFFE8F0EC) : Colors.white,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: selected ? AppTheme.jade : const Color(0xFFDDE5E0),
+                                      color: selected ? Theme.of(context).colorScheme.primary : const Color(0xFFDDE5E0),
                                       width: selected ? 2 : 1,
                                     ),
                                   ),
@@ -1364,7 +1360,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                                     children: [
                                       Icon(
                                         selected ? Icons.radio_button_checked : Icons.radio_button_off,
-                                        color: selected ? AppTheme.jade : Colors.grey,
+                                        color: selected ? Theme.of(context).colorScheme.primary : Colors.grey,
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
@@ -1373,7 +1369,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                                           style: TextStyle(
                                             fontSize: 15,
                                             fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-                                            color: selected ? AppTheme.jade : AppTheme.ink,
+                                            color: selected ? Theme.of(context).colorScheme.primary : AppTheme.ink,
                                           ),
                                         ),
                                       ),
@@ -1398,7 +1394,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                         child: const Text('← Câu trước'),
                       ),
                       FilledButton(
-                        style: FilledButton.styleFrom(backgroundColor: AppTheme.jade),
+                        style: FilledButton.styleFrom(backgroundColor: AppTheme.bannerColor(context)),
                         onPressed: () {
                           if (_currentQuestionIndex < total - 1) {
                             setState(() => _currentQuestionIndex++);
@@ -1442,11 +1438,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF163F35), Color(0xFF2D6A4F)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                gradient: AppTheme.bannerGradient(context),
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Column(
@@ -1535,7 +1527,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                           ),
                           IconButton(
                             tooltip: 'Nghe phát âm',
-                            icon: const Icon(Icons.volume_up_rounded, size: 20, color: AppTheme.jade),
+                            icon: Icon(Icons.volume_up_rounded, size: 20, color: Theme.of(context).colorScheme.primary),
                             onPressed: () => PronunciationService.playWord(item.prompt),
                           ),
                         ],

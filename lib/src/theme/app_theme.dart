@@ -56,10 +56,48 @@ class ThemeManager {
 }
 
 class AppTheme {
+  // Dark enough for white banner text in both light and dark palettes.
+  static Color bannerColor(BuildContext context) {
+    var color = Theme.of(context).colorScheme.primary;
+    // Also keep contrast during AnimatedTheme's intermediate frames.
+    while (color.computeLuminance() > .09) {
+      color = Color.lerp(color, Colors.black, .08)!;
+    }
+    return color;
+  }
+
+  static LinearGradient bannerGradient(BuildContext context) => LinearGradient(
+    colors: [bannerColor(context), Color.lerp(bannerColor(context), Colors.black, .16)!],
+    begin: Alignment.topLeft, end: Alignment.bottomRight);
+
+  static Map<String, String> chatColors(BuildContext context) {
+    final s = Theme.of(context).colorScheme;
+    String css(Color c) => '#${(c.toARGB32() & 0xffffff).toRadixString(16).padLeft(6, '0')}';
+    return {'accent': css(bannerColor(context)), 'background': css(s.surfaceContainerLow),
+      'surface': css(s.surface), 'text': css(s.onSurface),
+      'muted': css(s.onSurfaceVariant), 'border': css(s.outlineVariant),
+      'bubble': css(s.surfaceContainerHigh)};
+  }
+
   static ThemeData colored(InterfacePalette palette) {
     if (palette == InterfacePalette.dark) return dark;
-    final scheme = ColorScheme.fromSeed(
+    final generated = ColorScheme.fromSeed(
       seedColor: palette.seed, brightness: palette.brightness);
+    final background = switch (palette) {
+      InterfacePalette.purple => const Color(0xFFE5D5F4),
+      InterfacePalette.blue => const Color(0xFFD3E4F8),
+      InterfacePalette.yellow => const Color(0xFFF5E8AF),
+      InterfacePalette.orange => const Color(0xFFF7DCC5),
+      _ => generated.surfaceContainerLow,
+    };
+    final scheme = palette.brightness == Brightness.light ? generated.copyWith(
+      surface: Color.lerp(background, Colors.white, .55),
+      surfaceContainerLowest: Color.lerp(background, Colors.white, .75),
+      surfaceContainerLow: background,
+      surfaceContainer: Color.lerp(background, Colors.white, .25),
+      surfaceContainerHigh: Color.lerp(background, palette.seed, .09),
+      surfaceContainerHighest: Color.lerp(background, palette.seed, .14),
+    ) : generated;
     final base = palette.brightness == Brightness.dark ? dark : light;
     return base.copyWith(
       brightness: palette.brightness,

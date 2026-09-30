@@ -321,7 +321,7 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
                 ),
                 IconButton.filledTonal(
                   tooltip: 'Nghe phát âm',
-                  icon: const Icon(Icons.volume_up_rounded, color: AppTheme.jade),
+                  icon: Icon(Icons.volume_up_rounded, color: Theme.of(context).colorScheme.primary),
                   onPressed: () => PronunciationService.playWord(
                     word['hanzi'] as String,
                     baseUrl: widget.service.baseUrl,
@@ -397,7 +397,7 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
             ),
             IconButton(
               tooltip: 'Nghe câu mẫu',
-              icon: const Icon(Icons.volume_up_rounded, size: 20, color: AppTheme.jade),
+              icon: Icon(Icons.volume_up_rounded, size: 20, color: Theme.of(context).colorScheme.primary),
               onPressed: () => PronunciationService.playWord(
                 example['hanzi'] as String,
                 baseUrl: widget.service.baseUrl,
@@ -459,7 +459,7 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
             ),
             IconButton.filledTonal(
               tooltip: 'Nghe bài đọc',
-              icon: const Icon(Icons.volume_up_rounded, color: AppTheme.jade),
+              icon: Icon(Icons.volume_up_rounded, color: Theme.of(context).colorScheme.primary),
               onPressed: () => PronunciationService.playWord(
                 reading['hanzi'] as String,
                 baseUrl: widget.service.baseUrl,
@@ -519,7 +519,7 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
             _result!['passed'] == true
                 ? Icons.verified_outlined
                 : Icons.auto_stories_outlined,
-            color: AppTheme.jade,
+            color: Theme.of(context).colorScheme.primary,
             size: 36,
           ),
           const SizedBox(height: 8),
@@ -602,7 +602,7 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
                             : (Theme.of(context).colorScheme.surface),
                         side: BorderSide(
                           color: isSelected
-                              ? AppTheme.jade
+                              ? Theme.of(context).colorScheme.primary
                               : (Theme.of(context).colorScheme.outlineVariant),
                         ),
                         shape: RoundedRectangleBorder(
@@ -623,7 +623,7 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? AppTheme.jade
+                                  ? Theme.of(context).colorScheme.primary
                                   : (isDark ? const Color(0xFF263A31) : const Color(0xFFE9F3ED)),
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -660,7 +660,7 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 color: review[questions[i]['id']]!['correct'] == true
-                    ? AppTheme.jade
+                    ? Theme.of(context).colorScheme.primary
                     : AppTheme.red,
               ),
             ),

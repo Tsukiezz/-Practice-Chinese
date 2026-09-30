@@ -184,7 +184,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
                                           BoxShadow(
                                             color: isDark
                                                 ? Colors.black.withOpacity(0.2)
-                                                : const Color(0xFF1B4D3E).withOpacity(0.06),
+                                                : Theme.of(context).colorScheme.primary.withOpacity(0.06),
                                             blurRadius: 6,
                                             offset: const Offset(0, 2),
                                           ),
@@ -358,7 +358,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
                                 ),
                                 prefixIcon: Icon(
                                   Icons.search,
-                                  color: isDark ? const Color(0xFF4DB697) : primary,
+                                  color: isDark ? Theme.of(context).colorScheme.primary : primary,
                                 ),
                                 suffixIcon: _search.text.isEmpty
                                     ? null

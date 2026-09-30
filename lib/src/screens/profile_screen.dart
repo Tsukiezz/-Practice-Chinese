@@ -203,7 +203,7 @@ class ProfileScreen extends StatelessWidget {
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               child: ListTile(
-                leading: const Icon(Icons.fact_check, color: AppTheme.jade),
+                leading: Icon(Icons.fact_check, color: Theme.of(context).colorScheme.primary),
                 title: const Text(
                   'Bài test tổng hợp',
                   style: TextStyle(fontWeight: FontWeight.w800),
@@ -292,7 +292,7 @@ class ProfileScreen extends StatelessWidget {
             Card(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               child: ListTile(
-                leading: const Icon(Icons.radar_rounded, color: AppTheme.jade),
+                leading: Icon(Icons.radar_rounded, color: Theme.of(context).colorScheme.primary),
                 title: const Text(
                   'Dashboard & năng lực',
                   style: TextStyle(fontWeight: FontWeight.w800),
@@ -344,7 +344,7 @@ class ProfileScreen extends StatelessWidget {
                   padding: EdgeInsets.all(18),
                   child: Row(
                     children: [
-                      Icon(Icons.history_rounded, color: AppTheme.jade),
+                      Icon(Icons.history_rounded, color: Theme.of(context).colorScheme.primary),
                       SizedBox(width: 14),
                       Expanded(
                         child: Column(
@@ -767,7 +767,7 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.analytics_outlined, color: AppTheme.jade, size: 20),
+                                Icon(Icons.analytics_outlined, color: Theme.of(context).colorScheme.primary, size: 20),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Năng lực đồng bộ theo kỹ năng',

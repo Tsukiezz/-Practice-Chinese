@@ -193,7 +193,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               if (data.report.strengths.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                _AdviceCard('Điểm mạnh', data.report.strengths, AppTheme.jade),
+                _AdviceCard('Điểm mạnh', data.report.strengths, Theme.of(context).colorScheme.primary),
               ],
               if (data.report.improvements.isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -229,7 +229,7 @@ class _Metric extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 5),
         child: Column(
           children: [
-            Icon(icon, color: AppTheme.jade),
+            Icon(icon, color: Theme.of(context).colorScheme.primary),
             const SizedBox(height: 6),
             Text(
               value,
@@ -292,10 +292,10 @@ class _RadarPainter extends CustomPainter {
       ..color = scheme.outlineVariant
       ..style = PaintingStyle.stroke;
     final fill = Paint()
-      ..color = AppTheme.jade.withValues(alpha: .25)
+      ..color = scheme.primary.withValues(alpha: .25)
       ..style = PaintingStyle.fill;
     final line = Paint()
-      ..color = AppTheme.jade
+      ..color = scheme.primary
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
     List<Offset> polygon(double scale) => List.generate(3, (i) {

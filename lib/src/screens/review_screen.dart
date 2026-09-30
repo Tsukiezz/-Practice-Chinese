@@ -74,11 +74,11 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     avatar: Icon(
                       s['icon'] as IconData,
                       size: 16,
-                      color: isSelected ? Colors.white : AppTheme.jade,
+                      color: isSelected ? Colors.white : Theme.of(context).colorScheme.primary,
                     ),
                     label: Text(s['label'] as String),
                     selected: isSelected,
-                    selectedColor: AppTheme.jade,
+                    selectedColor: AppTheme.bannerColor(context),
                     labelStyle: TextStyle(
                       color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
@@ -234,7 +234,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
           ),
           actions: [
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: AppTheme.jade),
+              style: FilledButton.styleFrom(backgroundColor: AppTheme.bannerColor(context)),
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Đã hiểu'),
             ),
@@ -353,7 +353,7 @@ class _Message extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.task_alt, size: 52, color: AppTheme.jade),
+              Icon(Icons.task_alt, size: 52, color: Theme.of(context).colorScheme.primary),
               const SizedBox(height: 10),
               Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
               const SizedBox(height: 6),

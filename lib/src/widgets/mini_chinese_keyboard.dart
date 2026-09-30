@@ -141,7 +141,7 @@ class _MiniChineseKeyboardState extends State<MiniChineseKeyboard> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.keyboard_alt_outlined, size: 20, color: AppTheme.jade),
+                Icon(Icons.keyboard_alt_outlined, size: 20, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: RichText(
@@ -203,7 +203,7 @@ class _MiniChineseKeyboardState extends State<MiniChineseKeyboard> {
                     avatar: Icon(
                       tab['icon'] as IconData,
                       size: 14,
-                      color: isSelected ? Colors.white : AppTheme.jade,
+                      color: isSelected ? Colors.white : Theme.of(context).colorScheme.primary,
                     ),
                     label: Text(
                       tab['title'] as String,
@@ -214,10 +214,10 @@ class _MiniChineseKeyboardState extends State<MiniChineseKeyboard> {
                       ),
                     ),
                     selected: isSelected,
-                    selectedColor: AppTheme.jade,
+                    selectedColor: AppTheme.bannerColor(context),
                     backgroundColor: Colors.white,
                     side: BorderSide(
-                      color: isSelected ? AppTheme.jade : const Color(0xFFD4DFD8),
+                      color: isSelected ? Theme.of(context).colorScheme.primary : const Color(0xFFD4DFD8),
                     ),
                     onSelected: (_) => setState(() => _selectedCategoryIndex = index),
                   ),

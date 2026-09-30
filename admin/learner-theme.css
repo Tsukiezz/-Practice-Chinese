@@ -11,3 +11,4 @@ html[data-learner-theme] :is(.score-meta h3,.subscore-card .val){color:var(--acc
 #interface-preferences select{display:block;width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font:inherit;margin-top:6px}
 #interface-preferences .theme-switch{display:flex;gap:10px;align-items:center}
 #interface-preferences input[type=checkbox]{width:22px;height:22px;margin:0;accent-color:var(--accent)}
+html[data-learner-theme] :is(#profile button,#password button){background:var(--primary);color:#fff}

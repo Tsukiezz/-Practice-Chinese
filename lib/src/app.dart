@@ -312,6 +312,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
     if (!_authenticated) {
       setChatSession(null);
+      setChatTheme({});
       return Theme(data: AppTheme.light, child: LoginScreen(
         baseUrl: _apiBaseUrl,
         authService: _authService,
@@ -320,6 +321,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     }
 
     setChatSession(_authService.token);
+    setChatTheme(AppTheme.chatColors(context));
     _readingRepository ??=
         widget.readingRepository ??
         ReadingExamService(
@@ -371,11 +373,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1B4D3E),
+                          color: AppTheme.bannerColor(context),
                           borderRadius: BorderRadius.circular(10),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF1B4D3E).withValues(alpha: 0.25),
+                              color: AppTheme.bannerColor(context).withValues(alpha: 0.25),
                               blurRadius: 6,
                               offset: const Offset(0, 2),
                             ),

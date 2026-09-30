@@ -68,7 +68,8 @@ def main():
                 page.locator('#palette-enabled').uncheck()
                 expect(page.locator('html')).to_have_attribute('data-learner-theme','light')
                 page.evaluate('user => {localStorage.setItem("flutter.auth_token",JSON.stringify("theme-smoke"));localStorage.setItem("flutter.auth_user",JSON.stringify(JSON.stringify(user)));}',user)
-                for palette in ['purple','red','yellow']:
+                chat_accents = set()
+                for palette in ['purple','blue','yellow','orange','red','dark']:
                     page.evaluate('p => {localStorage.setItem("flutter.app_theme_palette",JSON.stringify(p));localStorage.setItem("flutter.app_theme_mode",JSON.stringify("dark"));}',palette)
                     page.goto(base+'/')
                     try:
@@ -79,10 +80,23 @@ def main():
                         raise
                     page.wait_for_timeout(3500)
                     page.screenshot(path=str(output/f'flutter-theme-{palette}.png'))
+                    accent = page.locator('#launch').evaluate('(el) => getComputedStyle(el).backgroundColor')
+                    chat_accents.add(accent)
+                    if palette not in ['dark']:
+                        assert accent != 'rgb(23, 99, 78)', (palette, accent)
+                    # The exact pages reported by the user, not just the home screen.
+                    page.mouse.click(600, 864)
+                    page.wait_for_timeout(900)
+                    page.screenshot(path=str(output/f'flutter-reading-{palette}.png'))
+                    page.mouse.click(943, 864)
+                    page.wait_for_timeout(900)
+                    page.screenshot(path=str(output/f'flutter-exam-{palette}.png'))
+                assert len(chat_accents) == 6, chat_accents
                 page.evaluate('()=>{localStorage.removeItem("flutter.auth_user");localStorage.removeItem("flutter.auth_token");}')
                 page.reload()
                 page.wait_for_timeout(3500)
                 page.screenshot(path=str(output/'flutter-login-default.png'))
+                assert page.locator('#launch').evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(23, 99, 78)'
                 assert not errors,errors
                 browser.close()
             print('PASS: six account palettes persist; switch restores light; Flutter pages render without browser errors')

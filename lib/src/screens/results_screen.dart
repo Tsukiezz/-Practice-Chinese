@@ -39,7 +39,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
               title: 'Kết quả của bạn',
               showBackButton: widget.onBack != null || Navigator.of(context).canPop(),
               onBack: widget.onBack ?? (Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null),
-              trailing: const Icon(Icons.bar_chart_rounded, color: AppTheme.jade),
+              trailing: Icon(Icons.bar_chart_rounded, color: Theme.of(context).colorScheme.primary),
             ),
             Expanded(child: _buildBody()),
           ],
@@ -197,7 +197,7 @@ class _MessageState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppTheme.jade, size: 54),
+            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 54),
             const SizedBox(height: 14),
             Text(
               title,

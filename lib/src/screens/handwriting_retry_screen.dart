@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../services/student_service.dart';
-import '../theme/app_theme.dart';
 import '../widgets/hanzi_drawing_canvas.dart';
 
 class HandwritingRetryScreen extends StatefulWidget {
@@ -385,7 +384,7 @@ class _Message extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.task_alt, size: 56, color: AppTheme.jade),
+              Icon(Icons.task_alt, size: 56, color: Theme.of(context).colorScheme.primary),
               const SizedBox(height: 10),
               Text(
                 title,

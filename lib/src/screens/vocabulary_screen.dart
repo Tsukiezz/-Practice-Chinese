@@ -548,7 +548,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
               ),
               IconButton(
                 tooltip: 'Nghe phát âm',
-                icon: const Icon(Icons.volume_up_rounded, color: AppTheme.jade),
+                icon: Icon(Icons.volume_up_rounded, color: Theme.of(context).colorScheme.primary),
                 onPressed: () => PronunciationService.playWord(
                   word.hanzi,
                   audioUrl: word.audioUrl,
@@ -586,7 +586,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                   if (word.example.isNotEmpty)
                     IconButton(
                       tooltip: 'Nghe câu ví dụ',
-                      icon: const Icon(Icons.volume_up_rounded, size: 20, color: AppTheme.jade),
+                      icon: Icon(Icons.volume_up_rounded, size: 20, color: Theme.of(context).colorScheme.primary),
                       onPressed: () => PronunciationService.playWord(
                         word.example,
                         baseUrl: widget.service.baseUrl,
@@ -667,14 +667,14 @@ class _WordCard extends StatelessWidget {
                       '${word.lookupCount} lần',
                       style: TextStyle(
                         color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF4DB697)
-                            : AppTheme.jade,
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.primary,
                       ),
                     )
                   : Icon(
                       Icons.chevron_right,
                       color: Theme.of(context).brightness == Brightness.dark
-                          ? const Color(0xFF4DB697)
+                          ? Theme.of(context).colorScheme.primary
                           : Colors.grey,
                     ),
             ),
@@ -696,7 +696,7 @@ class _WordCard extends StatelessWidget {
                     saved
                         ? Icons.bookmark_rounded
                         : Icons.bookmark_outline_rounded,
-                    color: AppTheme.jade,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ],
@@ -751,7 +751,7 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
                           const SizedBox(height: 8),
                           IconButton.filledTonal(
                             tooltip: 'Nghe phát âm',
-                            icon: const Icon(Icons.volume_up_rounded, color: AppTheme.jade),
+                            icon: Icon(Icons.volume_up_rounded, color: Theme.of(context).colorScheme.primary),
                             onPressed: () => PronunciationService.playWord(
                               word.hanzi,
                               audioUrl: word.audioUrl,
@@ -841,7 +841,7 @@ class _StateMessage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 52, color: AppTheme.jade),
+              Icon(icon, size: 52, color: Theme.of(context).colorScheme.primary),
               const SizedBox(height: 12),
               Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),

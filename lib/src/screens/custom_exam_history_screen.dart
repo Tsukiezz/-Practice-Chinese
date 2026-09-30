@@ -74,7 +74,7 @@ class _CustomExamHistoryScreenState extends State<CustomExamHistoryScreen> {
                         label: 'Điểm TB',
                         value: averageScore.toStringAsFixed(1),
                         color: averageScore >= 80
-                            ? AppTheme.jade
+                            ? Theme.of(context).colorScheme.primary
                             : AppTheme.orange,
                       ),
                     ),
@@ -83,7 +83,7 @@ class _CustomExamHistoryScreenState extends State<CustomExamHistoryScreen> {
                       child: _SummaryCard(
                         label: 'Đạt',
                         value: '$passCount',
-                        color: AppTheme.jade,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -116,7 +116,7 @@ class _CustomExamHistoryScreenState extends State<CustomExamHistoryScreen> {
                         child: Text(
                           latest.score.toStringAsFixed(0),
                           style: TextStyle(
-                            color: passed ? AppTheme.jade : AppTheme.orange,
+                            color: passed ? Theme.of(context).colorScheme.primary : AppTheme.orange,
                             fontWeight: FontWeight.w900,
                             fontSize: 18,
                           ),
@@ -195,7 +195,7 @@ class _ExamDetailScreen extends StatelessWidget {
                           child: Text(
                             result.score.toStringAsFixed(0),
                             style: TextStyle(
-                              color: passed ? AppTheme.jade : AppTheme.orange,
+                              color: passed ? Theme.of(context).colorScheme.primary : AppTheme.orange,
                               fontWeight: FontWeight.w900,
                               fontSize: 16,
                             ),
@@ -223,7 +223,7 @@ class _ExamDetailScreen extends StatelessWidget {
                           passed
                               ? Icons.check_circle_rounded
                               : Icons.arrow_circle_right_rounded,
-                          color: passed ? AppTheme.jade : Colors.grey,
+                          color: passed ? Theme.of(context).colorScheme.primary : Colors.grey,
                         ),
                       ],
                     ),
@@ -298,7 +298,7 @@ class _MessageState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppTheme.jade, size: 54),
+            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 54),
             const SizedBox(height: 14),
             Text(
               title,

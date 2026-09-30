@@ -160,9 +160,9 @@ class _PracticeScreenState extends State<PracticeScreen> {
             title: widget.title,
             showBackButton: widget.onBack != null || Navigator.of(context).canPop(),
             onBack: widget.onBack ?? (Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null),
-            trailing: const Icon(
+            trailing: Icon(
               Icons.chrome_reader_mode_outlined,
-              color: AppTheme.jade,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           SizedBox(
@@ -198,15 +198,11 @@ class _PracticeScreenState extends State<PracticeScreen> {
               margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF163F35), Color(0xFF2D6A4F)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                gradient: AppTheme.bannerGradient(context),
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF163F35).withOpacity(0.18),
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.18),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -248,8 +244,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
                   ),
                   FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFEAD8B3),
-                      foregroundColor: const Color(0xFF163F35),
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      foregroundColor: Theme.of(context).colorScheme.onSurface,
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                     ),
@@ -268,11 +264,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
               margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1B3B36), Color(0xFF2C5E55)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                gradient: AppTheme.bannerGradient(context),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -442,7 +434,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                       border: Border.all(
                         color: _remainingSeconds < 300
                             ? AppTheme.red
-                            : AppTheme.jade,
+                            : Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     child: Row(
@@ -453,7 +445,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                           size: 15,
                           color: _remainingSeconds < 300
                               ? AppTheme.red
-                              : AppTheme.jade,
+                              : Theme.of(context).colorScheme.primary,
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -463,7 +455,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                             fontSize: 12,
                             color: _remainingSeconds < 300
                                 ? AppTheme.red
-                                : AppTheme.jade,
+                                : Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ],
@@ -474,7 +466,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                 IconButton(
                   tooltip: 'Bảng câu hỏi',
                   onPressed: _openQuestionPalette,
-                  icon: const Icon(Icons.grid_view_rounded, color: AppTheme.jade),
+                  icon: Icon(Icons.grid_view_rounded, color: Theme.of(context).colorScheme.primary),
                 ),
                 IconButton(
                   key: const Key('close-exam'),
@@ -518,7 +510,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                       border: Border.all(
                         color: isCurrent
                             ? AppTheme.red
-                            : (isDone ? AppTheme.jade : Colors.transparent),
+                            : (isDone ? Theme.of(context).colorScheme.primary : Colors.transparent),
                         width: isCurrent ? 2 : 1,
                       ),
                     ),
@@ -587,7 +579,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                             alignment: Alignment.centerRight,
                             child: IconButton.filledTonal(
                               tooltip: 'Nghe phát âm',
-                              icon: const Icon(Icons.volume_up_rounded, size: 20, color: AppTheme.jade),
+                              icon: Icon(Icons.volume_up_rounded, size: 20, color: Theme.of(context).colorScheme.primary),
                               onPressed: () => PronunciationService.playWord(question.prompt),
                             ),
                           ),
@@ -767,7 +759,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
             onBack: _returnToExamList,
             trailing: Icon(
               passed ? Icons.emoji_events_rounded : Icons.auto_stories_rounded,
-              color: passed ? AppTheme.orange : AppTheme.jade,
+              color: passed ? AppTheme.orange : Theme.of(context).colorScheme.primary,
             ),
           ),
           Expanded(
@@ -1578,7 +1570,7 @@ class _QuestionPaletteSheet extends StatelessWidget {
           const SizedBox(height: 14),
           Row(
             children: [
-              const Icon(Icons.grid_view_rounded, color: AppTheme.jade),
+              Icon(Icons.grid_view_rounded, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 8),
               const Text(
                 'Bảng câu hỏi đề thi',
@@ -1623,7 +1615,7 @@ class _QuestionPaletteSheet extends StatelessWidget {
           const SizedBox(height: 12),
           FilledButton.icon(
             style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.jade,
+              backgroundColor: AppTheme.bannerColor(context),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
             onPressed: onSubmitExam,
@@ -1669,7 +1661,7 @@ class _QuestionPaletteSheet extends StatelessWidget {
                   border: Border.all(
                     color: isCurrent
                         ? AppTheme.red
-                        : (isDone ? AppTheme.jade : Colors.grey.shade300),
+                        : (isDone ? Theme.of(context).colorScheme.primary : Colors.grey.shade300),
                     width: isCurrent ? 2 : 1,
                   ),
                 ),
@@ -1773,7 +1765,7 @@ class _ReviewCard extends StatelessWidget {
               children: [
                 Icon(
                   item.isCorrect ? Icons.check_circle : Icons.cancel,
-                  color: item.isCorrect ? AppTheme.jade : AppTheme.red,
+                  color: item.isCorrect ? Theme.of(context).colorScheme.primary : AppTheme.red,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -1788,7 +1780,7 @@ class _ReviewCard extends StatelessWidget {
                 ),
                 IconButton(
                   tooltip: 'Nghe phát âm',
-                  icon: const Icon(Icons.volume_up_rounded, size: 20, color: AppTheme.jade),
+                  icon: Icon(Icons.volume_up_rounded, size: 20, color: Theme.of(context).colorScheme.primary),
                   onPressed: () => PronunciationService.playWord(item.prompt),
                 ),
               ],
@@ -1878,7 +1870,7 @@ class _MessageState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppTheme.jade, size: 54),
+            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 54),
             const SizedBox(height: 14),
             Text(
               title,

@@ -45,7 +45,7 @@ class ScreenHeader extends StatelessWidget {
                       BoxShadow(
                         color: isDark
                             ? Colors.black.withOpacity(0.2)
-                            : const Color(0xFF1B4D3E).withOpacity(0.06),
+                            : Theme.of(context).colorScheme.primary.withOpacity(0.06),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),

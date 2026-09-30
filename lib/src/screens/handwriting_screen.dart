@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../services/student_service.dart';
-import '../theme/app_theme.dart';
 import '../widgets/hanzi_drawing_canvas.dart';
 
 enum _HandwritingMode { lookup, practice }
@@ -206,7 +205,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                     color: Theme.of(context).colorScheme.surfaceContainer,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: AppTheme.jade.withValues(alpha: 0.3)),
+                      side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
                     ),
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxHeight: 220),
@@ -266,13 +265,13 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         labelStyle: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: _target.text == ch ? Colors.white : (isDark ? Colors.white : AppTheme.jade),
+                          color: _target.text == ch ? Colors.white : (isDark ? Colors.white : Theme.of(context).colorScheme.primary),
                         ),
                         backgroundColor: _target.text == ch
-                            ? AppTheme.jade
+                            ? Theme.of(context).colorScheme.primary
                             : (isDark ? const Color(0xFF1A3328) : const Color(0xFFEBF5EE)),
                         side: BorderSide(
-                          color: _target.text == ch ? AppTheme.jade : AppTheme.jade.withValues(alpha: 0.25),
+                          color: _target.text == ch ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
                         ),
                         onPressed: () => _selectChar(ch),
                       ),
@@ -284,7 +283,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                   color: isDark ? const Color(0xFF1C2C24) : const Color(0xFFF4F8F4),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(color: AppTheme.jade.withValues(alpha: 0.25)),
+                    side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.25)),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -297,7 +296,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                           decoration: BoxDecoration(
                             color: isDark ? const Color(0xFF122019) : Colors.white,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppTheme.jade, width: 1.5),
+                            border: Border.all(color: Theme.of(context).colorScheme.primary, width: 1.5),
                           ),
                           child: Text(
                             _target.text.isEmpty ? '?' : _target.text,
@@ -329,7 +328,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: AppTheme.jade.withValues(alpha: 0.15),
+                                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
@@ -365,7 +364,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
-                              color: AppTheme.jade,
+                              color: Theme.of(context).colorScheme.primary,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
@@ -388,7 +387,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                     color: isDark ? const Color(0xFF1E2F26) : Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
-                      side: BorderSide(color: AppTheme.jade.withValues(alpha: 0.2)),
+                      side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(12),
@@ -399,7 +398,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.school, size: 18, color: AppTheme.jade),
+                                  Icon(Icons.school, size: 18, color: Theme.of(context).colorScheme.primary),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Hướng dẫn nét:',
@@ -997,7 +996,7 @@ class _ScoreChip extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Chip(
       label: Text('$label: ${score.toStringAsFixed(0)}'),
-      side: BorderSide(color: AppTheme.jade.withValues(alpha: 0.3)),
+      side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
       backgroundColor: isDark
           ? const Color(0xFF1E3228)
           : Colors.white.withValues(alpha: 0.75),
