@@ -80,6 +80,10 @@ def main():
                 assert len(config_requests) == 1, config_requests
                 prompt = page.locator('[name="system_prompt"]')
                 prompt.fill(prompt.input_value()+'\nHướng dẫn rõ từng lỗi và kèm ví dụ.')
+                draft = prompt.input_value()
+                page.locator('[data-toggle-group="students"]').click()
+                expect(prompt).to_have_value(draft)
+                assert len(config_requests) == 1
                 expect(page.locator('.ai-test')).to_be_disabled()
                 page.locator('.ai-save').click()
                 expect(page.locator('#ai-error')).to_have_text('Đã lưu thành công.')

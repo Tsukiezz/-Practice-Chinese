@@ -180,7 +180,10 @@ function shell() {
       } else {
         expandedGroups.add(groupId);
       }
-      shell();
+      const expanded = expandedGroups.has(groupId);
+      btn.closest('.nav-accordion').classList.toggle('expanded', expanded);
+      btn.setAttribute('aria-expanded', String(expanded));
+      btn.querySelector('.nav-arrow').textContent = expanded ? '▲' : '▼';
     };
   });
 
