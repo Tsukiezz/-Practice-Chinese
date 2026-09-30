@@ -1,4 +1,6 @@
 import {renderChatInbox} from './support-inbox.js';
+import {renderAIConfig} from './ai-settings.js';
+import {renderAuditLog} from './audit-log.js';
 const root = document.querySelector('#app');
 const dialog = document.querySelector('#editor');
 const pages = {
@@ -188,7 +190,6 @@ function shell() {
     const pGroup = NAV_GROUPS.find(g => g.items.includes(page));
     if (pGroup) expandedGroups.add(pGroup.id);
     shell();
-    loadPage().then(() => document.querySelector('#content h1')?.focus());
   });
 
   document.querySelector('#menu-toggle').onclick = event => {
@@ -200,7 +201,7 @@ function shell() {
     catch (err) { notify(err.message); }
   };
 
-  loadPage();
+  loadPage().then(() => document.querySelector('#content h1')?.focus());
 }
 
 function heading() {
@@ -248,7 +249,7 @@ async function loadPage(params = '') {
       exams: '/admin/exams',
       lessons: '/lessons',
       ai: '/admin/ai-config',
-      logs: '/admin/audit-logs'
+      logs: '/admin/audit-logs?paginated=true&limit=50'
     }[page];
     const data = await api(endpoint + params);
     if (id !== loadId) return;
@@ -266,8 +267,8 @@ async function loadPage(params = '') {
       vocabulary: renderWords,
       exams: renderExams,
       lessons: renderLessonsCatalog,
-      ai: renderAI,
-      logs: renderLogs
+      ai: (content, data) => renderAIConfig(content, data, api, notify),
+      logs: (content, data) => renderAuditLog(content, data, api, dialog)
     })[page](content, data, params);
   } catch (err) {
     if (id !== loadId) { notify(err.message); return; }
@@ -1045,30 +1046,6 @@ function renderResults(content, data, params) {
   document.querySelector('#show-appeals').onclick = () => showAppeals(content);
 }
 
-function renderAI(content, data) {
-  content.innerHTML += `<section class="panel"><form id="ai-form" class="dialog-body"><div class="note"><b>${data.ready?'Cấu hình sẵn sàng cho module AI':'AI chưa sẵn sàng'}</b><br>Khóa máy chủ: ${data.key_configured?'Đã cấu hình':'Chưa cấu hình'}. Model dự phòng: ${escape(data.fallback_model || 'Chưa cấu hình')}. Trạng thái này kiểm tra cấu hình nội bộ, chưa xác minh kết nối với nhà cung cấp.</div><div class="grid"><label>Model<input name="model" required maxlength="120" value="${escape(data.model)}"></label><label>Giới hạn token<input name="max_tokens" type="number" min="1" max="16000" required value="${data.max_tokens}"></label><label>Temperature (0–2)<input name="temperature" type="number" min="0" max="2" step="0.1" required value="${data.temperature}"></label><label class="check"><input name="enabled" type="checkbox" ${data.enabled?'checked':''}> Bật AI</label><label class="span-2">Hướng dẫn hệ thống / prompt mẫu<textarea name="system_prompt" required maxlength="10000" rows="7">${escape(data.system_prompt)}</textarea></label></div><small>Khóa API được cấu hình bằng biến môi trường GEMINI_API_KEY trên máy chủ; không nhập hoặc hiển thị khóa ở trang này.</small><div id="ai-error" role="alert"></div><div><button class="primary">Lưu cấu hình</button></div></form></section>`;
-  const testButton = document.createElement('button');
-  testButton.type = 'button';
-  testButton.textContent = 'Kiểm tra kết nối Gemini (có thể tính phí)';
-  testButton.disabled = !data.ready;
-  document.querySelector('#ai-form').append(testButton);
-  testButton.onclick = async () => {
-    testButton.disabled = true;
-    const message = document.querySelector('#ai-error');
-    message.textContent = 'Đang kiểm tra cấu hình đã lưu…';
-    try { message.textContent = (await api('/admin/ai-config/test','POST')).message; }
-    catch (err) { message.textContent = err.message; }
-    finally { testButton.disabled = false; }
-  };
-  document.querySelector('#ai-form').onsubmit=async event=>{
-    event.preventDefault(); const form=event.currentTarget; const button=form.querySelector('button'); button.disabled=true;
-    try {
-      await api('/admin/ai-config','PUT',{model:form.elements.model.value,system_prompt:form.elements.system_prompt.value,max_tokens:Number(form.elements.max_tokens.value),temperature:Number(form.elements.temperature.value),enabled:form.elements.enabled.checked,version:data.version});
-      notify('Đã lưu cấu hình AI'); loadPage();
-    } catch(err){if(document.querySelector('#ai-error'))document.querySelector('#ai-error').innerHTML=`<div class="error">${escape(err.message)}</div>`;} finally {button.disabled=false;}
-  };
-}
-
 async function showAppeals(content, status='pending') {
   const id = ++loadId;
   content.innerHTML = heading() + '<p role="status">Đang tải yêu cầu…</p>';
@@ -1090,18 +1067,6 @@ async function showAppeals(content, status='pending') {
     content.innerHTML=heading()+`<p role="alert">${escape(err.message)}</p><button id="appeals-retry">Thử lại</button>`;
     document.querySelector('#appeals-retry').onclick=()=>showAppeals(content,status);
   }
-}
-
-function renderLogs(content,data,params) {
-  const offset=Number(new URLSearchParams(params).get('offset') || 0);
-  content.innerHTML+=`<section class="panel">${table(['Người thực hiện','Thao tác','Đối tượng','Thời gian','Chi tiết'],data.map(r=>`<tr><td>${escape(r.name)}</td><td>${escape(r.action)}</td><td>${escape(r.entity)} #${escape(r.entity_id)}</td><td>${date(r.created_at)}</td><td><button data-log="${r.id}">Xem</button></td></tr>`))}<div class="toolbar"><button id="previous" ${offset===0?'disabled':''}>Trang trước</button><span>${offset+1}–${offset+data.length}</span><button id="next" ${data.length<100?'disabled':''}>Trang sau</button></div></section>`;
-  document.querySelector('#previous').onclick=()=>loadPage(`?offset=${Math.max(0,offset-100)}`);
-  document.querySelector('#next').onclick=()=>loadPage(`?offset=${offset+100}`);
-  document.querySelectorAll('[data-log]').forEach(b=>b.onclick=()=>{
-    const row=data.find(r=>r.id===Number(b.dataset.log));
-    dialog.innerHTML=`<div class="dialog-head"><h2>Chi tiết thay đổi #${row.id}</h2><button id="close">Đóng</button></div><div class="dialog-body"><h3>Trước thay đổi</h3><pre>${escape(JSON.stringify(JSON.parse(row.before_json),null,2))}</pre><h3>Sau thay đổi</h3><pre>${escape(JSON.stringify(JSON.parse(row.after_json),null,2))}</pre></div>`;
-    dialog.querySelector('#close').onclick=()=>dialog.close();dialog.showModal();
-  });
 }
 
 function openEditor(title,html,save,label='Lưu thay đổi') {

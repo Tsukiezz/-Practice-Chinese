@@ -1232,6 +1232,13 @@ def submit(exam_id: int, body: Submission, user=Depends(current_user), grader=De
 def get_ai_config(user=Depends(admin_user)):
     with database() as conn:
         result = require_row(conn, "ai_config", 1)
+        since = int(time.time()) - 86400
+        usage = conn.execute(
+            "SELECT status,COUNT(*) AS count FROM ai_usage WHERE created_at>=? GROUP BY status", (since,)).fetchall()
+        result["usage_24h"] = {row["status"]: row["count"] for row in usage}
+        result["recent_usage"] = [row_to_dict(row) for row in conn.execute(
+            """SELECT a.module,a.status,a.created_at,COALESCE(u.name,'Khách / hệ thống') AS name
+               FROM ai_usage a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.id DESC LIMIT 8""").fetchall()]
     result["model"] = configured_model(result)
     result["key_configured"] = bool(configured_api_key())
     result["fallback_model"] = os.getenv("GEMINI_FALLBACK_MODEL", "").strip()
@@ -1262,8 +1269,14 @@ def test_ai_connection(admin=Depends(admin_user)):
         gemini_grade(settings, "Bài kiểm tra kết nối: 你好。")
     except Exception as error:
         record_ai_usage(admin["id"], "connection_test", "error")
+        with database() as conn:
+            audit(conn, admin["id"], "connection_test", "ai_config", 1, None,
+                  {"model": settings["model"], "status": "error"})
         raise ai_http_error(error, "Không nhận được phản hồi AI hợp lệ. Kiểm tra model, khóa và hạn mức trên máy chủ.") from None
     record_ai_usage(admin["id"], "connection_test", "success")
+    with database() as conn:
+        audit(conn, admin["id"], "connection_test", "ai_config", 1, None,
+              {"model": settings["model"], "status": "success"})
     return {"status": "ok", "message": "Đã nhận phản hồi hợp lệ từ Gemini. Không tạo điểm học viên."}
 
 
@@ -1810,9 +1823,42 @@ def score_history(result_id: int, user=Depends(admin_user)):
 
 
 @app.get("/api/admin/audit-logs")
-def audit_logs(limit: int = Query(default=100, ge=1, le=500), offset: int = Query(default=0, ge=0), user=Depends(admin_user)):
+def audit_logs(limit: int = Query(default=100, ge=1, le=500), offset: int = Query(default=0, ge=0),
+               paginated: bool = False, search: str = Query('', max_length=200),
+               action: str = Query('', max_length=80), entity: str = Query('', max_length=80),
+               actor_id: int | None = Query(None, ge=1), from_ts: int | None = Query(None, ge=0),
+               to_ts: int | None = Query(None, ge=0), user=Depends(admin_user)):
+    if from_ts is not None and to_ts is not None and from_ts >= to_ts:
+        raise HTTPException(422, "Ngày kết thúc phải bằng hoặc sau ngày bắt đầu")
+    clauses, args = [], []
+    if search.strip():
+        clauses.append("(u.name LIKE ? OR u.email LIKE ? OR a.action LIKE ? OR a.entity LIKE ? OR a.entity_id LIKE ? OR a.before_json LIKE ? OR a.after_json LIKE ?)")
+        args.extend(['%' + search.strip() + '%'] * 7)
+    for column, value in (("a.action", action), ("a.entity", entity), ("a.actor_id", actor_id)):
+        if value:
+            clauses.append(column + "=?")
+            args.append(value)
+    if from_ts is not None:
+        clauses.append("a.created_at>=?")
+        args.append(from_ts)
+    if to_ts is not None:
+        clauses.append("a.created_at<?")
+        args.append(to_ts)
+    source = " FROM audit_logs a LEFT JOIN users u ON u.id=a.actor_id"
+    where = " WHERE " + " AND ".join(clauses) if clauses else ""
     with database() as conn:
-        return [dict(row) for row in conn.execute("SELECT a.*,u.name FROM audit_logs a JOIN users u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT ? OFFSET ?", (limit, offset))]
+        rows = [row_to_dict(row) for row in conn.execute(
+            "SELECT a.*,COALESCE(u.name,'Tài khoản không còn tồn tại') AS name,u.email" +
+            source + where + " ORDER BY a.id DESC LIMIT ? OFFSET ?", (*args, limit, offset)).fetchall()]
+        if not paginated:
+            return rows
+        total = conn.execute("SELECT COUNT(*)" + source + where, args).fetchone()[0]
+        return {"items": rows, "total": total, "offset": offset, "limit": limit,
+                "actions": [r[0] for r in conn.execute("SELECT DISTINCT action FROM audit_logs ORDER BY action").fetchall()],
+                "entities": [r[0] for r in conn.execute("SELECT DISTINCT entity FROM audit_logs ORDER BY entity").fetchall()],
+                "actors": [row_to_dict(r) for r in conn.execute(
+                    "SELECT DISTINCT a.actor_id AS id,COALESCE(u.name,'Tài khoản không còn tồn tại') AS name" +
+                    source + " ORDER BY name").fetchall()]}
 
 
 @app.post("/api/me/results/{result_id}/appeals", status_code=201)

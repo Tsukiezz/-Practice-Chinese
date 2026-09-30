@@ -9,7 +9,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field
 
-from database import database, row_to_dict
+from database import audit, database, row_to_dict
 from services import ai_settings, _post_gemini, _decode_gemini_candidate
 
 router = APIRouter(prefix='/api')
@@ -59,14 +59,21 @@ def owned(conn, thread_id, who):
     return row_to_dict(row)
 
 
-def snapshot(conn, thread_id, after=0):
+def snapshot(conn, thread_id, after=0, *, recent=False, before=None):
     row = conn.execute('SELECT id,name,state,updated_at,busy_until FROM chat_threads WHERE id=?', (thread_id,)).fetchone()
     if not row:
         raise HTTPException(404, 'Không tìm thấy hội thoại')
     result = row_to_dict(row)
-    result['messages'] = [row_to_dict(m) for m in conn.execute(
-        'SELECT id,role,content,created_at FROM chat_messages WHERE thread_id=? AND id>? ORDER BY id LIMIT 100',
-        (thread_id, after)).fetchall()]
+    if recent or before is not None:
+        rows = conn.execute(
+            'SELECT id,role,content,created_at FROM chat_messages WHERE thread_id=? AND id<? ORDER BY id DESC LIMIT 51',
+            (thread_id, before if before is not None else 9223372036854775807)).fetchall()
+        result['has_older'] = len(rows) > 50
+        result['messages'] = [row_to_dict(m) for m in rows[:50]][::-1]
+    else:
+        result['messages'] = [row_to_dict(m) for m in conn.execute(
+            'SELECT id,role,content,created_at FROM chat_messages WHERE thread_id=? AND id>? ORDER BY id LIMIT 100',
+            (thread_id, after)).fetchall()]
     return result
 
 
@@ -190,15 +197,20 @@ def inbox(offset: int = Query(0, ge=0), search: str = Query('', max_length=100),
         where = " WHERE t.name LIKE ? AND (?='all' OR t.state=?)"
         total = conn.execute('SELECT COUNT(*) FROM chat_threads t' + where, args).fetchone()[0]
         rows = conn.execute('''SELECT t.id,t.name,t.state,t.user_id,t.updated_at,
+            (SELECT MAX(id) FROM chat_messages WHERE thread_id=t.id) AS last_message_id,
+            (SELECT role FROM chat_messages WHERE thread_id=t.id ORDER BY id DESC LIMIT 1) AS last_role,
             (SELECT content FROM chat_messages WHERE thread_id=t.id ORDER BY id DESC LIMIT 1) AS preview
             FROM chat_threads t''' + where + " ORDER BY (t.state='waiting') DESC,t.updated_at DESC LIMIT 40 OFFSET ?", (*args, offset)).fetchall()
-        return {'items': [row_to_dict(r) for r in rows], 'total': total}
+        counts = {r['state']: r['count'] for r in conn.execute(
+            "SELECT state,COUNT(*) AS count FROM chat_threads GROUP BY state").fetchall()}
+        return {'items': [row_to_dict(r) for r in rows], 'total': total, 'counts': counts}
 
 
 @router.get('/admin/chats/{thread_id}')
-def admin_history(thread_id: str, after: int = Query(0, ge=0), user=Depends(admin_identity)):
+def admin_history(thread_id: str, after: int = Query(0, ge=0), recent: bool = False,
+                  before: int | None = Query(None, ge=1), user=Depends(admin_identity)):
     with database() as conn:
-        return snapshot(conn, thread_id, after)
+        return snapshot(conn, thread_id, after, recent=recent, before=before)
 
 
 @router.post('/admin/chats/{thread_id}/messages')
@@ -207,9 +219,12 @@ def admin_reply(thread_id: str, body: Message, user=Depends(admin_identity)):
         raise HTTPException(422, 'Vui lòng nhập tin nhắn')
     with database() as conn:
         snapshot(conn, thread_id)
-        conn.execute("INSERT OR IGNORE INTO chat_messages(thread_id,role,content,created_at,request_id) VALUES(?,'admin',?,?,?)",
+        changed = conn.execute("INSERT OR IGNORE INTO chat_messages(thread_id,role,content,created_at,request_id) VALUES(?,'admin',?,?,?)",
                      (thread_id, body.content.strip(), int(time.time()), 'admin_' + body.request_id))
-        conn.execute("UPDATE chat_threads SET state='admin',updated_at=? WHERE id=?", (int(time.time()), thread_id))
+        if changed.rowcount:
+            conn.execute("UPDATE chat_threads SET state='admin',updated_at=? WHERE id=?", (int(time.time()), thread_id))
+            audit(conn, user['id'], 'reply', 'chat', thread_id, None,
+                  {'message_id': changed.lastrowid, 'content': body.content.strip(), 'state': 'admin'})
     return {'accepted': True}
 
 
@@ -220,6 +235,9 @@ class ChatState(BaseModel):
 @router.patch('/admin/chats/{thread_id}')
 def set_state(thread_id: str, body: ChatState, user=Depends(admin_identity)):
     with database() as conn:
-        snapshot(conn, thread_id)
-        conn.execute('UPDATE chat_threads SET state=?,updated_at=? WHERE id=?', (body.state, int(time.time()), thread_id))
+        previous = snapshot(conn, thread_id)
+        if previous['state'] != body.state:
+            conn.execute('UPDATE chat_threads SET state=?,updated_at=? WHERE id=?', (body.state, int(time.time()), thread_id))
+            audit(conn, user['id'], 'takeover' if body.state == 'admin' else 'resume_ai', 'chat', thread_id,
+                  {'state': previous['state']}, {'state': body.state})
     return {'state': body.state}
