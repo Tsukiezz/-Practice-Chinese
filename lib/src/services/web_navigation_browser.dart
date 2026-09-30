@@ -1,4 +1,10 @@
+import 'dart:js_interop';
 import 'package:web/web.dart' as web;
+
+void setChatSession(String? token) {
+  web.window.dispatchEvent(web.CustomEvent('hanzigo-chat-session',
+      web.CustomEventInit(detail: (token ?? '').toJS)));
+}
 
 void openAccount(String token, {int? returnTab}) {
   web.window.sessionStorage.setItem('hanzigo_account_token', token);

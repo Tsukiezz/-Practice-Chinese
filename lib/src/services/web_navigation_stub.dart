@@ -1,4 +1,5 @@
 void openAdmin(String token) {}
+void setChatSession(String? token) {}
 void openAccount(String token, {int? returnTab}) {}
 void openRecovery() {}
 void openExam(String token) {}

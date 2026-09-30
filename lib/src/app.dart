@@ -311,6 +311,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     }
 
     if (!_authenticated) {
+      setChatSession(null);
       return LoginScreen(
         baseUrl: _apiBaseUrl,
         authService: _authService,
@@ -318,6 +319,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       );
     }
 
+    setChatSession(_authService.token);
     _readingRepository ??=
         widget.readingRepository ??
         ReadingExamService(

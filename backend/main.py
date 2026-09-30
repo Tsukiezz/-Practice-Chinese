@@ -82,6 +82,8 @@ async def lifespan(app):
                 init_listening_exams(conn)
                 init_comprehensive_exams(conn)
                 ensure_default_admin(conn)
+    from support_chat import init_chat
+    init_chat()
     yield
 
 
@@ -89,6 +91,8 @@ from vocabulary_catalog import router as vocabulary_router
 
 app = FastAPI(title="HanziGo · Chinese Learning API", version="1.0.0", lifespan=lifespan)
 app.include_router(vocabulary_router)
+from support_chat import router as support_chat_router
+app.include_router(support_chat_router)
 app.add_middleware(CORSMiddleware,
                    allow_origins=os.getenv("FRONTEND_ORIGINS", "http://localhost:5173,http://localhost:8080").split(","),
                    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],

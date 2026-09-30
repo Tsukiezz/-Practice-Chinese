@@ -1,6 +1,8 @@
+import {renderChatInbox} from './support-inbox.js';
 const root = document.querySelector('#app');
 const dialog = document.querySelector('#editor');
 const pages = {
+  chats: ['Hộp thư hỗ trợ', 'Lịch sử khách, học viên và AI; tiếp nhận và trả lời trực tiếp.'],
   dashboard: ['Tổng quan', 'Bức tranh học tập toàn hệ thống, cập nhật từ cơ sở dữ liệu.'],
   users: ['Quản lý tài khoản', 'Quản lý tài khoản học viên và quản trị viên, thêm mới, chỉnh sửa, xóa và phân quyền.'],
   student_lessons: ['Tiến độ 48 Bài học', 'Theo dõi tiến trình 48 bài học theo 4 giai đoạn chuẩn sư phạm và điểm số.'],
@@ -43,7 +45,7 @@ const NAV_GROUPS = [
     id: 'system',
     title: '⚙️ Hệ thống & Trí tuệ AI',
     desc: 'Cấu hình model Gemini AI và nhật ký kiểm toán hệ thống',
-    items: ['ai','logs']
+    items: ['chats','ai','logs']
   }
 ];
 const expandedGroups = new Set();
@@ -233,6 +235,7 @@ async function loadPage(params = '') {
   content.innerHTML = heading() + '<div class="loading" role="status">Đang tải dữ liệu…</div>';
   try {
     const endpoint = {
+      chats: '/admin/chats',
       dashboard: '/admin/dashboard',
       users: '/admin/users',
       student_lessons: '/admin/student-lessons',
@@ -251,6 +254,7 @@ async function loadPage(params = '') {
     if (id !== loadId) return;
     content.innerHTML = heading();
     ({
+      chats: (content, data) => renderChatInbox(content, data, api),
       dashboard: renderDashboard,
       users: renderUsers,
       student_lessons: renderStudentLessons,
