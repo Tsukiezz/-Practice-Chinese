@@ -5,10 +5,10 @@
 @media (prefers-color-scheme:dark){
 body{background:#121b18;color:#e2ece7}section{background:#1b2823;border:1px solid #283b34}input{background:#16221e;color:#e2ece7;border-color:#283b34}button{background:#397765}a{color:#4db697}.hint{color:#8fa69c}
 }
-</style></head><body><main>
+</style><link rel="stylesheet" href="/admin/assets/learner-theme.css"></head><body><main>
 <a id="back" href="javascript:void(0)">← Trở về HanziGo</a><h1 id="title">Thông tin cá nhân</h1>
 <p id="message" role="status" aria-live="polite"></p>
-<section id="profile-section" hidden><form id="profile">
+<section id="profile-section" hidden><div id="interface-preferences"></div><form id="profile">
 <img id="preview" alt="Ảnh đại diện" hidden>
 <label>Họ tên<input name="name" required maxlength="120"></label>
 <label>Email<input name="email" type="email" disabled></label>
@@ -112,4 +112,4 @@ $('back').onclick = goBack;
   $('profile-section').hidden=false;$('password-section').hidden=false;
  }
 })().catch(e=>message(e.message));
-</script></body></html>
+</script><script src="/admin/assets/learner-theme.js"></script></body></html>

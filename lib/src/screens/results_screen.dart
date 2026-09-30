@@ -97,8 +97,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       height: 48,
                       decoration: BoxDecoration(
                         color: passed
-                            ? (isDark ? const Color(0xFF1E3228) : const Color(0xFFE4F4E9))
-                            : (isDark ? const Color(0xFF382320) : const Color(0xFFFFF1E8)),
+                            ? (isDark ? const Color(0xFF1E3228) : Theme.of(context).colorScheme.surfaceContainerHigh)
+                            : (isDark ? const Color(0xFF382320) : Theme.of(context).colorScheme.surfaceContainerHigh),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Center(
@@ -106,7 +106,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           '${result.score.toInt()}',
                           style: TextStyle(
                             color: passed
-                                ? (isDark ? const Color(0xFF4DB697) : AppTheme.jade)
+                                ? (Theme.of(context).colorScheme.primary)
                                 : (isDark ? const Color(0xFFFF7A66) : AppTheme.orange),
                             fontWeight: FontWeight.w900,
                             fontSize: 18,
@@ -123,14 +123,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
                             '${result.examId ?? 'Bài'} · ${_kindLabel(result.kind)}',
                             style: TextStyle(
                               fontWeight: FontWeight.w800,
-                              color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             'Chấm bởi: ${_gradedByLabel(result.gradedBy)}',
                             style: TextStyle(
-                              color: isDark ? const Color(0xFFA3BFB3) : Colors.grey.shade600,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                               fontSize: 12,
                             ),
                           ),
@@ -142,8 +142,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           ? Icons.check_circle_rounded
                           : Icons.arrow_circle_right_rounded,
                       color: passed
-                          ? (isDark ? const Color(0xFF4DB697) : AppTheme.jade)
-                          : (isDark ? const Color(0xFFA3BFB3) : Colors.grey),
+                          ? (Theme.of(context).colorScheme.primary)
+                          : (Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -208,7 +208,7 @@ class _MessageState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: 16),

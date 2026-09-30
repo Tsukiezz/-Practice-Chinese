@@ -45,15 +45,15 @@ class _HanziGoAppState extends State<HanziGoApp> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: ThemeManager.themeMode,
-      builder: (context, mode, child) {
+    return ListenableBuilder(
+      listenable: Listenable.merge([ThemeManager.themeMode, ThemeManager.palette]),
+      builder: (context, child) {
         return MaterialApp(
           title: 'HanziGo',
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
-          themeMode: mode,
+          theme: ThemeManager.isDark
+              ? AppTheme.colored(ThemeManager.palette.value) : AppTheme.light,
+          themeMode: ThemeMode.light,
           home: AppShell(
             readingRepository: widget.readingRepository,
             listeningRepository: widget.listeningRepository,
@@ -312,11 +312,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
     if (!_authenticated) {
       setChatSession(null);
-      return LoginScreen(
+      return Theme(data: AppTheme.light, child: LoginScreen(
         baseUrl: _apiBaseUrl,
         authService: _authService,
         onLoginSuccess: _onLoginSuccess,
-      );
+      ));
     }
 
     setChatSession(_authService.token);
@@ -346,10 +346,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             preferredSize: const Size.fromHeight(60),
             child: Container(
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF14201C) : Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 border: Border(
                   bottom: BorderSide(
-                    color: isDark ? const Color(0xFF283B34) : const Color(0xFF1B4D3E).withValues(alpha: 0.12),
+                    color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.12),
                     width: 1,
                   ),
                 ),
@@ -405,7 +405,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
-                                color: isDark ? const Color(0xFF4DB697) : const Color(0xFF1B4D3E),
+                                color: Theme.of(context).colorScheme.primary,
                                 letterSpacing: 0.2,
                               ),
                             ),
@@ -416,7 +416,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,
-                                color: isDark ? const Color(0xFF8FA69C) : const Color(0xFF707974),
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -428,10 +428,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                         builder: (context, mode, _) {
                           final isDarkMode = mode == ThemeMode.dark;
                           return IconButton(
-                            tooltip: isDarkMode ? 'Chuyển sang Giao diện Sáng' : 'Chuyển sang Giao diện Tối',
+                            tooltip: isDarkMode ? 'Trở về giao diện sáng' : 'Bật màu ${ThemeManager.palette.value.label}',
                             icon: Icon(
                               isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_outlined,
-                              color: isDarkMode ? const Color(0xFFF6E05E) : const Color(0xFF1B4D3E),
+                              color: Theme.of(context).colorScheme.primary,
                               size: 22,
                             ),
                             onPressed: ThemeManager.toggle,
@@ -445,7 +445,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF1C2C26) : const Color(0xFFE9F3ED),
+                              color: Theme.of(context).colorScheme.surfaceContainer,
                               borderRadius: const BorderRadius.all(Radius.circular(20)),
                             ),
                             child: Row(
@@ -454,7 +454,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                 Icon(
                                   Icons.person_rounded,
                                   size: 16,
-                                  color: isDark ? const Color(0xFF4DB697) : const Color(0xFF1B4D3E),
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
                                 const SizedBox(width: 6),
                                 ConstrainedBox(
@@ -465,7 +465,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
-                                      color: isDark ? const Color(0xFFE2ECE7) : const Color(0xFF1B4D3E),
+                                      color: Theme.of(context).colorScheme.onSurface,
                                     ),
                                   ),
                                 ),

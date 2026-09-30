@@ -158,8 +158,8 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
                             children: [
                               Text(
                                 'HSK ${lesson['hsk']} · Bài ${lesson['order']}/8 · ${lesson['minutes']} phút',
-                                style: const TextStyle(
-                                  color: AppTheme.jade,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 12,
                                 ),
@@ -191,7 +191,7 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
                             padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                             child: Text(
                               _error!,
-                              style: const TextStyle(color: AppTheme.red),
+                              style: TextStyle(color: Theme.of(context).colorScheme.error),
                               maxLines: 3,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -244,10 +244,10 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
                                 ],
                               ),
                               const SizedBox(height: 6),
-                              const Text(
+                              Text(
                                 'Tiến độ lưu theo tài khoản khi bạn bấm Tiếp tục hoặc Nộp bài.',
                                 style:
-                                    TextStyle(fontSize: 11, color: Colors.grey),
+                                    TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                                 textAlign: TextAlign.center,
                               ),
                             ],
@@ -273,7 +273,7 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
 
   Widget _panel(List<Widget> children, {Color? color}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final defaultBg = isDark ? const Color(0xFF1A2924) : Colors.white;
+    final defaultBg = Theme.of(context).colorScheme.surface;
     Color bg;
     if (color == const Color(0xFFE6F0EB)) {
       bg = isDark ? const Color(0xFF1E322A) : const Color(0xFFE6F0EB);
@@ -312,9 +312,9 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
                 Expanded(
                   child: SelectableText(
                     word['hanzi'] as String,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 30,
-                      color: AppTheme.jade,
+                      color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -332,7 +332,7 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
             const SizedBox(height: 6),
             Text(
               word['pinyin'] as String,
-              style: const TextStyle(fontSize: 16, color: AppTheme.red),
+              style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.error),
             ),
             const SizedBox(height: 6),
             Text(
@@ -342,9 +342,9 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
             if (word['hsk'] == null ||
                 (word['hsk'] as int) > (lesson['hsk'] as int)) ...[
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Từ / cụm từ mở rộng theo ngữ cảnh bài',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
+                style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ],
           ]),
@@ -370,10 +370,10 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
       _panel([
         Text(
           grammar['pattern'] as String,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 21,
             fontWeight: FontWeight.w700,
-            color: AppTheme.jade,
+            color: Theme.of(context).colorScheme.primary,
             height: 1.5,
           ),
         ),
@@ -387,12 +387,12 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'VÍ DỤ',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.jade,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             IconButton(
@@ -413,7 +413,7 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
         const SizedBox(height: 8),
         Text(
           example['pinyin'] as String,
-          style: const TextStyle(color: AppTheme.red, height: 1.7),
+          style: TextStyle(color: Theme.of(context).colorScheme.error, height: 1.7),
         ),
         const SizedBox(height: 8),
         Text(
@@ -429,9 +429,9 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
         const SizedBox(height: 8),
         Text(lesson['task'] as String, style: const TextStyle(height: 1.7)),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Tự nói hoặc viết vào sổ. Phần này không chấm điểm tự động.',
-          style: TextStyle(fontSize: 12, color: Colors.grey),
+          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ]),
     ];
@@ -509,9 +509,9 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
           style: TextStyle(height: 1.6),
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Nếu thoát trước khi nộp, các lựa chọn của lần làm này chưa được lưu.',
-          style: TextStyle(fontSize: 12, color: Colors.grey),
+          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ] else
         _panel([
@@ -564,9 +564,9 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
         _panel([
           Text(
             'Câu ${i + 1} · ${questions[i]['kind'] == 'grammar' ? 'Mẫu câu' : questions[i]['kind'] == 'reading' ? 'Đọc hiểu' : 'Từ vựng'}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppTheme.jade,
+              color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -595,15 +595,15 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
                       style: OutlinedButton.styleFrom(
                         alignment: Alignment.centerLeft,
                         padding: const EdgeInsets.all(14),
-                        foregroundColor: isDark ? const Color(0xFFE2ECE7) : AppTheme.ink,
-                        disabledForegroundColor: isDark ? const Color(0xFFE2ECE7) : AppTheme.ink,
+                        foregroundColor: Theme.of(context).colorScheme.onSurface,
+                        disabledForegroundColor: Theme.of(context).colorScheme.onSurface,
                         backgroundColor: isSelected
                             ? (isDark ? const Color(0xFF1E3A2F) : const Color(0xFFE6F0EB))
-                            : (isDark ? const Color(0xFF1A2924) : Colors.white),
+                            : (Theme.of(context).colorScheme.surface),
                         side: BorderSide(
                           color: isSelected
                               ? AppTheme.jade
-                              : (isDark ? const Color(0xFF283B34) : const Color(0xFFDBE1DC)),
+                              : (Theme.of(context).colorScheme.outlineVariant),
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -632,7 +632,7 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
                               style: TextStyle(
                                 color: isSelected
                                     ? Colors.white
-                                    : (isDark ? const Color(0xFF4DB697) : AppTheme.jade),
+                                    : (Theme.of(context).colorScheme.primary),
                                 fontWeight: FontWeight.w700,
                               ),
                             ),

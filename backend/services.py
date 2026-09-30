@@ -31,19 +31,28 @@ def _post_gemini(url: str, headers: dict, json: dict, timeout: float, *, post=No
     deadline = time.monotonic() + 45
     fallback = os.getenv("GEMINI_FALLBACK_MODEL", "").strip().removeprefix("models/")
     fallback_url = None
+    request_headers = dict(headers)
+    backup_keys = []
     if re.fullmatch(r"[A-Za-z0-9._-]+", fallback) and url.startswith("https://generativelanguage.googleapis.com/v1beta/models/"):
         fallback_url = url.rsplit('/models/', 1)[0] + '/models/' + fallback + ':generateContent'
+    if url.startswith("https://generativelanguage.googleapis.com/v1beta/models/"):
+        backup_keys = list(dict.fromkeys(key.strip() for key in
+            os.getenv('GEMINI_FALLBACK_API_KEYS', '').split(',')
+            if key.strip() and key.strip() != headers.get('x-goog-api-key')))
     last_error = AIProviderError('timeout', 504, 'AI phản hồi chậm. Vui lòng thử lại sau.')
     for attempt in range(3):
         remaining = deadline - time.monotonic()
         if remaining <= 1:
             break
         try:
-            response = post(url, headers=headers, json=json,
+            response = post(url, headers=dict(request_headers), json=json,
                             timeout=httpx.Timeout(min(timeout, 20, max(1, remaining - 4)), connect=min(4, remaining)),
                             follow_redirects=False)
             if response.status_code >= 400:
                 last_error = provider_error(response.status_code)
+                if response.status_code in (401, 403, 429) and backup_keys:
+                    request_headers['x-goog-api-key'] = backup_keys.pop(0)
+                    continue
                 if response.status_code not in (429, 500, 502, 503, 504, 404):
                     raise last_error
                 if fallback_url:

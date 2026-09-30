@@ -352,8 +352,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
                 ),
                 Text(
                   widget.skillLabel,
-                  style: const TextStyle(
-                    color: AppTheme.red,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                   ),
@@ -513,7 +513,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                     decoration: BoxDecoration(
                       color: isCurrent
                           ? const Color(0xFFFFECE5)
-                          : (isDone ? const Color(0xFFE4F4E9) : const Color(0xFFF1F3F4)),
+                          : (isDone ? Theme.of(context).colorScheme.surfaceContainerHigh : const Color(0xFFF1F3F4)),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: isCurrent
@@ -551,8 +551,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
                       Text(
                         '${_currentQuestion + 1}/${exam.questions.length}',
                         textAlign: TextAlign.right,
-                        style: const TextStyle(
-                          color: AppTheme.red,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
                         ),
@@ -779,16 +779,16 @@ class _PracticeScreenState extends State<PracticeScreen> {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: passed
-                        ? const Color(0xFFE4F4E9)
-                        : const Color(0xFFFFF1E8),
+                        ? Theme.of(context).colorScheme.surfaceContainerHigh
+                        : Theme.of(context).colorScheme.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: Column(
                     children: [
                       Text(
                         _formatScore(result.score),
-                        style: const TextStyle(
-                          color: AppTheme.jade,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
                           fontSize: 42,
                           fontWeight: FontWeight.w900,
                         ),
@@ -810,8 +810,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
                           result.feedback,
                           key: const Key('ai-feedback'),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: AppTheme.ink,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
                             height: 1.4,
                             fontWeight: FontWeight.w600,
                           ),
@@ -1108,7 +1108,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
               const SizedBox(height: 10),
               Text(
                 'Còn $unanswered câu chưa trả lời. Các câu chưa trả lời sẽ được tính 0 điểm.',
-                style: const TextStyle(color: AppTheme.red, fontWeight: FontWeight.w600),
+                style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600),
               ),
             ],
             const SizedBox(height: 12),
@@ -1338,7 +1338,7 @@ class _ExamAudioPlayerState extends State<_ExamAudioPlayer> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2C221B) : const Color(0xFFFFF1E8),
+        color: isDark ? const Color(0xFF2C221B) : Theme.of(context).colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(16),
       ),
     child: Column(
@@ -1365,7 +1365,7 @@ class _ExamAudioPlayerState extends State<_ExamAudioPlayer> {
           ],
         ),
         if (_error != null)
-          Text(_error!, style: const TextStyle(color: AppTheme.red)),
+          Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
       ],
     ),
   );
@@ -1450,9 +1450,7 @@ class _ExamCard extends StatelessWidget {
                             child: Text(
                               'Đề thi Tổng hợp 3 phần',
                               style: TextStyle(
-                                color: isDark
-                                    ? const Color(0xFF4DB697)
-                                    : AppTheme.jade,
+                                color: Theme.of(context).colorScheme.primary,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -1467,7 +1465,7 @@ class _ExamCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -1476,16 +1474,12 @@ class _ExamCard extends StatelessWidget {
                         Icon(
                           Icons.help_outline_rounded,
                           size: 15,
-                          color: isDark
-                              ? const Color(0xFFA3BFB3)
-                              : Colors.grey,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         Text(
                           ' ${exam.questions.length} câu',
                           style: TextStyle(
-                            color: isDark
-                                ? const Color(0xFFA3BFB3)
-                                : Colors.grey,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                           ),
@@ -1494,16 +1488,12 @@ class _ExamCard extends StatelessWidget {
                         Icon(
                           Icons.schedule_rounded,
                           size: 15,
-                          color: isDark
-                              ? const Color(0xFFA3BFB3)
-                              : Colors.grey,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         Text(
                           ' ${exam.durationMinutes} phút',
                           style: TextStyle(
-                            color: isDark
-                                ? const Color(0xFFA3BFB3)
-                                : Colors.grey,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                           ),
@@ -1515,7 +1505,7 @@ class _ExamCard extends StatelessWidget {
               ),
               Icon(
                 Icons.chevron_right_rounded,
-                color: isDark ? const Color(0xFF4DB697) : Colors.grey,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ],
           ),
@@ -1567,9 +1557,9 @@ class _QuestionPaletteSheet extends StatelessWidget {
         maxHeight: MediaQuery.of(context).size.height * 0.8,
       ),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1598,13 +1588,13 @@ class _QuestionPaletteSheet extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE4F4E9),
+                  color: Theme.of(context).colorScheme.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   'Đã làm $answered/$total',
-                  style: const TextStyle(
-                    color: AppTheme.jade,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w800,
                     fontSize: 12,
                   ),
@@ -1621,11 +1611,11 @@ class _QuestionPaletteSheet extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (listening.isNotEmpty)
-                    _buildSectionGroup('🎧 Phần 1: Nghe hiểu (${listening.length} câu)', listening),
+                    _buildSectionGroup(context, '🎧 Phần 1: Nghe hiểu (${listening.length} câu)', listening),
                   if (reading.isNotEmpty)
-                    _buildSectionGroup('📖 Phần 2: Đọc hiểu (${reading.length} câu)', reading),
+                    _buildSectionGroup(context, '📖 Phần 2: Đọc hiểu (${reading.length} câu)', reading),
                   if (writing.isNotEmpty)
-                    _buildSectionGroup('✍️ Phần 3: Cấu trúc & Viết (${writing.length} câu)', writing),
+                    _buildSectionGroup(context, '✍️ Phần 3: Cấu trúc & Viết (${writing.length} câu)', writing),
                 ],
               ),
             ),
@@ -1645,7 +1635,7 @@ class _QuestionPaletteSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionGroup(String title, List<int> indices) {
+  Widget _buildSectionGroup(BuildContext context, String title, List<int> indices) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1653,7 +1643,7 @@ class _QuestionPaletteSheet extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.black87),
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Theme.of(context).colorScheme.onSurface),
           ),
         ),
         Wrap(
@@ -1674,7 +1664,7 @@ class _QuestionPaletteSheet extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isCurrent
                       ? const Color(0xFFFFECE5)
-                      : (isDone ? const Color(0xFFE4F4E9) : const Color(0xFFF5F5F5)),
+                      : (isDone ? Theme.of(context).colorScheme.surfaceContainerHigh : const Color(0xFFF5F5F5)),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: isCurrent
@@ -1721,8 +1711,8 @@ class _AnswerOption extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final selectedBg = isDark ? const Color(0xFF382320) : const Color(0xFFFFEEE5);
-    final unselectedBg = isDark ? const Color(0xFF1A2924) : Colors.white;
-    final unselectedBorder = isDark ? const Color(0xFF283B34) : const Color(0xFFF0E8DE);
+    final unselectedBg = Theme.of(context).colorScheme.surface;
+    final unselectedBorder = Theme.of(context).colorScheme.outlineVariant;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -1824,7 +1814,7 @@ class _ReviewCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 item.explanation,
-                style: const TextStyle(color: Colors.grey, height: 1.4),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.4),
               ),
             ],
           ],
@@ -1849,7 +1839,7 @@ class _InlineError extends StatelessWidget {
       key: const Key('submit-error'),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFE5E1),
+        color: Theme.of(context).colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -1899,7 +1889,7 @@ class _MessageState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: 16),

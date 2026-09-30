@@ -80,7 +80,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                     selected: isSelected,
                     selectedColor: AppTheme.jade,
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : Colors.black87,
+                      color: isSelected ? Colors.white : Theme.of(context).colorScheme.onSurface,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                       fontSize: 13,
                     ),
@@ -146,7 +146,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                               _itemSubtitle(result),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Color(0xFF5C6F64), fontSize: 13),
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
                             ),
                             trailing: const Icon(Icons.chevron_right, color: Colors.grey),
                             onTap: () => _handleItemTap(result),

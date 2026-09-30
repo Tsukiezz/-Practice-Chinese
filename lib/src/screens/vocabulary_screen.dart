@@ -421,8 +421,8 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                                 child: Text(
                                   '${page.total} từ vựng',
                                   key: const Key('vocabulary-count'),
-                                  style: const TextStyle(
-                                    color: AppTheme.jade,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.primary,
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
@@ -597,7 +597,7 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
               const SizedBox(height: 8),
               Text(
                 'HSK ${word.hsk}',
-                style: const TextStyle(color: AppTheme.red),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ],
           ),
@@ -761,8 +761,8 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
                             const SizedBox(height: 20),
                             Text(
                               word.pinyin,
-                              style: const TextStyle(
-                                color: AppTheme.red,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
                                 fontSize: 22,
                               ),
                             ),

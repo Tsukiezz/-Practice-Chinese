@@ -141,6 +141,11 @@ class SupportChatTest(unittest.TestCase):
         self.assertEqual(generate_reply([{'role':'user','content':'hello'}]),('helpful answer',True))
         decode.return_value['chinese_topic'] = True
         self.assertEqual(generate_reply([]),('helpful answer',False))
+        self.assertEqual(generate_reply([{'role':'user','content':'Tôi muốn liên hệ quản trị viên'}]),('helpful answer',True))
+        self.assertEqual(generate_reply([{'role':'user','content':'Tôi không muốn liên hệ admin, hãy giải thích ngữ pháp.'}]),('helpful answer',False))
+        # Old contact requests must not force all later turns into handoff.
+        self.assertEqual(generate_reply([{'role':'user','content':'Tôi muốn gặp admin'},
+            {'role':'user','content':'Giải thích ngữ pháp 把'}]),('helpful answer',False))
         decode.return_value['needs_admin'] = 'false'
         with self.assertRaises(ValueError):
             generate_reply([])

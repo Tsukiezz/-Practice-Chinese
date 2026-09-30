@@ -111,8 +111,8 @@ class _CustomExamHistoryScreenState extends State<CustomExamHistoryScreen> {
                     child: ListTile(
                       leading: CircleAvatar(
                         backgroundColor: passed
-                            ? const Color(0xFFE4F4E9)
-                            : const Color(0xFFFFF1E8),
+                            ? Theme.of(context).colorScheme.surfaceContainerHigh
+                            : Theme.of(context).colorScheme.surfaceContainerHigh,
                         child: Text(
                           latest.score.toStringAsFixed(0),
                           style: TextStyle(
@@ -188,8 +188,8 @@ class _ExamDetailScreen extends StatelessWidget {
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
                             color: passed
-                                ? const Color(0xFFE4F4E9)
-                                : const Color(0xFFFFF1E8),
+                                ? Theme.of(context).colorScheme.surfaceContainerHigh
+                                : Theme.of(context).colorScheme.surfaceContainerHigh,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -214,7 +214,7 @@ class _ExamDetailScreen extends StatelessWidget {
                               Text(
                                 '${date.day}/${date.month}/${date.year}',
                                 style: TextStyle(
-                                    color: Colors.grey.shade600, fontSize: 12),
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
                               ),
                             ],
                           ),
@@ -270,7 +270,7 @@ class _SummaryCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
             ),
           ],
         ),
@@ -309,7 +309,7 @@ class _MessageState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ],
         ),

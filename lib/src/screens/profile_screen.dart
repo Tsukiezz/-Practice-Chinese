@@ -145,19 +145,43 @@ class ProfileScreen extends StatelessWidget {
                 return SwitchListTile(
                   secondary: Icon(
                     isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                    color: isDark ? const Color(0xFFF6E05E) : AppTheme.jade,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                   title: const Text(
                     'Chế độ Tối (Dark mode)',
                     style: TextStyle(fontWeight: FontWeight.w800),
                   ),
                   subtitle: Text(
-                    isDark ? 'Giao diện tối dịu mắt' : 'Giao diện sáng tiêu chuẩn',
+                    isDark ? 'Đang dùng: ${ThemeManager.palette.value.label}' : 'Giao diện sáng tiêu chuẩn',
                   ),
                   value: isDark,
                   onChanged: (_) => ThemeManager.toggle(),
                 );
               },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
+            child: ValueListenableBuilder<InterfacePalette>(
+              valueListenable: ThemeManager.palette,
+              builder: (context, selected, _) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Màu khi bật Dark mode', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 8, runSpacing: 8, children: [
+                    for (final palette in InterfacePalette.values)
+                      ChoiceChip(
+                        label: Text(palette.label),
+                        avatar: CircleAvatar(backgroundColor: palette.seed, radius: 9),
+                        selected: selected == palette,
+                        onSelected: (_) => ThemeManager.selectPalette(palette),
+                      ),
+                  ]),
+                  const SizedBox(height: 8),
+                  const Text('Chọn màu rồi bật Dark mode để áp dụng. Tắt để trở về giao diện sáng.'),
+                ],
+              ),
             ),
           ),
           const _SectionTitle('Kết quả học tập'),
@@ -316,7 +340,7 @@ class ProfileScreen extends StatelessWidget {
                   );
                 },
                 borderRadius: BorderRadius.circular(20),
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.all(18),
                   child: Row(
                     children: [
@@ -333,7 +357,7 @@ class ProfileScreen extends StatelessWidget {
                             Text(
                               'Xem lại điểm và nhận xét',
                               style: TextStyle(
-                                color: Colors.grey,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 fontSize: 11,
                               ),
                             ),
@@ -360,7 +384,7 @@ class ProfileScreen extends StatelessWidget {
                   );
                 },
                 borderRadius: BorderRadius.circular(20),
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.all(18),
                   child: Row(
                     children: [
@@ -377,7 +401,7 @@ class ProfileScreen extends StatelessWidget {
                             Text(
                               'Theo điểm, loại đề, năng lực',
                               style: TextStyle(
-                                color: Colors.grey,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 fontSize: 11,
                               ),
                             ),
@@ -419,7 +443,6 @@ class _ProfileStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Expanded(
       child: Column(
         children: [
@@ -428,13 +451,13 @@ class _ProfileStat extends StatelessWidget {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: isDark ? const Color(0xFF4DB697) : AppTheme.jade,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
           Text(
             label,
             style: TextStyle(
-              color: isDark ? const Color(0xFFA3BFB3) : Colors.grey.shade600,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 9,
               fontWeight: FontWeight.w600,
             ),
@@ -510,7 +533,7 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
           style: TextStyle(
             fontSize: 21,
             fontWeight: FontWeight.w800,
-            color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         if (widget.email.isNotEmpty)
@@ -518,7 +541,7 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
             widget.email,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isDark ? const Color(0xFFA3BFB3) : Colors.grey,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 12,
             ),
           ),
@@ -616,7 +639,7 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
                                     style: TextStyle(
                                       color: totalUnder80 > 0
                                           ? (isDark ? const Color(0xFFFF7A66) : AppTheme.red)
-                                          : (isDark ? const Color(0xFF4DB697) : Colors.green),
+                                          : (Theme.of(context).colorScheme.primary),
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
                                     ),
@@ -733,10 +756,10 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18),
                         side: BorderSide(
-                          color: isDark ? const Color(0xFF283B34) : const Color(0xFFDDE5E0),
+                          color: Theme.of(context).colorScheme.outlineVariant,
                         ),
                       ),
-                      color: isDark ? const Color(0xFF14201C) : Colors.white,
+                      color: Theme.of(context).colorScheme.surface,
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
@@ -751,7 +774,7 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 15,
-                                    color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+                                    color: Theme.of(context).colorScheme.onSurface,
                                   ),
                                 ),
                               ],
@@ -823,7 +846,7 @@ class _SkillReviewBadge extends StatelessWidget {
           border: Border.all(
             color: hasItems
                 ? (isDark ? const Color(0xFF6B3A35) : const Color(0xFFF5B895))
-                : (isDark ? const Color(0xFF283B34) : const Color(0xFFE2EBE5)),
+                : (Theme.of(context).colorScheme.outlineVariant),
           ),
         ),
         child: Row(
@@ -834,7 +857,7 @@ class _SkillReviewBadge extends StatelessWidget {
               size: 16,
               color: hasItems
                   ? (isDark ? const Color(0xFFFF7A66) : AppTheme.red)
-                  : (isDark ? const Color(0xFF4DB697) : AppTheme.jade),
+                  : (Theme.of(context).colorScheme.primary),
             ),
             const SizedBox(width: 6),
             Text(
@@ -842,7 +865,7 @@ class _SkillReviewBadge extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 12,
-                color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             Text(
@@ -850,7 +873,7 @@ class _SkillReviewBadge extends StatelessWidget {
               style: TextStyle(
                 color: hasItems
                     ? (isDark ? const Color(0xFFFF7A66) : AppTheme.red)
-                    : (isDark ? const Color(0xFFA3BFB3) : const Color(0xFF5C6F64)),
+                    : (Theme.of(context).colorScheme.onSurfaceVariant),
                 fontWeight: hasItems ? FontWeight.bold : FontWeight.w500,
                 fontSize: 12,
               ),
@@ -875,7 +898,6 @@ class _SkillProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final percent = (score / 100.0).clamp(0.0, 1.0);
     final color = score >= 80 ? Colors.green : (score >= 50 ? Colors.orange : AppTheme.red);
 
@@ -886,7 +908,7 @@ class _SkillProgressBar extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 15, color: isDark ? const Color(0xFFA3BFB3) : const Color(0xFF5C6F64)),
+              Icon(icon, size: 15, color: Theme.of(context).colorScheme.onSurfaceVariant),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -894,7 +916,7 @@ class _SkillProgressBar extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -910,7 +932,7 @@ class _SkillProgressBar extends StatelessWidget {
             child: LinearProgressIndicator(
               value: percent,
               minHeight: 6,
-              backgroundColor: isDark ? const Color(0xFF283B34) : const Color(0xFFE5EDE8),
+              backgroundColor: Theme.of(context).colorScheme.outlineVariant,
               valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
           ),
@@ -926,7 +948,6 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
       child: Text(
@@ -934,7 +955,7 @@ class _SectionTitle extends StatelessWidget {
         style: TextStyle(
           fontSize: 17,
           fontWeight: FontWeight.w800,
-          color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
       ),
     );
@@ -953,17 +974,16 @@ class _Setting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 9),
       child: ListTile(
-        leading: Icon(icon, color: isDark ? const Color(0xFF4DB697) : AppTheme.jade),
+        leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
         title: Text(
           title,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         trailing: Row(
@@ -972,13 +992,13 @@ class _Setting extends StatelessWidget {
             Text(
               value,
               style: TextStyle(
-                color: isDark ? const Color(0xFFA3BFB3) : Colors.grey,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 11,
               ),
             ),
             Icon(
               Icons.chevron_right_rounded,
-              color: isDark ? const Color(0xFF4DB697) : Colors.grey,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ],
         ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
@@ -40,9 +39,7 @@ class HomeScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           letterSpacing: 1.2,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFF4DB697)
-                              : AppTheme.jade,
+                          color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -54,9 +51,7 @@ class HomeScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w800,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFFF0FDF4)
-                              : AppTheme.ink,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ],
@@ -73,8 +68,8 @@ class HomeScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF163F35), Color(0xFF397765)],
+                gradient: LinearGradient(
+                  colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary.withValues(alpha: .92)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -83,28 +78,28 @@ class HomeScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     '学 / HỌC THEO NHỊP CỦA BẠN',
                     style: TextStyle(
-                      color: Color(0xFFE2C391),
+                      color: Theme.of(context).colorScheme.onPrimary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     'Một chút mỗi ngày.\nTự tin hơn mỗi bước.',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onPrimary,
                       fontSize: 28,
                       height: 1.2,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'Chọn một bài học nhỏ và bắt đầu hành trình tiếng Trung hôm nay.',
                     style: TextStyle(
-                      color: Color(0xFFE0ECE5),
+                      color: Theme.of(context).colorScheme.onPrimary,
                       fontSize: 15,
                       height: 1.5,
                     ),
@@ -113,11 +108,11 @@ class HomeScreen extends StatelessWidget {
                   FilledButton.icon(
                     onPressed: onOpenLessons,
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFEAD8B3),
-                      foregroundColor: const Color(0xFF163F35),
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      foregroundColor: Theme.of(context).colorScheme.onSurface,
                     ),
                     icon: const Icon(Icons.arrow_forward_rounded),
-                    label: const Text('Bắt đầu học'),
+                    label: Text('Bắt đầu học'),
                   ),
                 ],
               ),
@@ -128,18 +123,14 @@ class HomeScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 21,
                 fontWeight: FontWeight.w800,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFFF0FDF4)
-                    : AppTheme.ink,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               'Chạm để bắt đầu, học từng bước vừa sức.',
               style: TextStyle(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFFA3BFB3)
-                    : const Color(0xFF60736A),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 height: 1.5,
               ),
             ),
@@ -209,7 +200,7 @@ class HomeScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Material(
-        color: isDark ? const Color(0xFF1A2924) : Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(22),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -228,7 +219,7 @@ class HomeScreen extends StatelessWidget {
                     color: isDark ? color.withOpacity(0.18) : color,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(icon, color: isDark ? const Color(0xFF4DB697) : AppTheme.ink),
+                  child: Icon(icon, color: Theme.of(context).colorScheme.primary),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -240,14 +231,14 @@ class HomeScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
-                          color: isDark ? const Color(0xFFF0FDF4) : AppTheme.ink,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         subtitle,
                         style: TextStyle(
-                          color: isDark ? const Color(0xFFA3BFB3) : const Color(0xFF60736A),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 13,
                           height: 1.4,
                         ),
@@ -258,7 +249,7 @@ class HomeScreen extends StatelessWidget {
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: isDark ? const Color(0xFF4DB697) : AppTheme.jade,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ],
             ),

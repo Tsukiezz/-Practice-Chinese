@@ -147,7 +147,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
               Text(
                 '• Số câu hỏi: ${exam.questionCount} câu\n'
                 '• Thời gian làm bài: ${exam.durationMinutes} phút (1 phút / câu)',
-                style: const TextStyle(color: Color(0xFF5C6F64), height: 1.5),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.5),
               ),
               const SizedBox(height: 12),
               const Text('Bạn muốn bắt đầu làm bài ngay bây giờ hay để làm sau?'),
@@ -394,7 +394,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 20),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E3029) : const Color(0xFFE5EDE8),
+                    color: Theme.of(context).colorScheme.surfaceContainer,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: TabBar(
@@ -402,7 +402,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                     indicatorSize: TabBarIndicatorSize.tab,
                     dividerColor: Colors.transparent,
                     indicator: BoxDecoration(
-                      color: isDark ? const Color(0xFF283F36) : Colors.white,
+                      color: Theme.of(context).colorScheme.surfaceContainer,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
@@ -412,8 +412,8 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                         ),
                       ],
                     ),
-                    labelColor: isDark ? const Color(0xFF4DB697) : AppTheme.jade,
-                    unselectedLabelColor: isDark ? const Color(0xFF90A89D) : const Color(0xFF60736A),
+                    labelColor: Theme.of(context).colorScheme.primary,
+                    unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
                     labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                     tabs: const [
                       Tab(text: '✨ Tạo đề thi mới'),
@@ -594,7 +594,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: BorderSide(color: isDark ? const Color(0xFF283B34) : const Color(0xFFDDE5E0)),
+            side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
           ),
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -606,14 +606,14 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: isDark ? const Color(0xFFE2ECE7) : AppTheme.ink,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Chọn số lượng câu hỏi và nội dung học tập. Mỗi câu làm bài trong 1 phút.',
                   style: TextStyle(
-                    color: isDark ? const Color(0xFF90A89D) : const Color(0xFF60736A),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 13,
                     height: 1.4,
                   ),
@@ -664,10 +664,10 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                           _customCountController.text = count.toString();
                         });
                       },
-                      selectedColor: isDark ? const Color(0xFF285444) : const Color(0xFFE8F0EC),
-                      side: BorderSide(color: selected ? (isDark ? const Color(0xFF4DB697) : AppTheme.jade) : (isDark ? const Color(0xFF283B34) : const Color(0xFFDDE5E0))),
+                      selectedColor: Theme.of(context).colorScheme.secondaryContainer,
+                      side: BorderSide(color: selected ? (Theme.of(context).colorScheme.primary) : (Theme.of(context).colorScheme.outlineVariant)),
                       labelStyle: TextStyle(
-                        color: selected ? (isDark ? const Color(0xFFF0FDF4) : AppTheme.jade) : (isDark ? const Color(0xFFA3BFB3) : Colors.black87),
+                        color: selected ? (Theme.of(context).colorScheme.onSurface) : (Theme.of(context).colorScheme.onSurfaceVariant),
                         fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                       ),
                     );
@@ -709,14 +709,14 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                   ].map((skill) {
                     final selected = _contentType == skill['id'];
                     return ChoiceChip(
-                      avatar: selected ? Icon(Icons.check_circle, size: 18, color: isDark ? const Color(0xFF4DB697) : AppTheme.jade) : null,
+                      avatar: selected ? Icon(Icons.check_circle, size: 18, color: Theme.of(context).colorScheme.primary) : null,
                       label: Text(skill['label']!),
                       selected: selected,
                       onSelected: (_) => setState(() => _contentType = skill['id']!),
-                      selectedColor: isDark ? const Color(0xFF285444) : const Color(0xFFE8F0EC),
-                      side: BorderSide(color: selected ? (isDark ? const Color(0xFF4DB697) : AppTheme.jade) : (isDark ? const Color(0xFF283B34) : const Color(0xFFDDE5E0)), width: selected ? 1.5 : 1),
+                      selectedColor: Theme.of(context).colorScheme.secondaryContainer,
+                      side: BorderSide(color: selected ? (Theme.of(context).colorScheme.primary) : (Theme.of(context).colorScheme.outlineVariant), width: selected ? 1.5 : 1),
                       labelStyle: TextStyle(
-                        color: selected ? (isDark ? const Color(0xFFF0FDF4) : AppTheme.jade) : (isDark ? const Color(0xFFA3BFB3) : Colors.black87),
+                        color: selected ? (Theme.of(context).colorScheme.onSurface) : (Theme.of(context).colorScheme.onSurfaceVariant),
                         fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -731,9 +731,9 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF14201C) : const Color(0xFFF9FBF9),
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: isDark ? const Color(0xFF283B34) : const Color(0xFFDDE5E0)),
+                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -833,7 +833,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
               const SizedBox(height: 12),
               const Text('Không thể tải lịch sử đề thi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 6),
-              Text(_historyError!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+              Text(_historyError!, textAlign: TextAlign.center, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
               const SizedBox(height: 16),
               FilledButton(onPressed: _loadHistory, child: const Text('Thử lại')),
             ],
@@ -858,17 +858,17 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
               const SizedBox(width: 6),
               Text(
                 'Đề thi tự tạo chờ làm (${customPending.length})',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.ink),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface),
               ),
             ],
           ),
           const SizedBox(height: 8),
           if (customPending.isEmpty)
-            const Card(
+            Card(
               elevation: 0,
               child: Padding(
                 padding: EdgeInsets.all(20),
-                child: Text('Không có đề thi tự tạo nào đang chờ làm.', style: TextStyle(color: Colors.grey)),
+                child: Text('Không có đề thi tự tạo nào đang chờ làm.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ),
             )
           else
@@ -888,7 +888,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                     title: Text(exam.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                     subtitle: Text(
                       '⏱️ ${exam.durationMinutes} phút · ${exam.questionCount} câu',
-                      style: const TextStyle(color: Color(0xFF5C6F64), fontSize: 13),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -930,11 +930,11 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
           ),
           const SizedBox(height: 8),
           if (_completedExams.isEmpty)
-            const Card(
+            Card(
               elevation: 0,
               child: Padding(
                 padding: EdgeInsets.all(20),
-                child: Text('Chưa có đề thi nào đã hoàn thành.', style: TextStyle(color: Colors.grey)),
+                child: Text('Chưa có đề thi nào đã hoàn thành.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ),
             )
           else
@@ -957,7 +957,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                   title: Text(exam.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                   subtitle: Text(
                     '${exam.questionCount} câu',
-                    style: const TextStyle(color: Color(0xFF5C6F64), fontSize: 13),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -1013,7 +1013,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                         children: [
                           Text(
                             'Bảng Câu Hỏi ($total câu)',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.ink),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -1276,8 +1276,8 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                             children: [
                               Text(
                                 'CÂU HỎI ${_currentQuestionIndex + 1} / $total',
-                                style: const TextStyle(
-                                  color: AppTheme.jade,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                   letterSpacing: 1,
@@ -1303,10 +1303,10 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                                 children: [
                                   const Icon(Icons.headphones_rounded, color: AppTheme.jade, size: 22),
                                   const SizedBox(width: 10),
-                                  const Expanded(
+                                  Expanded(
                                     child: Text(
                                       'Phần thi nghe: Bấm nút để nghe phát âm câu hỏi.',
-                                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.jade),
+                                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Theme.of(context).colorScheme.primary),
                                     ),
                                   ),
                                   FilledButton.icon(
@@ -1328,10 +1328,10 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                           const SizedBox(height: 8),
                           Text(
                             q.prompt,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 19,
                               fontWeight: FontWeight.w700,
-                              color: AppTheme.ink,
+                              color: Theme.of(context).colorScheme.onSurface,
                               height: 1.4,
                             ),
                           ),
@@ -1339,7 +1339,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                             const SizedBox(height: 6),
                             Text(
                               q.pinyin,
-                              style: const TextStyle(fontSize: 14, color: Color(0xFF5C6F64), fontStyle: FontStyle.italic),
+                              style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant, fontStyle: FontStyle.italic),
                             ),
                           ],
                           const SizedBox(height: 24),
@@ -1524,7 +1524,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                               ),
                             ),
                           ),
-                          Text('Câu ${idx + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                          Text('Câu ${idx + 1}', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         ],
                       ),
                       Row(
@@ -1542,7 +1542,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                       ),
                       if (item.pinyin.isNotEmpty) ...[
                         const SizedBox(height: 4),
-                        Text(item.pinyin, style: const TextStyle(fontSize: 13, color: Color(0xFF5C6F64), fontStyle: FontStyle.italic)),
+                        Text(item.pinyin, style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant, fontStyle: FontStyle.italic)),
                       ],
                       const SizedBox(height: 12),
                       Container(

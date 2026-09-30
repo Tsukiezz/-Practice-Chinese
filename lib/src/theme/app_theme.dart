@@ -1,7 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+enum InterfacePalette {
+  dark('Tối hiện tại', Color(0xFF397765), Brightness.dark),
+  purple('Tím pastel', Color(0xFF7653A6), Brightness.light),
+  red('Đỏ đậm', Color(0xFF941D38), Brightness.dark),
+  blue('Xanh dương', Color(0xFF175BBB), Brightness.light),
+  yellow('Vàng pastel', Color(0xFF8B6900), Brightness.light),
+  orange('Cam', Color(0xFFAE460D), Brightness.light);
+
+  const InterfacePalette(this.label, this.seed, this.brightness);
+  final String label;
+  final Color seed;
+  final Brightness brightness;
+}
+
 class ThemeManager {
+  static final palette = ValueNotifier<InterfacePalette>(InterfacePalette.dark);
   static final ValueNotifier<ThemeMode> themeMode =
       ValueNotifier<ThemeMode>(ThemeMode.light);
 
@@ -9,6 +24,9 @@ class ThemeManager {
     try {
       final prefs = await SharedPreferences.getInstance();
       final mode = prefs.getString('app_theme_mode');
+      final saved = prefs.getString('app_theme_palette');
+      palette.value = InterfacePalette.values.firstWhere(
+        (p) => p.name == saved, orElse: () => InterfacePalette.dark);
       if (mode == 'dark') {
         themeMode.value = ThemeMode.dark;
       } else {
@@ -29,9 +47,66 @@ class ThemeManager {
   }
 
   static bool get isDark => themeMode.value == ThemeMode.dark;
+
+  static Future<void> selectPalette(InterfacePalette value) async {
+    palette.value = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_theme_palette', value.name);
+  }
 }
 
 class AppTheme {
+  static ThemeData colored(InterfacePalette palette) {
+    if (palette == InterfacePalette.dark) return dark;
+    final scheme = ColorScheme.fromSeed(
+      seedColor: palette.seed, brightness: palette.brightness);
+    final base = palette.brightness == Brightness.dark ? dark : light;
+    return base.copyWith(
+      brightness: palette.brightness,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: scheme.surfaceContainerLow,
+      canvasColor: scheme.surface,
+      dividerColor: scheme.outlineVariant,
+      disabledColor: scheme.onSurfaceVariant,
+      iconTheme: IconThemeData(color: scheme.primary),
+      textTheme: base.textTheme.apply(
+        bodyColor: scheme.onSurface, displayColor: scheme.onSurface),
+      appBarTheme: base.appBarTheme.copyWith(
+        backgroundColor: scheme.surface, foregroundColor: scheme.onSurface),
+      cardTheme: base.cardTheme.copyWith(color: scheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: scheme.outlineVariant))),
+      inputDecorationTheme: base.inputDecorationTheme.copyWith(
+        fillColor: scheme.surfaceContainerLowest,
+        hintStyle: TextStyle(color: scheme.onSurfaceVariant),
+        labelStyle: TextStyle(color: scheme.onSurfaceVariant),
+        prefixIconColor: scheme.primary, suffixIconColor: scheme.onSurfaceVariant,
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: scheme.outline)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: scheme.primary, width: 1.5))),
+      chipTheme: base.chipTheme.copyWith(
+        backgroundColor: scheme.surfaceContainer,
+        selectedColor: scheme.secondaryContainer,
+        labelStyle: TextStyle(color: scheme.onSurface),
+        secondaryLabelStyle: TextStyle(color: scheme.onSecondaryContainer),
+        side: BorderSide(color: scheme.outline)),
+      navigationBarTheme: base.navigationBarTheme.copyWith(
+        backgroundColor: scheme.surface,
+        indicatorColor: scheme.secondaryContainer,
+        labelTextStyle: WidgetStatePropertyAll(TextStyle(
+          color: scheme.onSurface, fontSize: 11, fontWeight: FontWeight.w600))),
+      dialogTheme: DialogThemeData(backgroundColor: scheme.surface,
+        titleTextStyle: base.textTheme.titleLarge?.copyWith(color: scheme.onSurface),
+        contentTextStyle: base.textTheme.bodyMedium?.copyWith(color: scheme.onSurface)),
+      bottomSheetTheme: BottomSheetThemeData(backgroundColor: scheme.surface),
+      popupMenuTheme: PopupMenuThemeData(color: scheme.surface,
+        textStyle: TextStyle(color: scheme.onSurface)),
+      textSelectionTheme: TextSelectionThemeData(cursorColor: scheme.primary,
+        selectionColor: scheme.primary.withValues(alpha: .25)),
+    );
+  }
+
   static const red = Color(0xFFDC554F);
   static const ink = Color(0xFF24332E);
   static const cream = Color(0xFFF5F7F4);

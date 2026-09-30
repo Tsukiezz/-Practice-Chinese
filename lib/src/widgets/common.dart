@@ -36,10 +36,10 @@ class ScreenHeader extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1A2924) : Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isDark ? const Color(0xFF283B34) : const Color(0xFFD4E2DA),
+                      color: Theme.of(context).colorScheme.outlineVariant,
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -95,7 +95,7 @@ class ScreenHeader extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    color: isDark ? const Color(0xFFE2ECE7) : AppTheme.ink,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.5,
@@ -117,13 +117,12 @@ class ProgressLine extends StatelessWidget {
   final double value;
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ClipRRect(
       borderRadius: BorderRadius.circular(9),
       child: LinearProgressIndicator(
         value: value,
         minHeight: 6,
-        backgroundColor: isDark ? const Color(0xFF1C2C26) : const Color(0xFFF0ECE5),
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
         color: AppTheme.red,
       ),
     );
@@ -144,8 +143,7 @@ class HanziAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = color ?? (isDark ? const Color(0xFF1C2D26) : const Color(0xFFE9F3ED));
+    final bg = color ?? (Theme.of(context).colorScheme.surfaceContainer);
     return Container(
       width: size,
       height: size,
@@ -160,7 +158,7 @@ class HanziAvatar extends StatelessWidget {
           fontSize: size * .5,
           fontWeight: FontWeight.w700,
           decoration: TextDecoration.none,
-          color: isDark ? const Color(0xFF4DB697) : AppTheme.jade,
+          color: Theme.of(context).colorScheme.primary,
         ),
       ),
     );

@@ -154,7 +154,7 @@ class _MiniChineseKeyboardState extends State<MiniChineseKeyboard> {
                         ),
                         TextSpan(
                           text: widget.targetLabel,
-                          style: const TextStyle(color: AppTheme.jade, fontWeight: FontWeight.w600),
+                          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -261,7 +261,7 @@ class _MiniChineseKeyboardState extends State<MiniChineseKeyboard> {
             children: [
               Text(
                 name.toUpperCase(),
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.jade),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
               ),
               const SizedBox(height: 4),
               Expanded(

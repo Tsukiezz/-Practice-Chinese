@@ -92,7 +92,7 @@ class _TranslationScreenState extends State<TranslationScreen> {
                       _showMiniKeyboard && _activeInput == 'translation'
                           ? 'Đóng phím'
                           : 'Phím tiếng Trung',
-                      style: const TextStyle(fontSize: 12, color: AppTheme.jade),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.primary),
                     ),
                     onPressed: () => setState(() {
                       if (_showMiniKeyboard && _activeInput == 'translation') {
@@ -200,7 +200,7 @@ class _TranslationScreenState extends State<TranslationScreen> {
                       _showMiniKeyboard && _activeInput == 'sentence'
                           ? 'Đóng phím'
                           : 'Phím tiếng Trung',
-                      style: const TextStyle(fontSize: 12, color: AppTheme.jade),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.primary),
                     ),
                     onPressed: () => setState(() {
                       if (_showMiniKeyboard && _activeInput == 'sentence') {
@@ -214,9 +214,9 @@ class _TranslationScreenState extends State<TranslationScreen> {
                 ],
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'Nhập câu tiếng Trung để xem lỗi ngữ pháp và gợi ý sửa.',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
               ),
               const SizedBox(height: 14),
               TextField(
@@ -269,7 +269,7 @@ class _TranslationScreenState extends State<TranslationScreen> {
                     _error!,
                     key: const Key('grammar-error'),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppTheme.red),
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
                 ),
               if (_result != null) _AnalysisCard(result: _result!),
@@ -349,12 +349,12 @@ class _AnalysisCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   backgroundColor: result.score >= 80
-                      ? const Color(0xFFE4F4E9)
-                      : const Color(0xFFFFE5DE),
+                      ? Theme.of(context).colorScheme.surfaceContainerHigh
+                      : Theme.of(context).colorScheme.surfaceContainerHigh,
                   child: Text(
                     result.score.toStringAsFixed(0),
-                    style: const TextStyle(
-                      color: AppTheme.jade,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -372,9 +372,9 @@ class _AnalysisCard extends StatelessWidget {
             SelectableText(
               result.correctedSentence,
               key: const Key('corrected-sentence'),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
-                color: AppTheme.jade,
+                color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -405,7 +405,7 @@ class _ErrorTile extends StatelessWidget {
     margin: const EdgeInsets.only(top: 10),
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: const Color(0xFFFFF4EF),
+      color: Theme.of(context).colorScheme.surfaceContainerHigh,
       borderRadius: BorderRadius.circular(14),
     ),
     child: Column(
@@ -413,8 +413,8 @@ class _ErrorTile extends StatelessWidget {
       children: [
         Text(
           'Lỗi $index · ${error.position}',
-          style: const TextStyle(
-            color: AppTheme.red,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.error,
             fontWeight: FontWeight.w800,
           ),
         ),

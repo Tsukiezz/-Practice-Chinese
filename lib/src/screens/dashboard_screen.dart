@@ -158,7 +158,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: 8),
                       Text(
                         '${data.dashboard.needsReview} bài cần ôn lại',
-                        style: TextStyle(color: Colors.grey.shade700),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ),
@@ -181,7 +181,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           key: const Key('skill-radar'),
                           painter: _RadarPainter(
                             data.report.skillScores,
-                            isDark: Theme.of(context).brightness == Brightness.dark,
+                            scheme: Theme.of(context).colorScheme,
                           ),
                           child: const SizedBox.expand(),
                         ),
@@ -278,8 +278,8 @@ class _AdviceCard extends StatelessWidget {
 }
 
 class _RadarPainter extends CustomPainter {
-  _RadarPainter(this.scores, {this.isDark = false});
-  final bool isDark;
+  _RadarPainter(this.scores, {required this.scheme});
+  final ColorScheme scheme;
   final Map<String, double> scores;
   static const labels = ['Nghe', 'Đọc', 'Viết'];
   static const keys = ['listening', 'reading', 'writing'];
@@ -289,7 +289,7 @@ class _RadarPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = math.min(size.width, size.height) * .34;
     final grid = Paint()
-      ..color = isDark ? const Color(0xFF283B34) : const Color(0xFFD9DDD9)
+      ..color = scheme.outlineVariant
       ..style = PaintingStyle.stroke;
     final fill = Paint()
       ..color = AppTheme.jade.withValues(alpha: .25)
@@ -317,7 +317,7 @@ class _RadarPainter extends CustomPainter {
         text: TextSpan(
           text: '${labels[i]} ${(scores[keys[i]] ?? 0).round()}',
           style: TextStyle(
-            color: isDark ? const Color(0xFFE2ECE7) : AppTheme.ink,
+            color: scheme.onSurface,
             fontSize: 11,
             fontWeight: FontWeight.w700,
           ),
@@ -341,5 +341,5 @@ class _RadarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _RadarPainter oldDelegate) =>
-      oldDelegate.scores != scores;
+      oldDelegate.scores != scores || oldDelegate.scheme != scheme;
 }

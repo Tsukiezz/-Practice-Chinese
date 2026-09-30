@@ -152,7 +152,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                     : 'Tìm từ vựng cần viết, xem hướng dẫn từng nét và luyện viết đúng chuẩn.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: isDark ? const Color(0xFF90A89D) : Colors.grey.shade700,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
 
@@ -203,7 +203,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                   const SizedBox(height: 6),
                   Card(
                     elevation: 4,
-                    color: isDark ? const Color(0xFF1E3029) : Colors.white,
+                    color: Theme.of(context).colorScheme.surfaceContainer,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: BorderSide(color: AppTheme.jade.withValues(alpha: 0.3)),
@@ -221,10 +221,10 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                             dense: true,
                             leading: Text(
                               item.hanzi,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
-                                color: AppTheme.jade,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
                             title: Text('${item.pinyin} • ${item.meaning}'),
@@ -257,7 +257,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? const Color(0xFF90A89D) : Colors.grey.shade700,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     for (final ch in _popularChars)
@@ -301,10 +301,10 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                           ),
                           child: Text(
                             _target.text.isEmpty ? '?' : _target.text,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 34,
                               fontWeight: FontWeight.bold,
-                              color: AppTheme.jade,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
                         ),
@@ -334,10 +334,10 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                                       ),
                                       child: Text(
                                         'HSK ${_strokeGuide!.hsk}',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,
-                                          color: AppTheme.jade,
+                                          color: Theme.of(context).colorScheme.primary,
                                         ),
                                       ),
                                     ),
@@ -510,12 +510,12 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                   },
                 ),
               ),
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(top: 8),
                 child: Text(
                   'Giữ chuột và kéo trên ô vuông (hoặc dùng ngón tay) để viết từng nét.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ),
               const SizedBox(height: 12),
@@ -568,7 +568,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                   child: Text(
                     _error!,
                     key: const Key('handwriting-error'),
-                    style: const TextStyle(color: AppTheme.red),
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -583,18 +583,18 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                   padding: const EdgeInsets.only(top: 16),
                   child: Card(
                     color: _practiceResult!.score >= 80
-                        ? (isDark ? const Color(0xFF1E3228) : const Color(0xFFE4F4E9))
-                        : (isDark ? const Color(0xFF382320) : const Color(0xFFFFF1E8)),
+                        ? (isDark ? const Color(0xFF1E3228) : Theme.of(context).colorScheme.surfaceContainerHigh)
+                        : (isDark ? const Color(0xFF382320) : Theme.of(context).colorScheme.surfaceContainerHigh),
                     child: Padding(
                       padding: const EdgeInsets.all(18),
                       child: Column(
                         children: [
                           Text(
                             '${_practiceResult!.score.toStringAsFixed(0)} điểm',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.w900,
-                              color: AppTheme.jade,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -871,10 +871,10 @@ class _RecognitionCard extends StatelessWidget {
               children: [
                 Text(
                   result.recognizedHanzi,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 52,
                     fontWeight: FontWeight.w800,
-                    color: AppTheme.jade,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -888,7 +888,7 @@ class _RecognitionCard extends StatelessWidget {
                       ),
                       Text(
                         '${result.score.toStringAsFixed(0)}% tin cậy',
-                        style: const TextStyle(color: AppTheme.red),
+                        style: TextStyle(color: Theme.of(context).colorScheme.error),
                       ),
                     ],
                   ),
@@ -929,11 +929,10 @@ class _CandidateSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
-        color: isDark ? const Color(0xFF1E3029) : const Color(0xFFF7F4EF),
+        color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(14),
         child: Column(
 
@@ -946,20 +945,20 @@ class _CandidateSection extends StatelessWidget {
             ),
             trailing: Text(
               '${candidate.confidence.toStringAsFixed(0)}%',
-              style: const TextStyle(
-                color: AppTheme.jade,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.w800,
               ),
             ),
           ),
           if (candidate.words.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(16, 0, 16, 14),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Chưa có từ tương ứng trong kho từ vựng.',
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ),
             )

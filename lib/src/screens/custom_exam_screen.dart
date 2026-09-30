@@ -99,7 +99,7 @@ class _CustomExamScreenState extends State<CustomExamScreen> {
               const SizedBox(height: 10),
               if (_questions.isEmpty)
                 Card(
-                  color: Colors.grey.shade50,
+                  color: Theme.of(context).colorScheme.surfaceContainerLow,
                   child: Padding(
                     padding: const EdgeInsets.all(18),
                     child: Text(
@@ -107,7 +107,7 @@ class _CustomExamScreenState extends State<CustomExamScreen> {
                           ? 'Thêm câu hỏi Nghe. Mỗi câu cần audio URL, transcript và đáp án.'
                           : 'Thêm câu hỏi Đọc. Mỗi câu cần nội dung và đáp án.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade600),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                   ),
                 )

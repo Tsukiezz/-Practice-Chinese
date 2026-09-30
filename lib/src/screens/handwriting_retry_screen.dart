@@ -111,7 +111,7 @@ class _HandwritingRetryScreenState extends State<HandwritingRetryScreen> {
           child: Text(
             'Chọn một hoặc nhiều chữ. Danh sách dùng điểm lần luyện gần nhất '
             'và được xếp từ thấp lên cao.',
-            style: TextStyle(color: Colors.grey.shade700),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ),
         Expanded(
@@ -135,11 +135,11 @@ class _HandwritingRetryScreenState extends State<HandwritingRetryScreen> {
                       }
                     }),
                     secondary: CircleAvatar(
-                      backgroundColor: const Color(0xFFFFEBDD),
+                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
                       child: Text(
                         item.hanzi,
-                        style: const TextStyle(
-                          color: AppTheme.jade,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
                           fontSize: 25,
                           fontWeight: FontWeight.w800,
                         ),
@@ -186,8 +186,8 @@ class _HandwritingRetryScreenState extends State<HandwritingRetryScreen> {
                 _currentHanzi,
                 key: const Key('retry-current-hanzi'),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppTheme.jade,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
                   fontSize: 62,
                   fontWeight: FontWeight.w900,
                 ),
@@ -248,16 +248,16 @@ class _HandwritingRetryScreenState extends State<HandwritingRetryScreen> {
                 const SizedBox(height: 12),
                 Card(
                   color: _result!.score >= 80
-                      ? const Color(0xFFE4F4E9)
-                      : const Color(0xFFFFF1E8),
+                      ? Theme.of(context).colorScheme.surfaceContainerHigh
+                      : Theme.of(context).colorScheme.surfaceContainerHigh,
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
                         Text(
                           '${_result!.score.toStringAsFixed(0)} điểm',
-                          style: const TextStyle(
-                            color: AppTheme.jade,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
                             fontSize: 28,
                             fontWeight: FontWeight.w900,
                           ),
@@ -274,7 +274,7 @@ class _HandwritingRetryScreenState extends State<HandwritingRetryScreen> {
                   _error!,
                   key: const Key('retry-error'),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppTheme.red),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
               if (_session.length > 1) ...[
