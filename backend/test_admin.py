@@ -282,6 +282,24 @@ class AdminIntegrationTest(unittest.TestCase):
         totals=self.client.get('/api/admin/dashboard',headers=self.headers).json()['totals']
         self.assertEqual((totals['results'],totals['ai_success'],totals['ai_errors']),(0,1,1))
 
+    def test_login_portals_enforce_roles_before_issuing_sessions(self):
+        password = 'Test-password-123'
+        with storage.database() as conn:
+            count = conn.execute('SELECT COUNT(*) FROM sessions').fetchone()[0]
+        for path, email in [('/api/auth/login', 'admin@example.test'), ('/api/auth/admin-login', 'student@example.test')]:
+            response = self.client.post(path, json={'email': email, 'password': password})
+            self.assertEqual(response.status_code, 403, response.text)
+            self.assertNotIn('token', response.json())
+        with storage.database() as conn:
+            self.assertEqual(conn.execute('SELECT COUNT(*) FROM sessions').fetchone()[0], count)
+        for path, email, role in [('/api/auth/login', 'student@example.test', 'student'), ('/api/auth/admin-login', 'admin@example.test', 'admin')]:
+            response = self.client.post(path, json={'email': email, 'password': password})
+            self.assertEqual(response.status_code, 200, response.text)
+            self.assertEqual(response.json()['user']['role'], role)
+        self.assertEqual(self.client.get('/api/auth/student-session', headers=self.headers).status_code, 403)
+        self.assertEqual(self.client.get('/api/auth/student-session', headers=self.student_headers).status_code, 200)
+        self.assertEqual(self.client.get('/api/admin/dashboard', headers=self.student_headers).status_code, 403)
+
     def test_duplicate_email_and_wrong_login(self):
         self.assertEqual(self.client.post("/api/auth/register", json={"name":"Duplicate", "email":"ADMIN@example.test","password":"Test-password-123"}).status_code, 409)
         self.assertEqual(self.client.post("/api/auth/login", json={"email":"admin@example.test","password":"wrong"}).status_code, 401)
@@ -297,7 +315,7 @@ class AdminIntegrationTest(unittest.TestCase):
         self.assertEqual(self.client.get("/api/me", headers=self.student_headers).status_code, 401)
         self.assertEqual(self.client.post("/api/auth/login", json={"email":"student@example.test","password":"Test-password-123"}).status_code, 403)
         self.client.patch(path, json={"role":"admin","is_active":True,"version":2}, headers=self.headers)
-        new_session = self.client.post("/api/auth/login", json={"email":"student@example.test","password":"Test-password-123"}).json()
+        new_session = self.client.post("/api/auth/admin-login", json={"email":"student@example.test","password":"Test-password-123"}).json()
         new_headers = {"Authorization":"Bearer " + new_session["token"]}
         self.assertEqual(self.client.get("/api/admin/dashboard", headers=new_headers).status_code, 200)
         self.client.patch(path, json={"role":"student","is_active":True,"version":3}, headers=self.headers)

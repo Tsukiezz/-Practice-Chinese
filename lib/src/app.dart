@@ -257,13 +257,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   }
 
   Future<bool> _routeAdmin() async {
-    if (kIsWeb &&
-        _authService.isAuthenticated &&
-        _authService.currentUser?.isAdmin == true) {
-      final token = _authService.token!;
+    if (_authService.currentUser?.isAdmin == true) {
       await _authService.clearSession();
-      openAdmin(token);
-      return true;
     }
     return false;
   }

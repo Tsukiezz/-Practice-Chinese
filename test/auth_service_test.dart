@@ -86,7 +86,7 @@ void main() {
       expect(auth.token, isNull);
     }
   });
-  test('login stores server role, refresh verifies role, logout clears session',
+  test('student login refreshes and logs out',
       () async {
     SharedPreferences.setMockInitialValues({});
     final client = MockClient((request) async {
@@ -99,13 +99,13 @@ void main() {
                 'id': 1,
                 'name': 'Test',
                 'email': 'test@example.test',
-                'role': 'admin'
+                'role': 'student'
               }
             }),
             200);
       }
       expect(request.headers['Authorization'], 'Bearer test-token');
-      if (request.url.path.endsWith('/me')) {
+      if (request.url.path.endsWith('/student-session')) {
         return http.Response(
             jsonEncode({
               'id': 1,
@@ -122,7 +122,7 @@ void main() {
         baseUrl: 'http://localhost/api',
         email: 'test@example.test',
         password: 'test-password');
-    expect(auth.currentUser!.isAdmin, true);
+    expect(auth.currentUser!.isAdmin, false);
     expect(auth.isAuthenticated, true);
     await auth.refreshUser('http://localhost/api');
     expect(auth.currentUser!.isAdmin, false);
@@ -131,4 +131,16 @@ void main() {
     expect(auth.isAuthenticated, false);
     client.close();
   });
+  test('learner client rejects an admin session even from a successful response', () async {
+    SharedPreferences.setMockInitialValues({});
+    final client = MockClient((request) async => http.Response(jsonEncode({
+      'token': 'admin-token', 'user': {'id': 1, 'name': 'Admin', 'email': 'admin@example.test', 'role': 'admin'}
+    }), 200));
+    final auth = await AuthService.load(client);
+    await expectLater(auth.login(baseUrl: 'http://test/api', email: 'admin@example.test', password: 'test-password'), throwsA(isA<AuthException>()));
+    expect(auth.isAuthenticated, false);
+    expect(auth.token, isNull);
+    client.close();
+  });
+
 }

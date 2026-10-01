@@ -8,7 +8,7 @@ body{background:#121b18;color:#e2ece7}section{background:#1b2823;border:1px soli
 </style><link rel="stylesheet" href="/admin/assets/learner-theme.css"></head><body><main>
 <a id="back" href="javascript:void(0)">← Trở về HanziGo</a><h1 id="title">Thông tin cá nhân</h1>
 <p id="message" role="status" aria-live="polite"></p>
-<section id="profile-section" hidden><div id="interface-preferences"></div><form id="profile">
+<section id="profile-section" hidden><p><a href="/appearance">🎨 Màu giao diện →</a></p><form id="profile">
 <img id="preview" alt="Ảnh đại diện" hidden>
 <label>Họ tên<input name="name" required maxlength="120"></label>
 <label>Email<input name="email" type="email" disabled></label>
@@ -19,12 +19,12 @@ body{background:#121b18;color:#e2ece7}section{background:#1b2823;border:1px soli
 <label>Mục tiêu số bài mỗi ngày<input name="daily_goal" type="number" min="1" max="50" required></label>
 <label>Mục tiêu số bài mỗi tuần<input name="weekly_goal" type="number" min="1" max="350" required></label>
 <button>Lưu thay đổi</button></form></section>
-<section id="password-section" hidden><h2>Đổi mật khẩu</h2><form id="password">
+<section id="password-section" hidden><details id="password-details"><summary style="cursor:pointer;font-weight:700;font-size:20px;padding:8px 0">Đổi mật khẩu</summary><form id="password">
 <label>Mật khẩu cũ<input name="old_password" type="password" autocomplete="current-password" required maxlength="128"></label>
 <label>Mật khẩu mới<input name="new_password" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>
 <label>Nhập lại mật khẩu mới<input name="confirm" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>
 <p class="hint">Sau khi đổi mật khẩu, bạn cần đăng nhập lại trên các thiết bị.</p>
-<button>Đổi mật khẩu</button></form></section>
+<button>Đổi mật khẩu</button></form></details></section>
 <section id="recovery-section" hidden><h2>Khôi phục mật khẩu qua email</h2>
 <p class="hint">Nhập email đã đăng ký. Mã xác nhận có hiệu lực 10 phút.</p>
 <form id="request-code"><label>Email<input name="email" type="email" required maxlength="120" autocomplete="email"></label><button>Gửi mã xác nhận</button></form>
@@ -35,7 +35,7 @@ body{background:#121b18;color:#e2ece7}section{background:#1b2823;border:1px soli
 </main><script>
 'use strict';
 const $=id=>document.getElementById(id);
-const token=sessionStorage.getItem('hanzigo_account_token')||sessionStorage.getItem('hanzigo_admin_token')||'';
+const token=sessionStorage.getItem('hanzigo_account_token')||'';
 let avatar='';
 function message(text){$('message').textContent=text;}
 async function api(path,method='GET',body){
@@ -55,13 +55,13 @@ $('avatar').onchange=async()=>{
 $('profile').onsubmit=e=>{e.preventDefault();submit(e.target,async()=>{
  const body=Object.fromEntries(new FormData(e.target));body.avatar=avatar;
  body.daily_goal=Number(body.daily_goal);body.weekly_goal=Number(body.weekly_goal);
- await api('/account','PUT',body);message('Đã lưu thông tin cá nhân. Trở về trang chủ để xem lời chào mới.');
+ await api('/account','PUT',body);message('Đã lưu thông tin cá nhân.');
 });};
 $('password').onsubmit=e=>{e.preventDefault();submit(e.target,async()=>{
  const body=Object.fromEntries(new FormData(e.target));
  if(body.new_password!==body.confirm)throw Error('Mật khẩu xác nhận không khớp.');
  delete body.confirm;await api('/account/password','POST',body);
- sessionStorage.removeItem('hanzigo_account_token');sessionStorage.removeItem('hanzigo_admin_token');
+ sessionStorage.removeItem('hanzigo_account_token');
  message('Đã đổi mật khẩu. Bạn có thể trở về HanziGo để đăng nhập lại.');e.target.reset();
 });};
 $('request-code').onsubmit=e=>{e.preventDefault();submit(e.target,async()=>{
@@ -74,19 +74,8 @@ $('reset').onsubmit=e=>{e.preventDefault();submit(e.target,async()=>{
 });};
 function goBack(e) {
   if (e) e.preventDefault();
-  if (window.history.length > 1 && document.referrer && document.referrer.includes(location.host)) {
-    window.history.back();
-    return;
-  }
-  const savedTab = sessionStorage.getItem('hanzigo_return_tab');
-  const role = sessionStorage.getItem('hanzigo_admin_token') ? 'admin' : 'student';
-  if (role === 'admin') {
-    window.location.href = '/admin';
-  } else if (savedTab !== null && savedTab !== '') {
-    window.location.href = '/#tab=' + savedTab;
-  } else {
-    window.location.href = '/';
-  }
+  sessionStorage.setItem('hanzigo_return_tab', '6');
+  window.location.href = '/';
 }
 $('back').onclick = goBack;
 
@@ -99,15 +88,9 @@ $('back').onclick = goBack;
   const data=await api('/account');
   for(const key of ['name','email','phone','birth_date','daily_goal','weekly_goal'])$('profile').elements[key].value=data[key]??'';
   avatar=data.avatar;preview();
-  if(data.role==='admin'){
-    $('back').onclick = (e) => {
-      if (e) e.preventDefault();
-      if (window.history.length > 1 && document.referrer && document.referrer.includes(location.host)) {
-        window.history.back();
-      } else {
-        window.location.href = '/admin';
-      }
-    };
+  if(data.role!=='student'){
+    sessionStorage.removeItem('hanzigo_account_token');
+    throw Error('Tài khoản quản trị viên vui lòng sử dụng trang /admin.');
   }
   $('profile-section').hidden=false;$('password-section').hidden=false;
  }

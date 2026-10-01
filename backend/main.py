@@ -302,8 +302,7 @@ def forgot_password_verify(body: ForgotPasswordVerify):
         return {"status": "ok", "message": "Đặt lại mật khẩu thành công. Vui lòng đăng nhập với mật khẩu mới."}
 
 
-@app.post("/api/auth/login")
-def login(body: Login):
+def login_for_role(body: Login, role: str):
     with database() as conn:
         row = conn.execute("SELECT * FROM users WHERE email=?", (body.email.lower(),)).fetchone()
         # Perform the same expensive hash even when the email does not exist.
@@ -312,7 +311,27 @@ def login(body: Login):
             raise HTTPException(401, "Email hoặc mật khẩu không đúng")
         if not row["is_active"]:
             raise HTTPException(403, "Tài khoản đã bị khóa")
+        if row["role"] != role:
+            message = "Tài khoản quản trị viên vui lòng đăng nhập tại /admin." if role == "student" else "Trang quản trị chỉ dành cho tài khoản admin. Học viên hãy đăng nhập ở trang chính."
+            raise HTTPException(403, message)
         return session(conn, row)
+
+
+@app.post("/api/auth/login")
+def login(body: Login):
+    return login_for_role(body, "student")
+
+
+@app.post("/api/auth/admin-login")
+def admin_login(body: Login):
+    return login_for_role(body, "admin")
+
+
+@app.get("/api/auth/student-session")
+def student_session(user=Depends(current_user)):
+    if user["role"] != "student":
+        raise HTTPException(403, "Tài khoản quản trị viên vui lòng đăng nhập tại /admin.")
+    return public_user(user)
 
 
 @app.post("/api/auth/logout", status_code=204)
@@ -2027,6 +2046,11 @@ app.mount("/media", StaticFiles(directory=Path(__file__).parent / "media", check
 def admin_page():
     # The shell shows login only. Every administrative data route requires admin_user.
     return FileResponse(ADMIN_DIR / "index.html")
+
+
+@app.get("/appearance", include_in_schema=False)
+def appearance_page():
+    return FileResponse(ADMIN_DIR / "appearance.html")
 
 
 @app.get("/review", include_in_schema=False)

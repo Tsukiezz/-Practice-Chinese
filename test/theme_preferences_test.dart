@@ -64,15 +64,22 @@ void main() {
     expect(ThemeManager.isDark, isFalse);
   });
 
-  testWidgets('profile offers all seven palettes and toggles without overflow', (tester) async {
+  testWidgets('profile opens a separate page with all eight palettes', (tester) async {
     await tester.pumpWidget(MaterialApp(theme: AppTheme.light, home: const ProfileScreen()));
-    await tester.scrollUntilVisible(find.text('Màu khi bật Dark mode'), 200);
-    for (final palette in InterfacePalette.values) {
-      expect(find.widgetWithText(ChoiceChip, palette.label), findsOneWidget);
-    }
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Tím pastel'));
+    await tester.scrollUntilVisible(find.text('Màu giao diện'), 200);
+    expect(find.byType(ChoiceChip), findsNothing);
+    await tester.tap(find.text('Màu giao diện'));
     await tester.pumpAndSettle();
-    expect(ThemeManager.palette.value, InterfacePalette.purple);
+    for (final palette in InterfacePalette.values) {
+      await tester.scrollUntilVisible(find.byKey(Key('palette-${palette.name}')), 150);
+      expect(find.text(palette.label), findsOneWidget);
+    }
+    await tester.tap(find.byKey(const Key('palette-pastelRed')));
+    await tester.pumpAndSettle();
+    expect(ThemeManager.palette.value, InterfacePalette.pastelRed);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Màu giao diện'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

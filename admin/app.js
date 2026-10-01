@@ -139,7 +139,7 @@ function loginView(error = '') {
     const button = form.querySelector('button[type=submit]');
     button.disabled = true;
     try {
-      const result = await api('/auth/login', 'POST', Object.fromEntries(new FormData(form)));
+      const result = await api('/auth/admin-login', 'POST', Object.fromEntries(new FormData(form)));
       token = result.token;
       if (result.user.role !== 'admin') {
         await api('/auth/logout', 'POST');
@@ -1092,14 +1092,7 @@ function openEditor(title,html,save,label='Lưu thay đổi') {
 }
 
 async function boot() {
-  if (!token) {
-    const sharedToken = localStorage.getItem('auth_token') || localStorage.getItem('hanzigo_token');
-    if (sharedToken) {
-      token = sharedToken;
-    } else {
-      return loginView();
-    }
-  }
+  if (!token) return loginView();
   try {
     user = await api('/me');
     if (user.role !== 'admin') {

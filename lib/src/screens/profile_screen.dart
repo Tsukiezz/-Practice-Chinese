@@ -1,3 +1,4 @@
+import 'appearance_screen.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 
@@ -138,50 +139,14 @@ class ProfileScreen extends StatelessWidget {
           const _SectionTitle('Cài đặt giao diện'),
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 20),
-            child: ValueListenableBuilder<ThemeMode>(
-              valueListenable: ThemeManager.themeMode,
-              builder: (context, mode, _) {
-                final isDark = mode == ThemeMode.dark;
-                return SwitchListTile(
-                  secondary: Icon(
-                    isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  title: const Text(
-                    'Chế độ Tối (Dark mode)',
-                    style: TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                  subtitle: Text(
-                    isDark ? 'Đang dùng: ${ThemeManager.palette.value.label}' : 'Giao diện sáng tiêu chuẩn',
-                  ),
-                  value: isDark,
-                  onChanged: (_) => ThemeManager.toggle(),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
-            child: ValueListenableBuilder<InterfacePalette>(
-              valueListenable: ThemeManager.palette,
-              builder: (context, selected, _) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Màu khi bật Dark mode', style: TextStyle(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 8),
-                  Wrap(spacing: 8, runSpacing: 8, children: [
-                    for (final palette in InterfacePalette.values)
-                      ChoiceChip(
-                        label: Text(palette.label),
-                        avatar: CircleAvatar(backgroundColor: palette.seed, radius: 9),
-                        selected: selected == palette,
-                        onSelected: (_) => ThemeManager.selectPalette(palette),
-                      ),
-                  ]),
-                  const SizedBox(height: 8),
-                  const Text('Chọn màu rồi bật Dark mode để áp dụng. Tắt để trở về giao diện sáng.'),
-                ],
-              ),
+            child: ListTile(
+              leading: const Icon(Icons.palette_outlined),
+              title: const Text('Màu giao diện'),
+              subtitle: const Text('Chọn màu yêu thích và chế độ sáng / tối'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const AppearanceScreen(),
+              )),
             ),
           ),
           const _SectionTitle('Kết quả học tập'),

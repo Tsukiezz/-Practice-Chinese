@@ -72,7 +72,7 @@ class AuthService {
 
   bool get isAuthenticated {
     final user = currentUser;
-    if (user == null) return false;
+    if (user == null || user.isAdmin) return false;
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     if (user.expiresAt <= now) return false;
     if (isSessionExpiredDueToInactivity) return false;
@@ -266,6 +266,10 @@ class AuthService {
     )..['expires_at'] =
         DateTime.now().millisecondsSinceEpoch ~/ 1000 + expiresIn;
     final user = AuthUser.fromJson(userJson);
+    if (user.isAdmin) {
+      await clearSession();
+      throw const AuthException('Tài khoản quản trị viên vui lòng đăng nhập tại /admin.');
+    }
     await clearSession();
     _persistSession = remember;
     _memoryBaseUrl = baseUrl;
@@ -296,14 +300,19 @@ class AuthService {
   }
 
   Future<void> refreshUser(String baseUrl) async {
-    final response = await httpClient.get(Uri.parse('$baseUrl/me'),
+    final response = await httpClient.get(Uri.parse('$baseUrl/auth/student-session'),
         headers: {'Authorization': 'Bearer $token'});
     if (response.statusCode != 200) {
       throw const AuthException('Phiên đăng nhập đã hết hạn.');
     }
     final data = Map<String, dynamic>.from(jsonDecode(response.body) as Map)
       ..['expires_at'] = currentUser?.expiresAt ?? 0;
-    await saveSession(token!, AuthUser.fromJson(data));
+    final user = AuthUser.fromJson(data);
+    if (user.isAdmin) {
+      await clearSession();
+      throw const AuthException('Tài khoản quản trị viên vui lòng đăng nhập tại /admin.');
+    }
+    await saveSession(token!, user);
   }
 
   static Future<AuthService> load(http.Client httpClient) async {
