@@ -864,7 +864,7 @@ def build_handwriting_retry_items(rows, threshold: float = 80) -> list[dict]:
 
 
 def gemini_handwriting_recognition_provider(settings: dict, strokes: list[list[dict]]):
-    """Recognize a freely drawn Han character and return ranked candidates."""
+    """Recognize one to four handwritten Han characters as a complete phrase."""
     model = quote(settings["model"], safe="._-")
     base_url = os.getenv(
         "GEMINI_API_BASE_URL",
@@ -873,8 +873,8 @@ def gemini_handwriting_recognition_provider(settings: dict, strokes: list[list[d
     image = _render_strokes_png(strokes)
     prompt = (
         f"{settings['system_prompt']}\n\n"
-        "Bạn đang nhận dạng một chữ Hán viết tay, không phải chấm bài theo chữ mẫu. "
-        "Ảnh bên dưới chỉ chứa nét người học vẽ. Hãy trả tối đa 5 chữ Hán ứng viên, "
+        "Bạn đang nhận dạng từ 1 đến 4 chữ Hán viết tay, không phải chấm bài theo chữ mẫu. "
+        "Ảnh bên dưới chỉ chứa nét người học vẽ. Đọc toàn bộ chữ từ trái sang phải, trên xuống dưới. Nếu ảnh có hai chữ 你 và 好 thì hanzi phải là 你好, không tách thành hai ứng viên và không bỏ chữ thứ hai. Hãy trả tối đa 5 ứng viên cho TOÀN BỘ từ hoặc cụm chữ trong ảnh, mỗi ứng viên có 1–4 chữ Hán, "
         "xếp theo độ tin cậy giảm dần. score và confidence dùng thang 0–100; score "
         "là độ tin cậy của ứng viên đầu tiên. feedback là một nhận xét ngắn bằng "
         "tiếng Việt. Không thêm trường ngoài schema."

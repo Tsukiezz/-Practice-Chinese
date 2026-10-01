@@ -32,6 +32,10 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
 
   late _HandwritingMode _mode;
   bool _submitting = false;
+  List<String> _practiceCharacters = ['你'];
+  int _characterIndex = 0;
+  final Map<int, double> _characterScores = {};
+  int _guideRequest = 0;
   bool _isDrawing = false;
   HandwritingGradeResult? _practiceResult;
   HandwritingRecognitionResult? _recognitionResult;
@@ -68,7 +72,8 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                     as Map<String, dynamic>)['target']
                 as String? ??
             '';
-        _target.text = initialTarget;
+        _practiceCharacters = initialTarget.characters.toList();
+        _target.text = _practiceCharacters.isEmpty ? '' : _practiceCharacters.first;
         if (initialTarget.isNotEmpty) {
           _loadStrokeGuide(initialTarget);
         }
@@ -103,15 +108,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
             ? 'Viết tay chữ Hán'
             : 'Viết lại chữ dưới 80 điểm',
       ),
-      actions: [
-        if (_isLookup)
-          TextButton.icon(
-            key: const Key('switch-to-keyboard'),
-            onPressed: () => Navigator.pop(context, 'focus_keyboard'),
-            icon: const Icon(Icons.keyboard),
-            label: const Text('Gõ phím'),
-          ),
-      ],
+
     ),
     body: SafeArea(
       child: Center(
@@ -147,7 +144,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
               ],
               Text(
                 _isLookup
-                    ? 'Viết một chữ Hán vào ô bên dưới để nhận dạng và tra từ.'
+                    ? 'Viết 1–4 chữ Hán từ trái sang phải trong ô bên dưới để tra cả từ (ví dụ: 你好).'
                     : 'Tìm từ vựng cần viết, xem hướng dẫn từng nét và luyện viết đúng chuẩn.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -155,17 +152,6 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                 ),
               ),
 
-              if (_isLookup) ...[
-                const SizedBox(height: 8),
-                Center(
-                  child: OutlinedButton.icon(
-                    key: const Key('switch-to-keyboard-btn'),
-                    onPressed: () => Navigator.pop(context, 'focus_keyboard'),
-                    icon: const Icon(Icons.keyboard_alt_outlined),
-                    label: const Text('Chuyển sang gõ bàn phím'),
-                  ),
-                ),
-              ],
               if (!_isLookup) ...[
                 const SizedBox(height: 12),
                 // 1. Search Box with Live Auto-complete
@@ -232,7 +218,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                               padding: EdgeInsets.zero,
                               labelStyle: const TextStyle(fontSize: 10),
                             ),
-                            onTap: () => _selectChar(
+                            onTap: _submitting ? null : () => _selectChar(
                               item.hanzi,
                               pinyin: item.pinyin,
                               meaning: item.meaning,
@@ -273,11 +259,30 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                         side: BorderSide(
                           color: _target.text == ch ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
                         ),
-                        onPressed: () => _selectChar(ch),
+                        onPressed: _submitting ? null : () => _selectChar(ch),
                       ),
                   ],
                 ),
                 const SizedBox(height: 12),
+                if (_practiceCharacters.length > 1) ...[
+                  Text('Từ: ${_practiceCharacters.join()} · Chữ ${_characterIndex + 1}/${_practiceCharacters.length}',
+                    key: const Key('practice-word-progress'),
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 8, runSpacing: 8, children: [
+                    for (var i = 0; i < _practiceCharacters.length; i++)
+                      ChoiceChip(
+                        key: Key('practice-character-$i'),
+                        label: Text('${_practiceCharacters[i]}${_characterScores.containsKey(i) ? " · ${_characterScores[i]!.round()}đ" : ""}'),
+                        selected: i == _characterIndex,
+                        onSelected: _submitting ? null : (_) => _activateCharacter(i),
+                      ),
+                  ]),
+                  if (_characterScores.length == _practiceCharacters.length)
+                    const Text('Đã luyện xong cả từ! Chọn một chữ để luyện lại.',
+                      key: Key('practice-word-complete')),
+                  const SizedBox(height: 10),
+                ],
                 // 3. Current Selected Character Info Card
                 Card(
                   color: isDark ? const Color(0xFF1C2C24) : const Color(0xFFF4F8F4),
@@ -679,7 +684,10 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
 
   void _selectChar(String char, {String? pinyin, String? meaning, int? hsk}) {
     if (char.trim().isEmpty) return;
-    final single = char.trim().characters.first;
+    _practiceCharacters = char.trim().characters.toList();
+    _characterIndex = 0;
+    _characterScores.clear();
+    final single = _practiceCharacters.first;
     _target.text = single;
     _searchController.clear();
     setState(() {
@@ -692,7 +700,19 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
     _loadStrokeGuide(single);
   }
 
+  void _activateCharacter(int index) {
+    _stopAnimation();
+    setState(() {
+      _characterIndex = index;
+      _target.text = _practiceCharacters[index];
+      _canvasController.clear();
+      _clearResults();
+    });
+    _loadStrokeGuide(_target.text);
+  }
+
   Future<void> _loadStrokeGuide(String char) async {
+    final request = ++_guideRequest;
     final clean = char.trim();
     if (clean.isEmpty) return;
     final single = clean.characters.first;
@@ -703,7 +723,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
     });
     try {
       final guide = await widget.service.fetchStrokeGuide(single);
-      if (!mounted) return;
+      if (!mounted || request != _guideRequest) return;
       setState(() {
         _strokeGuide = guide;
         _loadingStrokeGuide = false;
@@ -711,7 +731,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _loadingStrokeGuide = false);
+      if (request == _guideRequest) setState(() => _loadingStrokeGuide = false);
     }
   }
 
@@ -807,7 +827,16 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
           sourceResultId: widget.source?.id,
         );
         if (!mounted) return;
-        setState(() => _practiceResult = result);
+        setState(() {
+          _practiceResult = result;
+          _characterScores[_characterIndex] = result.score;
+        });
+        if (_characterIndex + 1 < _practiceCharacters.length) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('$target: ${result.score.round()} điểm. Viết chữ tiếp theo.'),
+          ));
+          _activateCharacter(_characterIndex + 1);
+        }
       }
     } on StudentApiException catch (error) {
       if (!mounted) return;

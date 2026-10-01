@@ -38,7 +38,7 @@ def main():
                 ('Quản trị viên','admin@local.test','unused','unused','admin',now)).lastrowid
             conn.execute('INSERT INTO sessions VALUES(?,?,?)',(hashlib.sha256(b'admin-system-smoke').hexdigest(),admin,now+3600))
             conn.execute("UPDATE ai_config SET enabled=1,model='gemini-test-model' WHERE id=1")
-            for i in range(8):
+            for i in range(45):
                 user_id = None
                 name = ['Linh Nguyễn','Minh Anh'][i] if i < 2 else 'Khách ' + str(10234+i)
                 if i < 2:
@@ -100,6 +100,7 @@ def main():
                 page.locator('.ai-save').click()
                 expect(page.locator('#ai-error')).to_have_text('Đã lưu thành công.')
                 expect(page.locator('.ai-save')).to_be_disabled()
+                expect(page.locator('.ai-save')).to_have_css('cursor', 'default')
                 page.locator('.ai-test').click()
                 expect(page.locator('.ai-connection-result')).to_have_class('ai-connection-result success')
                 page.screenshot(path=str(output/'admin-ai-desktop.png'),full_page=True)
@@ -120,6 +121,14 @@ def main():
                 expect(page.locator('.audit-table tbody tr')).to_have_count(50)
                 page.screenshot(path=str(output/'admin-audit-desktop.png'),full_page=True)
                 navigate('chats')
+                expect(page.locator('.chat-thread')).to_have_count(40)
+                expect(page.locator('.chat-paging .prev')).to_have_css('cursor', 'default')
+                page.locator('.chat-paging .next').click()
+                expect(page.locator('.chat-thread')).to_have_count(5)
+                expect(page.locator('.chat-paging .next')).to_be_disabled()
+                expect(page.locator('.chat-paging .next')).to_have_css('cursor', 'default')
+                page.locator('.chat-paging .prev').click()
+                expect(page.locator('.chat-thread')).to_have_count(40)
                 page.locator('.chat-thread').first.click()
                 expect(page.locator('.chat-bubble')).to_have_count(50)
                 page.locator('.chat-older').click()

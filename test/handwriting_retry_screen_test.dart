@@ -68,22 +68,7 @@ void main() {
     final firstCanvas = find.byKey(const Key('retry-canvas'));
     await tester.ensureVisible(firstCanvas);
     await tester.pumpAndSettle();
-    final firstGesture = find.descendant(
-      of: firstCanvas,
-      matching: find.byType(GestureDetector),
-    );
-    final firstDetector = tester.widget<GestureDetector>(firstGesture);
-    firstDetector.onPanStart!(
-      DragStartDetails(localPosition: const Offset(100, 200)),
-    );
-    firstDetector.onPanUpdate!(
-      DragUpdateDetails(
-        globalPosition: const Offset(300, 200),
-        localPosition: const Offset(300, 200),
-        delta: const Offset(200, 0),
-      ),
-    );
-    firstDetector.onPanEnd!(DragEndDetails());
+    await tester.drag(firstCanvas, const Offset(80, 10));
     await tester.pump();
     await tester.ensureVisible(find.byKey(const Key('submit-retry')));
     await tester.pumpAndSettle();
@@ -96,22 +81,7 @@ void main() {
     final secondCanvas = find.byKey(const Key('retry-canvas'));
     await tester.ensureVisible(secondCanvas);
     await tester.pumpAndSettle();
-    final secondGesture = find.descendant(
-      of: secondCanvas,
-      matching: find.byType(GestureDetector),
-    );
-    final secondDetector = tester.widget<GestureDetector>(secondGesture);
-    secondDetector.onPanStart!(
-      DragStartDetails(localPosition: const Offset(200, 100)),
-    );
-    secondDetector.onPanUpdate!(
-      DragUpdateDetails(
-        globalPosition: const Offset(200, 300),
-        localPosition: const Offset(200, 300),
-        delta: const Offset(0, 200),
-      ),
-    );
-    secondDetector.onPanEnd!(DragEndDetails());
+    await tester.drag(secondCanvas, const Offset(80, 10));
     await tester.pump();
     await tester.ensureVisible(find.byKey(const Key('submit-retry')));
     await tester.pumpAndSettle();

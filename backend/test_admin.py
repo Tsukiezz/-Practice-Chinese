@@ -120,6 +120,18 @@ class AdminIntegrationTest(unittest.TestCase):
             assert usage is not None
         self.assertEqual((usage[0], usage[1]), ("handwriting_recognition", "success"))
 
+    def test_handwriting_recognition_keeps_two_character_word(self):
+        with storage.database() as conn:
+            conn.execute("UPDATE ai_config SET enabled=1,model='test-model'")
+            conn.execute("INSERT INTO vocabulary(hanzi,pinyin,meaning,hsk) VALUES('你好','nǐ hǎo','xin chào',1)")
+        result = {"score": 95, "feedback": "Xin chào", "candidates": [{"hanzi": "你好", "confidence": 95}]}
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "private-test-secret"}), patch("main.gemini_handwriting_recognition_provider", return_value=result):
+            response = self.client.post("/api/handwriting/recognize", headers=self.student_headers,
+                json={"strokes": [[{"x": 100, "y": 500}, {"x": 350, "y": 500}], [{"x": 650, "y": 500}, {"x": 900, "y": 500}]]})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["details"]["recognized_hanzi"], "你好")
+        self.assertEqual(response.json()["details"]["candidates"][0]["words"][0]["meaning"], "xin chào")
+
     def test_gemini_transient_failure_is_retried(self):
         request = httpx.Request("POST", "https://gemini.example.test")
         responses = [
