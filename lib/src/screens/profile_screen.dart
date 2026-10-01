@@ -318,7 +318,7 @@ class ProfileScreen extends StatelessWidget {
                   'Ôn tập dưới 80 điểm',
                   style: TextStyle(fontWeight: FontWeight.w800),
                 ),
-                subtitle: const Text('Đồng bộ Đọc · Nghe · Kiểm tra · Viết tay · Từ vựng'),
+                subtitle: const Text('Đồng bộ Đọc · Nghe · Kiểm tra'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
@@ -570,9 +570,7 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
               final readingUnder80 = under80['reading'] ?? 0;
               final listeningUnder80 = under80['listening'] ?? 0;
               final examUnder80 = under80['exam'] ?? 0;
-              final handwritingUnder80 = (under80['handwriting'] ?? 0) + (under80['writing'] ?? 0);
-              final vocabWeak = under80['vocabulary'] ?? 0;
-              final totalUnder80 = dashboard.needsReview;
+              final totalUnder80 = readingUnder80 + listeningUnder80 + examUnder80;
 
               return Column(
                 children: [
@@ -591,7 +589,7 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
                     ),
                   ),
 
-                  // Trung tâm Ôn tập dưới 80 điểm - Đồng bộ tất cả 5 kỹ năng
+                  // Ôn tập Nghe, Đọc và Kiểm tra dưới 80 điểm
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
                     child: Card(
@@ -649,7 +647,7 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'Đồng bộ tự động từ kết quả làm bài của bạn trên tất cả 5 kỹ năng:',
+                              'Tự động cập nhật các bài Nghe, Đọc và Kiểm tra dưới 80 điểm:',
                               style: TextStyle(
                                 color: isDark ? const Color(0xFFD4BDB0) : const Color(0xFF7A5C4A),
                                 fontSize: 12,
@@ -704,38 +702,6 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
                                             builder: (_) => ReviewScreen(
                                               service: widget.service!,
                                               initialKind: 'exam',
-                                            ),
-                                          ),
-                                        ).then((_) => _retry()),
-                                ),
-                                _SkillReviewBadge(
-                                  icon: Icons.draw_outlined,
-                                  label: 'Viết tay',
-                                  count: handwritingUnder80,
-                                  unit: 'chữ <80đ',
-                                  onTap: () => widget.service == null
-                                      ? null
-                                      : Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (_) => ReviewScreen(
-                                              service: widget.service!,
-                                              initialKind: 'handwriting',
-                                            ),
-                                          ),
-                                        ).then((_) => _retry()),
-                                ),
-                                _SkillReviewBadge(
-                                  icon: Icons.menu_book_outlined,
-                                  label: 'Từ vựng',
-                                  count: vocabWeak,
-                                  unit: 'từ cần nhớ',
-                                  onTap: () => widget.service == null
-                                      ? null
-                                      : Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (_) => ReviewScreen(
-                                              service: widget.service!,
-                                              initialKind: 'vocabulary',
                                             ),
                                           ),
                                         ).then((_) => _retry()),

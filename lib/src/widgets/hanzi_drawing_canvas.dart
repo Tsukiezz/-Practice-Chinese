@@ -33,13 +33,15 @@ class HanziCanvasController extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<List<Map<String, double>>> get payload => _strokes
-      .map(
-        (stroke) => stroke
-            .map((point) => {'x': point.dx, 'y': point.dy})
-            .toList(growable: false),
-      )
-      .toList(growable: false);
+  List<List<Map<String, double>>> get payload => _strokes.map((stroke) {
+    final points = stroke.length > 512
+        ? List<Offset>.generate(512, (i) => stroke[(i * (stroke.length - 1) / 511).round()])
+        : stroke;
+    return points.map((point) => {
+      'x': point.dx.clamp(0.0, 1024.0).toDouble(),
+      'y': point.dy.clamp(0.0, 1024.0).toDouble(),
+    }).toList(growable: false);
+  }).toList(growable: false);
 
   void start(Offset point, Size size) {
     _strokes.add([_normalize(point, size)]);

@@ -7,7 +7,8 @@ enum InterfacePalette {
   red('Đỏ đậm', Color(0xFF941D38), Brightness.dark),
   blue('Xanh dương', Color(0xFF175BBB), Brightness.light),
   yellow('Vàng pastel', Color(0xFF8B6900), Brightness.light),
-  orange('Cam', Color(0xFFAE460D), Brightness.light);
+  orange('Cam', Color(0xFFAE460D), Brightness.light),
+  pink('Hồng cánh bướm', Color(0xFFAD3979), Brightness.light);
 
   const InterfacePalette(this.label, this.seed, this.brightness);
   final String label;
@@ -88,6 +89,7 @@ class AppTheme {
       InterfacePalette.blue => const Color(0xFFD3E4F8),
       InterfacePalette.yellow => const Color(0xFFF5E8AF),
       InterfacePalette.orange => const Color(0xFFF7DCC5),
+      InterfacePalette.pink => const Color(0xFFF3D2E5),
       _ => generated.surfaceContainerLow,
     };
     final scheme = palette.brightness == Brightness.light ? generated.copyWith(

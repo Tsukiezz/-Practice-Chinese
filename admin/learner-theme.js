@@ -7,6 +7,7 @@
     blue: ['Xanh dương','#d3e4f8','#ebf3fc','#152b47','#4c607a','#175bbb','#d4e4fc'],
     yellow: ['Vàng pastel','#f5e8af','#fbf5db','#352c0d','#6b5d32','#795b00','#eee0a6'],
     orange: ['Cam','#f7dcc5','#fbefe5','#3e2719','#765640','#a6430b','#f7d9c0'],
+    pink: ['Hồng cánh bướm','#f3d2e5','#fbeaf3','#402234','#70445f','#9c306b','#e5b8d1'],
     light: ['Sáng','#f5f7f4','#ffffff','#24332e','#52665c','#235546','#e4ece7'],
   };
   const read = (key, fallback) => {
@@ -18,7 +19,7 @@
   let enabled = read('app_theme_mode','light') === 'dark';
   function apply() {
     const p=palettes[enabled && location.pathname !== '/recover' ? choice : 'light'];
-    const brand={dark:'#235546',red:'#831d38',purple:'#70489c',blue:'#175bbb',yellow:'#795b00',orange:'#a6430b',light:'#235546'}[enabled && location.pathname !== '/recover' ? choice : 'light'];
+    const brand={dark:'#235546',red:'#831d38',purple:'#70489c',blue:'#175bbb',yellow:'#795b00',orange:'#a6430b',pink:'#9c306b',light:'#235546'}[enabled && location.pathname !== '/recover' ? choice : 'light'];
     const vars={'primary':brand,'primary-light':brand,'jade':brand,'bg':p[1],'card-bg':p[2],'text':p[3],'text-muted':p[4],
       'accent':p[5],'border':p[6],'surface-soft':p[6],
       'ink':p[3],'muted':p[4],'paper':p[2]};

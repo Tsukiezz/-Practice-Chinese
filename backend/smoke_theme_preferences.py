@@ -57,7 +57,7 @@ def main():
                 page.on('pageerror',lambda e:errors.append(str(e)))
                 page.goto(base+'/account')
                 expect(page.locator('#profile-section')).to_be_visible()
-                for palette in ['purple','red','blue','yellow','orange','dark']:
+                for palette in ['purple','red','blue','yellow','orange','pink','dark']:
                     page.locator('#palette-choice').select_option(palette)
                     page.locator('#palette-enabled').check()
                     expect(page.locator('html')).to_have_attribute('data-learner-theme',palette)
@@ -69,7 +69,7 @@ def main():
                 expect(page.locator('html')).to_have_attribute('data-learner-theme','light')
                 page.evaluate('user => {localStorage.setItem("flutter.auth_token",JSON.stringify("theme-smoke"));localStorage.setItem("flutter.auth_user",JSON.stringify(JSON.stringify(user)));}',user)
                 chat_accents = set()
-                for palette in ['purple','blue','yellow','orange','red','dark']:
+                for palette in ['purple','blue','yellow','orange','pink','red','dark']:
                     page.evaluate('p => {localStorage.setItem("flutter.app_theme_palette",JSON.stringify(p));localStorage.setItem("flutter.app_theme_mode",JSON.stringify("dark"));}',palette)
                     page.goto(base+'/')
                     try:
@@ -91,7 +91,7 @@ def main():
                     page.mouse.click(943, 864)
                     page.wait_for_timeout(900)
                     page.screenshot(path=str(output/f'flutter-exam-{palette}.png'))
-                assert len(chat_accents) == 6, chat_accents
+                assert len(chat_accents) == 7, chat_accents
                 page.evaluate('()=>{localStorage.removeItem("flutter.auth_user");localStorage.removeItem("flutter.auth_token");}')
                 page.reload()
                 page.wait_for_timeout(3500)
@@ -99,7 +99,7 @@ def main():
                 assert page.locator('#launch').evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(23, 99, 78)'
                 assert not errors,errors
                 browser.close()
-            print('PASS: six account palettes persist; switch restores light; Flutter pages render without browser errors')
+            print('PASS: seven account palettes persist; switch restores light; Flutter pages render without browser errors')
         finally:
             server.should_exit=True
             worker.join(10)

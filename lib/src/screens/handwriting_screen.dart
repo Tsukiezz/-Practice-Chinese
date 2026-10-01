@@ -35,6 +35,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
   List<String> _practiceCharacters = ['你'];
   int _characterIndex = 0;
   final Map<int, double> _characterScores = {};
+  final Map<int, String> _characterFeedback = {};
   int _guideRequest = 0;
   bool _isDrawing = false;
   HandwritingGradeResult? _practiceResult;
@@ -278,6 +279,11 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                         onSelected: _submitting ? null : (_) => _activateCharacter(i),
                       ),
                   ]),
+                  for (final entry in _characterFeedback.entries)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text('${_practiceCharacters[entry.key]}: ${_characterScores[entry.key]!.round()} điểm — ${entry.value}${_characterScores[entry.key]! < 80 ? " Đã thêm vào Luyện lại chữ dưới 80." : ""}'),
+                    ),
                   if (_characterScores.length == _practiceCharacters.length)
                     const Text('Đã luyện xong cả từ! Chọn một chữ để luyện lại.',
                       key: Key('practice-word-complete')),
@@ -603,7 +609,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            _practiceResult!.feedback,
+                            _practiceResult!.feedback + (_practiceResult!.score < 80 ? " Đã thêm vào Luyện lại chữ dưới 80 trong Cá nhân." : ""),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 14),
@@ -687,6 +693,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
     _practiceCharacters = char.trim().characters.toList();
     _characterIndex = 0;
     _characterScores.clear();
+    _characterFeedback.clear();
     final single = _practiceCharacters.first;
     _target.text = single;
     _searchController.clear();
@@ -830,6 +837,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
         setState(() {
           _practiceResult = result;
           _characterScores[_characterIndex] = result.score;
+          _characterFeedback[_characterIndex] = result.feedback;
         });
         if (_characterIndex + 1 < _practiceCharacters.length) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(

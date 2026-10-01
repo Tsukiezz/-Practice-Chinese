@@ -10,7 +10,7 @@ class ReviewScreen extends StatefulWidget {
   const ReviewScreen({
     super.key,
     required this.service,
-    this.initialKind = 'writing',
+    this.initialKind = 'reading',
   });
 
   final StudentService service;
@@ -25,18 +25,16 @@ class _ReviewScreenState extends State<ReviewScreen> {
   late Future<List<StudentResult>> _future;
 
   final List<Map<String, dynamic>> _skills = const [
-    {'kind': 'writing', 'label': 'Đoạn văn', 'icon': Icons.article_outlined},
-    {'kind': 'handwriting', 'label': 'Viết tay', 'icon': Icons.draw_outlined},
     {'kind': 'reading', 'label': 'Đọc phát âm', 'icon': Icons.mic_none_outlined},
     {'kind': 'listening', 'label': 'Nghe hiểu', 'icon': Icons.headphones_outlined},
     {'kind': 'exam', 'label': 'Kiểm tra', 'icon': Icons.assignment_outlined},
-    {'kind': 'vocabulary', 'label': 'Từ vựng', 'icon': Icons.menu_book_outlined},
   ];
 
   @override
   void initState() {
     super.initState();
-    _kind = widget.initialKind;
+    _kind = _skills.any((skill) => skill['kind'] == widget.initialKind)
+        ? widget.initialKind : 'reading';
     _load();
   }
 
@@ -58,7 +56,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
         ),
         body: Column(
           children: [
-            // Horizontal skills selector for all 5 core learning functions
+            // Review listening, reading and exams; handwriting has its own retry list.
             Container(
               height: 54,
               padding: const EdgeInsets.symmetric(vertical: 8),

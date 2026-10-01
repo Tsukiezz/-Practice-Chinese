@@ -64,7 +64,7 @@ void main() {
     expect(ThemeManager.isDark, isFalse);
   });
 
-  testWidgets('profile offers all six palettes and toggles without overflow', (tester) async {
+  testWidgets('profile offers all seven palettes and toggles without overflow', (tester) async {
     await tester.pumpWidget(MaterialApp(theme: AppTheme.light, home: const ProfileScreen()));
     await tester.scrollUntilVisible(find.text('Màu khi bật Dark mode'), 200);
     for (final palette in InterfacePalette.values) {

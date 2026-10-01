@@ -137,16 +137,44 @@ class Point(Body):
     y: float = Field(ge=0, le=1024)
 
 
+def normalize_learner_strokes(value):
+    """Keep finite learner input usable, including dense strokes and edge dots."""
+    import math
+    if not isinstance(value, list) or not 1 <= len(value) <= 64:
+        raise ValueError("Hãy vẽ từ 1 đến 64 nét")
+    normalized = []
+    for stroke in value:
+        if not isinstance(stroke, list) or not 1 <= len(stroke) <= 16384:
+            raise ValueError("Nét vẽ trống hoặc quá dài, hãy chia thành các nét ngắn hơn")
+        points = []
+        for point in stroke:
+            if isinstance(point, Point):
+                point = point.model_dump()
+            if not isinstance(point, dict):
+                raise ValueError("Dữ liệu nét vẽ không hợp lệ")
+            clean = {}
+            for axis in ('x', 'y'):
+                raw = point.get(axis)
+                if isinstance(raw, bool) or not isinstance(raw, (int, float)) or not math.isfinite(raw):
+                    raise ValueError("Tọa độ nét vẽ phải là số hữu hạn")
+                clean[axis] = max(0.0, min(1024.0, float(raw)))
+            points.append(clean)
+        if len(points) > 512:
+            points = [points[round(i * (len(points) - 1) / 511)] for i in range(512)]
+        if len(points) == 1:
+            points.append(dict(points[0]))
+        normalized.append(points)
+    return normalized
+
+
 class HanziCanvasExamAnswer(Body):
     kind: Literal["hanzi_canvas"]
     strokes: list[list[Point]] = Field(min_length=1, max_length=64)
 
-    @field_validator("strokes")
+    @field_validator("strokes", mode="before")
     @classmethod
     def valid_strokes(cls, value):
-        if any(not 2 <= len(stroke) <= 512 for stroke in value):
-            raise ValueError("Mỗi nét Canvas cần 2–512 điểm tọa độ")
-        return value
+        return normalize_learner_strokes(value)
 
 
 class EssayExamAnswer(Body):
@@ -292,10 +320,10 @@ class ExamCanvasGradeRequest(Body):
             raise ValueError("Mục tiêu Canvas phải là một chữ Hán")
         return value
 
-    @field_validator("strokes")
+    @field_validator("strokes", mode="before")
     @classmethod
     def valid_strokes(cls, value):
-        return HanziCanvasExamAnswer.valid_strokes(value)
+        return normalize_learner_strokes(value)
 
 
 class EssayGradeRequest(Body):
@@ -394,10 +422,10 @@ class HandwritingSubmission(Body):
             raise ValueError("Luyện nét chỉ hỗ trợ một chữ Hán")
         return value
 
-    @field_validator("strokes")
+    @field_validator("strokes", mode="before")
     @classmethod
     def valid_strokes(cls, value):
-        return Word.valid_strokes(value)
+        return normalize_learner_strokes(value)
 
 
 class HandwritingGradeDetails(Body):
@@ -434,10 +462,10 @@ class HandwritingRecognition(Body):
 
     strokes: list[list[Point]] = Field(min_length=1, max_length=64)
 
-    @field_validator("strokes")
+    @field_validator("strokes", mode="before")
     @classmethod
     def valid_strokes(cls, value):
-        return Word.valid_strokes(value)
+        return normalize_learner_strokes(value)
 
 
 class HandwritingWordMatch(Body):

@@ -129,6 +129,24 @@ class HandwritingRetryEndpointTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.text)
         return response.json()
 
+    def test_dense_out_of_bounds_stroke_is_graded_and_added_to_retry(self):
+        strokes = [[{"x": -20 + i / 100, "y": 1030 - i / 2} for i in range(1600)]]
+        result = self._submit(strokes)
+        self.assertGreaterEqual(result['score'], 5)
+        self.assertLess(result['score'], 80)
+        self.assertTrue(result['feedback'].strip())
+        self.assertEqual(self._items()[0]['hanzi'], '一')
+        with storage.database() as conn:
+            saved = json.loads(conn.execute("SELECT content FROM results ORDER BY id DESC LIMIT 1").fetchone()[0])
+        self.assertLessEqual(len(saved['submitted_strokes'][0]), 512)
+
+    def test_single_dot_receives_feedback_and_retry_entry(self):
+        result = self._submit([[{"x": 1024.5, "y": -0.5}]])
+        self.assertGreaterEqual(result['score'], 5)
+        self.assertLess(result['score'], 80)
+        self.assertTrue(result['feedback'])
+        self.assertEqual(self._items()[0]['hanzi'], '一')
+
     def test_pass_removes_character_and_later_failure_adds_it_again(self):
         reversed_stroke = [list(reversed(self.stroke[0]))]
         self.assertEqual(self._submit(reversed_stroke)["score"], 70)
