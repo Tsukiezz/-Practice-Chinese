@@ -150,6 +150,46 @@ class SupportChatTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             generate_reply([])
 
+    def test_off_topic_questions_strictly_declined_and_handed_off_to_admin(self):
+        from support_chat import OFF_TOPIC_DECLINE_MESSAGE
+        off_topics = [
+            'cầu thủ nào hay nhất thế giới mọi thời đại',
+            'messi hơn ronaldo đúng không',
+            'có thể code cho tôi một chương trình C hay không'
+        ]
+        for query in off_topics:
+            reply, handoff = generate_reply([{'role': 'user', 'content': query}])
+            self.assertEqual(reply, OFF_TOPIC_DECLINE_MESSAGE)
+            self.assertTrue(handoff)
+
+        # Test end-to-end API send and admin inbox queue
+        thread = self.thread()
+        res = self.send(thread, 'cầu thủ nào hay nhất thế giới mọi thời đại', 'req_offtopic_1111')
+        self.assertEqual(res.status_code, 200)
+        data = self.client.get('/api/chat/' + thread).json()
+        self.assertEqual(data['state'], 'waiting')
+        last_msg = data['messages'][-1]['content']
+        self.assertIn('không có nghĩa vụ giải đáp', last_msg)
+        self.assertIn('chuyển tiếp đến Quản trị viên (Admin)', last_msg)
+        self.assertTrue(last_msg.endswith(HANDOFF))
+
+    @patch('support_chat.ai_settings', return_value={'model': 'model-test', 'api_key': 'unconfigured'})
+    def test_local_hanzigo_tutor_answers_chinese_and_app_queries(self, settings):
+        # Greetings
+        ans, handoff = generate_reply([{'role': 'user', 'content': 'Xin chào'}])
+        self.assertIn('Trợ lý AI HanziGo', ans)
+        self.assertFalse(handoff)
+
+        # Exam guidance
+        ans, handoff = generate_reply([{'role': 'user', 'content': 'Cách tạo đề thi AI 40 câu'}])
+        self.assertIn('1 đến 50 câu', ans)
+        self.assertFalse(handoff)
+
+        # Dark mode guidance
+        ans, handoff = generate_reply([{'role': 'user', 'content': 'Làm sao để bật chế độ tối dark mode'}])
+        self.assertIn('Chế độ Tối', ans)
+        self.assertFalse(handoff)
+
 
 if __name__ == '__main__':
     unittest.main()

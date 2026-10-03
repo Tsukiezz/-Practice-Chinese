@@ -15,10 +15,10 @@
   </style>
   <button id="launch" aria-expanded="false" aria-controls="panel">💬 Hỏi HanziGo</button>
   <section id="panel" role="region" aria-label="Trò chuyện với HanziGo" hidden>
-    <header><div><b>HanziGo · Trợ lý học tập</b><small>AI hỗ trợ tiếng Trung · Quản trị viên hỗ trợ thêm</small></div><button id="close" aria-label="Đóng trò chuyện">×</button></header>
+    <header><div><b>HanziGo · Trợ lý học tập</b><small>AI chuyên biệt tiếng Trung · Quản trị viên hỗ trợ thêm</small></div><button id="close" aria-label="Đóng trò chuyện">×</button></header>
     <div id="messages" role="log" aria-live="polite"></div><div id="status" role="status"></div>
     <button id="retry" hidden>Thử tải lại</button>
-    <form><textarea aria-label="Tin nhắn" placeholder="Hỏi về tiếng Trung hoặc cần hỗ trợ…" maxlength="3000" rows="2" required></textarea><button id="send">Gửi</button></form>
+    <form><textarea aria-label="Tin nhắn" placeholder="Hỏi về tiếng Trung, bài học, đề thi AI…" maxlength="3000" rows="2" required></textarea><button id="send">Gửi</button></form>
   </section>`;
   window.addEventListener('hanzigo-chat-theme', event => {
     let colors;
@@ -49,7 +49,7 @@
   }
   function show(data) {
     const box = $('#messages'), atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-    if (!last && !data.messages.length) box.textContent = 'Xin chào! Bạn muốn học tiếng Trung từ đâu? Hãy cho biết trình độ hoặc gửi câu hỏi của bạn. Lịch sử được lưu để quản trị viên có thể hỗ trợ.';
+    if (!last && !data.messages.length) box.textContent = 'Xin chào! Tôi là Trợ lý AI HanziGo được huấn luyện chuyên sâu về tiếng Trung và ứng dụng HanziGo. Bạn cần hỗ trợ gì về từ vựng, ngữ pháp, phát âm, bài học hay đề thi hôm nay?';
     for (const m of data.messages) {
       if (m.id <= last) continue;
       if (!last) box.replaceChildren();
