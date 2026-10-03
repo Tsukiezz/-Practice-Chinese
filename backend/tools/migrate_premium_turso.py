@@ -31,9 +31,9 @@ print("Creating sepay_config, premium_orders, and vouchers tables on Turso...")
 conn.executescript("""
 CREATE TABLE IF NOT EXISTS sepay_config (
     id INTEGER PRIMARY KEY CHECK(id=1),
-    bank_name TEXT NOT NULL DEFAULT 'MBBank',
-    bank_account TEXT NOT NULL DEFAULT '0399888999',
-    account_holder TEXT NOT NULL DEFAULT 'NGUYEN VO VINH NIEN',
+    bank_name TEXT NOT NULL DEFAULT 'MSB',
+    bank_account TEXT NOT NULL DEFAULT '80001795444',
+    account_holder TEXT NOT NULL DEFAULT 'NGUYEN VO VINH NGUYEN',
     merchant_id TEXT NOT NULL DEFAULT 'SP-LIVE-O573535',
     api_key TEXT NOT NULL DEFAULT 'spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o',
     is_active INTEGER NOT NULL DEFAULT 1,
@@ -41,14 +41,14 @@ CREATE TABLE IF NOT EXISTS sepay_config (
 );
 
 INSERT OR IGNORE INTO sepay_config(id, bank_name, bank_account, account_holder, merchant_id, api_key, is_active)
-VALUES(1, 'MBBank', '0399888999', 'NGUYEN VO VINH NIEN', 'SP-LIVE-O573535', 'spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o', 1);
+VALUES(1, 'MSB', '80001795444', 'NGUYEN VO VINH NGUYEN', 'SP-LIVE-O573535', 'spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o', 1);
 
 UPDATE sepay_config
 SET merchant_id = 'SP-LIVE-O573535',
     api_key = 'spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o',
-    bank_name = 'ACB',
+    bank_name = 'MSB',
     account_holder = 'NGUYEN VO VINH NGUYEN',
-    bank_account = CASE WHEN bank_account = '0399888999' THEN '' ELSE bank_account END,
+    bank_account = '80001795444',
     is_active = 1
 WHERE id = 1;
 

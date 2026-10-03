@@ -33,7 +33,7 @@ class TestPremiumSystem(unittest.TestCase):
             conn.execute("DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email IN ('student_prem@test.com', 'admin_prem@test.com'))")
 
             conn.execute("DELETE FROM users WHERE email IN ('student_prem@test.com', 'admin_prem@test.com')")
-            conn.execute("UPDATE sepay_config SET bank_name='MBBank', bank_account='0399888999', account_holder='NGUYEN VO VINH NIEN', api_key='', is_active=1 WHERE id=1")
+            conn.execute("UPDATE sepay_config SET bank_name='MSB', bank_account='80001795444', account_holder='NGUYEN VO VINH NGUYEN', api_key='', is_active=1 WHERE id=1")
 
 
             # Create test student
@@ -67,6 +67,14 @@ class TestPremiumSystem(unittest.TestCase):
         self.student_headers = {"Authorization": f"Bearer {self.student_token}"}
         self.admin_headers = {"Authorization": f"Bearer {self.admin_token}"}
 
+    def tearDown(self):
+        with database() as conn:
+            conn.execute(
+                """UPDATE sepay_config SET bank_name='MSB', bank_account='80001795444',
+                   account_holder='NGUYEN VO VINH NGUYEN', merchant_id='SP-LIVE-O573535',
+                   api_key='spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o', is_active=1 WHERE id=1"""
+            )
+
     def test_plans_endpoint(self):
         res = self.client.get("/api/premium/plans")
         self.assertEqual(res.status_code, 200)
@@ -98,8 +106,29 @@ class TestPremiumSystem(unittest.TestCase):
         self.assertEqual(data["amount"], 49000)
         self.assertEqual(data["original_amount"], 49000)
         self.assertTrue(data["order_code"].startswith("HZG"))
-        self.assertTrue("vietqr" in data["qr_url"] or "sepay" in data["qr_url"])
+        self.assertEqual(
+            data["qr_url"],
+            f"https://qr.sepay.vn/img?acc=80001795444&bank=MSB&amount=49000&des={data['order_code']}&template=qronly",
+        )
+        self.assertEqual(data["bank_name"], "MSB")
+        self.assertEqual(data["bank_account"], "80001795444")
+        self.assertEqual(data["account_holder"], "NGUYEN VO VINH NGUYEN")
+        self.assertEqual(data["transfer_content"], data["order_code"])
         self.assertEqual(data["expires_in"], 300)
+
+    def test_one_year_order_qr_amount(self):
+        res = self.client.post("/api/premium/orders", headers=self.student_headers, json={"plan_type": "1_year"})
+        self.assertEqual(res.status_code, 201)
+        data = res.json()
+        self.assertEqual(data["amount"], 490000)
+        self.assertIn("amount=490000", data["qr_url"])
+        self.assertIn("bank=MSB", data["qr_url"])
+
+    def test_order_blocked_when_bank_missing(self):
+        with database() as conn:
+            conn.execute("UPDATE sepay_config SET bank_account='' WHERE id=1")
+        res = self.client.post("/api/premium/orders", headers=self.student_headers, json={"plan_type": "1_month"})
+        self.assertEqual(res.status_code, 503)
 
     def test_order_creation_with_discount_voucher(self):
 
@@ -169,8 +198,8 @@ class TestPremiumSystem(unittest.TestCase):
         # 1. Ignore outgoing money (transferType: 'out')
         out_payload = {
             "id": 99991230,
-            "gateway": "MBBank",
-            "accountNumber": "0399888999",
+            "gateway": "MSB",
+            "accountNumber": "80001795444",
             "content": f"Chuyen tien di {order_code}",
             "transferType": "out",
             "transferAmount": 49000,
@@ -186,8 +215,8 @@ class TestPremiumSystem(unittest.TestCase):
         # 2. Reject underpaid amount (transferAmount: 20,000 < 49,000)
         underpaid_payload = {
             "id": 99991231,
-            "gateway": "MBBank",
-            "accountNumber": "0399888999",
+            "gateway": "MSB",
+            "accountNumber": "80001795444",
             "content": f"Thanh toan thieu {order_code}",
             "transferType": "in",
             "transferAmount": 20000,
@@ -207,9 +236,9 @@ class TestPremiumSystem(unittest.TestCase):
         # 4. Successful incoming payment with HMAC signature
         valid_payload = {
             "id": 99991234,
-            "gateway": "MBBank",
+            "gateway": "MSB",
             "transactionDate": "2026-10-03 20:00:00",
-            "accountNumber": "0399888999",
+            "accountNumber": "80001795444",
             "code": None,
             "content": f"Chuyen khoan mua HanziGo {order_code} thanh cong",
             "transferType": "in",
@@ -259,7 +288,7 @@ class TestPremiumSystem(unittest.TestCase):
             json={
                 "bank_name": "Vietcombank",
                 "bank_account": "101999888",
-                "account_holder": "NGUYEN VO VINH NIEN",
+                "account_holder": "NGUYEN VO VINH NGUYEN",
                 "api_key": "test_sepay_token_123",
                 "is_active": 1
             }

@@ -108,7 +108,7 @@ def get_sepay_config(conn) -> dict[str, Any]:
     if not row:
         conn.execute(
             """INSERT OR IGNORE INTO sepay_config (id, bank_name, bank_account, account_holder, merchant_id, api_key, is_active)
-               VALUES (1, 'ACB', '', 'NGUYEN VO VINH NGUYEN', 'SP-LIVE-O573535', 'spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o', 1)"""
+               VALUES (1, 'MSB', '80001795444', 'NGUYEN VO VINH NGUYEN', 'SP-LIVE-O573535', 'spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o', 1)"""
         )
         row = conn.execute("SELECT * FROM sepay_config WHERE id = 1").fetchone()
     return dict(row)
@@ -184,6 +184,10 @@ def create_premium_order(conn, user_id: int, plan_type: str, voucher_code: str |
 
     if plan_type not in PLAN_PRICES:
         raise HTTPException(400, "Gói hội viên không hợp lệ. Vui lòng chọn 1_month hoặc 1_year.")
+
+    _cfg_check = get_sepay_config(conn)
+    if not str(_cfg_check.get("bank_account") or "").strip() or not str(_cfg_check.get("bank_name") or "").strip():
+        raise HTTPException(503, "Hệ thống thanh toán chưa được cấu hình tài khoản ngân hàng. Vui lòng liên hệ quản trị viên.")
 
     plan_info = PLAN_PRICES[plan_type]
     original_amount = plan_info["price"]

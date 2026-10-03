@@ -881,7 +881,7 @@ class _PaymentQrDialogState extends State<_PaymentQrDialog> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(
-                  '💡 Bạn có thể quét mã QR bằng ACB, MB, VCB... hoặc vào app ngân hàng chuyển khoản nhanh 24/7 theo thông tin dưới đây (hệ thống tự động kích hoạt sau 1-2 giây):',
+                  '💡 Bạn có thể quét mã QR bằng app ngân hàng bất kỳ (MSB, VCB, MB...) hoặc vào app ngân hàng chuyển khoản nhanh 24/7 theo thông tin dưới đây (hệ thống tự động kích hoạt sau 1-2 giây):',
                   style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700, height: 1.35),
                   textAlign: TextAlign.center,
                 ),
@@ -895,7 +895,7 @@ class _PaymentQrDialogState extends State<_PaymentQrDialog> {
                 ),
                 child: Column(
                   children: [
-                    _infoRow('Ngân hàng:', order['bank_name'] ?? 'ACB'),
+                    _infoRow('Ngân hàng:', order['bank_name'] ?? 'MSB'),
                     _infoRow(
                       'Số tài khoản:',
                       order['bank_account'] ?? '',

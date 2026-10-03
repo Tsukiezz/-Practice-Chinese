@@ -163,6 +163,7 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
           <form id="sepay-config-form">
             <label style="display:block;margin:12px 0 6px;font-weight:600">Ngân hàng thụ hưởng (*)
               <select name="bank_name" id="cfg-bank-name" style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px;font-weight:600">
+                <option value="MSB" selected>MSB - Hàng Hải</option>
                 <option value="ACB">ACB - Ngân hàng TMCP Á Châu</option>
                 <option value="MB">MBBank - Ngân hàng Quân Đội</option>
                 <option value="VCB">Vietcombank - Ngân hàng Ngoại Thương</option>
@@ -174,13 +175,12 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
                 <option value="STB">Sacombank - Sài Gòn Thương Tín</option>
                 <option value="HDB">HDBank - Phát triển TP.HCM</option>
                 <option value="OCB">OCB - Phương Đông</option>
-                <option value="MSB">MSB - Hàng Hải</option>
                 <option value="SHB">SHB - Sài Gòn - Hà Nội</option>
                 <option value="VIB">VIB - Quốc Tế</option>
               </select>
             </label>
             <label style="display:block;margin:12px 0 6px;font-weight:600">Số tài khoản ngân hàng (*)
-              <input name="bank_account" id="cfg-bank-account" placeholder="Nhập số tài khoản ngân hàng của bạn..." required style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px;font-family:monospace;font-size:16px;font-weight:700;color:#153e35">
+              <input name="bank_account" id="cfg-bank-account" value="80001795444" placeholder="Nhập số tài khoản ngân hàng của bạn..." required style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px;font-family:monospace;font-size:16px;font-weight:700;color:#153e35">
             </label>
             <label style="display:block;margin:12px 0 6px;font-weight:600">Tên chủ tài khoản (Viết hoa không dấu) (*)
               <input name="account_holder" id="cfg-account-holder" value="NGUYEN VO VINH NGUYEN" required style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px;text-transform:uppercase;font-weight:600">
@@ -202,7 +202,7 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
         <!-- Live QR Preview & Webhook info -->
         <section class="system-card" style="padding:24px;display:flex;flex-direction:column;align-items:center;text-align:center">
           <h3 style="margin:0 0 8px">🔍 Quét thử mã QR thực tế</h3>
-          <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Mã QR cập nhật thời gian thực theo số tài khoản bạn nhập. Hãy mở app ngân hàng trên điện thoại (ACB ONE,...) để quét thử kiểm tra:</p>
+          <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Mã QR cập nhật thời gian thực theo số tài khoản bạn nhập. Hãy mở app ngân hàng trên điện thoại (MSB mBank,...) để quét thử kiểm tra:</p>
           <div id="cfg-qr-box" style="padding:14px;background:#fff;border-radius:14px;border:2px solid #c7dcce;display:inline-block;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,0.06)">
             <img id="cfg-qr-img" src="" alt="Mã VietQR" style="width:200px;height:200px;display:block">
           </div>
@@ -464,7 +464,7 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
   function updatePreviewQr() {
     const form = panel.querySelector('#sepay-config-form');
     if (!form) return;
-    const bank = (form.elements.bank_name.value || 'ACB').trim();
+    const bank = (form.elements.bank_name.value || 'MSB').trim();
     const acc = (form.elements.bank_account.value || '').trim().replace(/\s+/g, '');
     const holder = (form.elements.account_holder.value || '').trim().toUpperCase();
     const qrImg = panel.querySelector('#cfg-qr-img');
