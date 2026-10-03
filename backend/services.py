@@ -1007,7 +1007,12 @@ def recognize_handwriting_with_ai(
 
 
 def _render_strokes_png(strokes: list[list[dict]], size: int = 384) -> str:
-    """Render normalized touch points to a PNG without a native image dependency."""
+    """Render normalized touch points to a PNG without a native image dependency.
+
+    Automatically detects the bounding box of the submitted strokes and centers / scales
+    them to fit the image canvas with padding. This ensures that characters drawn small
+    or in any corner are cleanly enlarged and centered for high-accuracy AI recognition.
+    """
     pixels = bytearray([255] * size * size * 3)
 
     def put(x: int, y: int, color: tuple[int, int, int]):
@@ -1020,19 +1025,62 @@ def _render_strokes_png(strokes: list[list[dict]], size: int = 384) -> str:
         put(size // 2, value, guide)
         put(value, size // 2, guide)
 
-    def line(start: dict, end: dict):
-        x0 = round(float(start["x"]) / 1024 * (size - 1))
-        y0 = round(float(start["y"]) / 1024 * (size - 1))
-        x1 = round(float(end["x"]) / 1024 * (size - 1))
-        y1 = round(float(end["y"]) / 1024 * (size - 1))
+    valid_points = [
+        (float(p["x"]), float(p["y"]))
+        for stroke in strokes
+        for p in stroke
+        if isinstance(p, dict) and "x" in p and "y" in p
+    ]
+
+    if not valid_points:
+        raw = b"".join(b"\x00" + pixels[row * size * 3:(row + 1) * size * 3]
+                       for row in range(size))
+        def chunk(kind: bytes, data: bytes) -> bytes:
+            return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+        png = (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", size, size, 8, 2, 0, 0, 0))
+               + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
+        return base64.b64encode(png).decode("ascii")
+
+    min_x = min(p[0] for p in valid_points)
+    max_x = max(p[0] for p in valid_points)
+    min_y = min(p[1] for p in valid_points)
+    max_y = max(p[1] for p in valid_points)
+    w = max_x - min_x
+    h = max_y - min_y
+    dim = max(w, h, 1.0)
+
+    # Padding around the character: 12% of canvas size
+    padding = size * 0.12
+    target_dim = max(1.0, size - 2 * padding)
+
+    # If the drawing is extremely small (< 10 units in 1024 space), avoid extreme blowout
+    scale = target_dim / dim if dim >= 10.0 else (target_dim / 10.0)
+    center_x = (min_x + max_x) / 2
+    center_y = (min_y + max_y) / 2
+
+    def transform(pt: dict) -> tuple[float, float]:
+        tx = (float(pt["x"]) - center_x) * scale + (size / 2)
+        ty = (float(pt["y"]) - center_y) * scale + (size / 2)
+        return tx, ty
+
+    brush_r = max(1, round(size / 128))
+
+    def draw_dot(cx: float, cy: float):
+        rx, ry = round(cx), round(cy)
+        r2 = brush_r * brush_r
+        for ox in range(-brush_r, brush_r + 1):
+            for oy in range(-brush_r, brush_r + 1):
+                if ox * ox + oy * oy <= r2:
+                    put(rx + ox, ry + oy, (25, 30, 32))
+
+    def line(p0: tuple[float, float], p1: tuple[float, float]):
+        x0, y0 = round(p0[0]), round(p0[1])
+        x1, y1 = round(p1[0]), round(p1[1])
         dx, dy = abs(x1 - x0), -abs(y1 - y0)
         sx, sy = (1 if x0 < x1 else -1), (1 if y0 < y1 else -1)
         error = dx + dy
         while True:
-            for ox in range(-3, 4):
-                for oy in range(-3, 4):
-                    if ox * ox + oy * oy <= 9:
-                        put(x0 + ox, y0 + oy, (25, 30, 32))
+            draw_dot(x0, y0)
             if x0 == x1 and y0 == y1:
                 break
             doubled = 2 * error
@@ -1044,8 +1092,14 @@ def _render_strokes_png(strokes: list[list[dict]], size: int = 384) -> str:
                 y0 += sy
 
     for stroke in strokes:
-        for start, end in zip(stroke, stroke[1:]):
-            line(start, end)
+        if not stroke:
+            continue
+        if len(stroke) == 1:
+            p0 = transform(stroke[0])
+            draw_dot(p0[0], p0[1])
+        else:
+            for start, end in zip(stroke, stroke[1:]):
+                line(transform(start), transform(end))
 
     raw = b"".join(b"\x00" + pixels[row * size * 3:(row + 1) * size * 3]
                    for row in range(size))

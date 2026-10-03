@@ -83,6 +83,49 @@ class HanziCanvasController extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool autoFit({double targetPadding = 90.0}) {
+    if (_strokes.isEmpty) return false;
+    double minX = double.infinity;
+    double maxX = -double.infinity;
+    double minY = double.infinity;
+    double maxY = -double.infinity;
+    bool hasPoints = false;
+
+    for (final stroke in _strokes) {
+      for (final pt in stroke) {
+        hasPoints = true;
+        if (pt.dx < minX) minX = pt.dx;
+        if (pt.dx > maxX) maxX = pt.dx;
+        if (pt.dy < minY) minY = pt.dy;
+        if (pt.dy > maxY) maxY = pt.dy;
+      }
+    }
+    if (!hasPoints) return false;
+
+    final width = maxX - minX;
+    final height = maxY - minY;
+    final dim = width > height ? width : height;
+    if (dim < 8.0) return false;
+
+    final availableDim = 1024.0 - 2 * targetPadding;
+    final scale = availableDim / dim;
+    final centerX = (minX + maxX) / 2;
+    final centerY = (minY + maxY) / 2;
+
+    for (var i = 0; i < _strokes.length; i++) {
+      _strokes[i] = _strokes[i].map((pt) {
+        final newX = (pt.dx - centerX) * scale + 512.0;
+        final newY = (pt.dy - centerY) * scale + 512.0;
+        return Offset(
+          newX.clamp(0.0, 1024.0),
+          newY.clamp(0.0, 1024.0),
+        );
+      }).toList();
+    }
+    notifyListeners();
+    return true;
+  }
+
   Offset _normalize(Offset point, Size size) =>
       Offset(point.dx / size.width * 1024, point.dy / size.height * 1024);
 }

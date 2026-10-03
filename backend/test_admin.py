@@ -82,6 +82,27 @@ class AdminIntegrationTest(unittest.TestCase):
         self.assertTrue(image.startswith(b"\x89PNG\r\n\x1a\n"))
         self.assertGreater(len(image), 100)
 
+    def test_handwriting_renderer_normalizes_tiny_corner_drawings(self):
+        # A tiny character drawn in the top-left corner (10..60 out of 1024)
+        corner_strokes = [
+            [{"x": 10, "y": 30}, {"x": 60, "y": 30}],
+            [{"x": 35, "y": 10}, {"x": 35, "y": 60}]
+        ]
+        encoded = _render_strokes_png(corner_strokes, size=128)
+        image = base64.b64decode(encoded)
+        self.assertTrue(image.startswith(b"\x89PNG\r\n\x1a\n"))
+        # Unpack raw pixel data from IDAT
+        import zlib
+        idat_start = image.find(b"IDAT") + 4
+        idat_data = image[idat_start:-12]  # until CRC and IEND
+        raw_pixels = zlib.decompress(idat_data)
+        # Verify that there are dark ink pixels around the center row (row 64 of 128)
+        # Each scanline is 1 filter byte + 128 * 3 RGB bytes = 385 bytes
+        center_scanline = raw_pixels[64 * 385 + 1 : 65 * 385]
+        # Ink color is (25, 30, 32)
+        has_ink_near_center = any(center_scanline[i:i+3] == b"\x19\x1e\x20" for i in range(0, len(center_scanline), 3))
+        self.assertTrue(has_ink_near_center, "Tiny corner drawing should be centered and rendered near the canvas center")
+
     def test_handwriting_recognition_returns_contract_and_vocabulary(self):
         self.word()
         strokes = [[{"x": 100, "y": 500}, {"x": 900, "y": 500}]]

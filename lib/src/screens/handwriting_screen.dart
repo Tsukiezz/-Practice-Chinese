@@ -594,8 +594,8 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                 padding: EdgeInsets.only(top: 8),
                 child: Text(
                   _blind
-                      ? 'Vẽ tự do — không cần theo thứ tự nét, chỉ cần đúng mặt chữ.'
-                      : 'Giữ chuột và kéo trên ô vuông (hoặc dùng ngón tay) để viết từng nét.',
+                      ? 'Vẽ tự do — không cần theo thứ tự nét. Dù vẽ nhỏ hay lệch góc, hệ thống sẽ tự động căn giữa để nhận dạng chính xác.'
+                      : 'Giữ chuột và kéo trên ô vuông (hoặc dùng ngón tay) để viết từng nét. Có thể bấm "Căn giữa ô" nếu vẽ lệch.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
@@ -612,10 +612,10 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                               _clearResults();
                             }),
                       icon: const Icon(Icons.undo),
-                      label: const Text('Hoàn tác nét'),
+                      label: const Text('Hoàn tác'),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: _submitting || _canvasController.isEmpty
@@ -626,6 +626,28 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                             }),
                       icon: const Icon(Icons.delete_outline),
                       label: const Text('Viết lại'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      key: const Key('autofit-handwriting'),
+                      onPressed: _submitting || _canvasController.isEmpty
+                          ? null
+                          : () {
+                              final changed = _canvasController.autoFit();
+                              if (changed) {
+                                setState(_clearResults);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Đã tự động căn giữa và phóng to chữ vừa ô.'),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              }
+                            },
+                      icon: const Icon(Icons.center_focus_strong),
+                      label: const Text('Căn giữa ô'),
                     ),
                   ),
                 ],
