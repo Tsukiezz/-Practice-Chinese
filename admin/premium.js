@@ -190,7 +190,7 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
                 <input name="merchant_id" id="cfg-merchant-id" value="SP-LIVE-O573535" style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px;font-size:12px">
               </label>
               <label style="display:block;font-weight:600">Secret Key / Webhook Key
-                <input name="api_key" id="cfg-api-key" type="password" value="spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o" style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px;font-size:12px">
+                <input name="api_key" id="cfg-api-key" type="password" value="" style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px;font-size:12px">
               </label>
             </div>
             <div style="margin-top:20px;display:flex;gap:10px">
@@ -454,7 +454,7 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
       if (cfg.bank_account) form.elements.bank_account.value = cfg.bank_account;
       if (cfg.account_holder) form.elements.account_holder.value = cfg.account_holder;
       if (cfg.merchant_id) form.elements.merchant_id.value = cfg.merchant_id;
-      if (cfg.api_key) form.elements.api_key.value = cfg.api_key;
+      form.elements.api_key.value = "";
       updatePreviewQr();
     } catch (err) {
       notify('Không thể tải cấu hình SePay: ' + err.message);

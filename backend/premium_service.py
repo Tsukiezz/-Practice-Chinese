@@ -1,4 +1,5 @@
 """HanziGo Premium & SePay payment and voucher service."""
+import os
 import hashlib
 import hmac
 import re
@@ -108,10 +109,12 @@ def get_sepay_config(conn) -> dict[str, Any]:
     if not row:
         conn.execute(
             """INSERT OR IGNORE INTO sepay_config (id, bank_name, bank_account, account_holder, merchant_id, api_key, is_active)
-               VALUES (1, 'MSB', '80001795444', 'NGUYEN VO VINH NGUYEN', 'SP-LIVE-O573535', 'spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o', 1)"""
+               VALUES (1, 'MSB', '80001795444', 'NGUYEN VO VINH NGUYEN', 'SP-LIVE-O573535', '', 1)"""
         )
         row = conn.execute("SELECT * FROM sepay_config WHERE id = 1").fetchone()
-    return dict(row)
+    result = dict(row)
+    result['merchant_id'] = os.getenv('SEPAY_MERCHANT_ID', '').strip() or result['merchant_id']
+    return result
 
 
 def update_sepay_config(
@@ -126,9 +129,9 @@ def update_sepay_config(
     """Update SePay configuration in database."""
     conn.execute(
         """UPDATE sepay_config
-           SET bank_name = ?, bank_account = ?, account_holder = ?, api_key = ?, merchant_id = ?, is_active = ?, version = version + 1
+           SET bank_name = ?, bank_account = ?, account_holder = ?, api_key = CASE WHEN ? = '' THEN api_key ELSE ? END, merchant_id = ?, is_active = ?, version = version + 1
            WHERE id = 1""",
-        (bank_name.strip(), bank_account.strip(), account_holder.strip(), api_key.strip(), merchant_id.strip(), is_active)
+        (bank_name.strip(), bank_account.strip(), account_holder.strip(), api_key.strip(), api_key.strip(), merchant_id.strip(), is_active)
     )
     return get_sepay_config(conn)
 
@@ -167,11 +170,11 @@ def build_vietqr_url(bank_name: str, bank_account: str, amount: int, order_code:
     return f"https://qr.sepay.vn/img?acc={clean_acc}&bank={std_bank}&amount={amount}&des={order_code}&template=qronly"
 
 
-def cleanup_expired_pending_orders(conn, max_age_seconds: int = 300) -> int:
-    """Hủy dữ liệu các đơn hàng đang chờ chuyển khoản quá 5 phút."""
+def cleanup_expired_pending_orders(conn, max_age_seconds: int = 1800) -> int:
+    """Mark old pending orders cancelled; keep records for late payment reconciliation."""
     cutoff = int(time.time()) - max_age_seconds
     deleted = conn.execute(
-        "DELETE FROM premium_orders WHERE status = 'pending' AND created_at < ?",
+        "UPDATE premium_orders SET status = 'cancelled' WHERE status = 'pending' AND created_at < ?",
         (cutoff,)
     ).rowcount
     return deleted
@@ -186,8 +189,11 @@ def create_premium_order(conn, user_id: int, plan_type: str, voucher_code: str |
         raise HTTPException(400, "Gói hội viên không hợp lệ. Vui lòng chọn 1_month hoặc 1_year.")
 
     _cfg_check = get_sepay_config(conn)
-    if not str(_cfg_check.get("bank_account") or "").strip() or not str(_cfg_check.get("bank_name") or "").strip():
+    if not gateway_ready() and (not str(_cfg_check.get("bank_account") or "").strip() or not str(_cfg_check.get("bank_name") or "").strip()):
         raise HTTPException(503, "Hệ thống thanh toán chưa được cấu hình tài khoản ngân hàng. Vui lòng liên hệ quản trị viên.")
+
+    if not _cfg_check["is_active"]:
+        raise HTTPException(503, "Thanh toán đang tạm ngừng.")
 
     plan_info = PLAN_PRICES[plan_type]
     original_amount = plan_info["price"]
@@ -242,7 +248,7 @@ def create_premium_order(conn, user_id: int, plan_type: str, voucher_code: str |
     cfg = get_sepay_config(conn)
     qr_url = build_vietqr_url(cfg["bank_name"], cfg["bank_account"], amount, code)
 
-    return {
+    result = {
         "id": order_id,
         "order_code": code,
         "plan_type": plan_type,
@@ -257,10 +263,19 @@ def create_premium_order(conn, user_id: int, plan_type: str, voucher_code: str |
         "account_holder": cfg["account_holder"],
         "transfer_content": code,
         "qr_url": qr_url,
-        "expires_in": 300,
+        "expires_in": 1800,
         "created_at": now
     }
+    if gateway_ready():
+        conn.execute("UPDATE premium_orders SET payment_gateway='sepay_pg' WHERE id=?", (order_id,))
+        from sepay_gateway import checkout_link
+        result['payment_url'] = checkout_link(code, user_id)
+        result['payment_gateway'] = 'sepay_pg'
+    return result
 
+
+def gateway_ready():
+    return bool(os.getenv('SEPAY_MERCHANT_ID') and os.getenv('SEPAY_SECRET_KEY'))
 
 
 def complete_premium_order(conn, order_id_or_code: int | str, sepay_transaction_id: str | None = None, sepay_reference_code: str | None = None) -> dict[str, Any]:
@@ -432,6 +447,8 @@ def process_sepay_webhook(
         payload.get("token") or payload.get("secret_key") or payload.get("apiKey")
     )
 
+    if not configured_key or not has_auth_attempt:
+        raise HTTPException(401, "Webhook cần xác thực trên máy chủ.")
     if configured_key and has_auth_attempt:
         is_valid = False
         if signature_header and _verify_sepay_signature(signature_header, timestamp_header, raw_body, configured_key):
@@ -503,6 +520,14 @@ def process_sepay_webhook(
             "success": True,
             "message": f"Không tìm thấy đơn hàng tương ứng trong nội dung chuyển khoản: '{content}'."
         }
+
+    if matched_order.get('payment_gateway') == 'sepay_pg':
+        raise HTTPException(400, 'Đơn cổng thanh toán cần IPN SePay, không dùng webhook ngân hàng.')
+    if not sepay_tx_id:
+        raise HTTPException(400, 'Thiếu mã giao dịch.')
+    duplicate = conn.execute("SELECT order_code FROM premium_orders WHERE sepay_transaction_id=? AND status='completed'", (sepay_tx_id,)).fetchone()
+    if duplicate and duplicate['order_code'] != matched_order['order_code']:
+        raise HTTPException(409, 'Giao dịch đã được dùng cho đơn khác.')
 
     # If order is already completed, return idempotent success
     if matched_order["status"] == "completed":

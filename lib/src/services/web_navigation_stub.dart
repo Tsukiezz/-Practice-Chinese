@@ -7,3 +7,5 @@ void openExam(String token) {}
 void openReading(String token) {}
 int? getSavedReturnTab() => null;
 void clearSavedReturnTab() {}
+
+bool openPayment(String url) => false;

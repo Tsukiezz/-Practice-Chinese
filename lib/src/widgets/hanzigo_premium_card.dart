@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
+import '../services/web_navigation.dart' as navigation;
 
 class HanziGoPremiumCard extends StatelessWidget {
   const HanziGoPremiumCard({
@@ -314,6 +315,17 @@ class _VipSubscribeSheetState extends State<_VipSubscribeSheet> {
 
       if (res.statusCode == 201) {
         final orderData = jsonDecode(res.body) as Map<String, dynamic>;
+        if (orderData['status'] == 'completed') {
+          widget.onSuccess();
+          return;
+        }
+        if (orderData['payment_url'] is String) {
+          if (!navigation.openPayment(orderData['payment_url'] as String)) {
+            await Clipboard.setData(ClipboardData(text: orderData['payment_url'] as String));
+            _showSnack('Đã sao chép link thanh toán. Mở link trong trình duyệt rồi trở lại ứng dụng.');
+          }
+          return;
+        }
         _showPaymentQrDialog(orderData);
       } else {
         final err = jsonDecode(res.body);
@@ -690,7 +702,7 @@ class _PaymentQrDialog extends StatefulWidget {
 class _PaymentQrDialogState extends State<_PaymentQrDialog> {
   Timer? _pollingTimer;
   Timer? _countdownTimer;
-  int _secondsRemaining = 300;
+  int _secondsRemaining = 1800;
   bool _isCompleted = false;
   bool _isExpired = false;
 
@@ -815,12 +827,12 @@ class _PaymentQrDialogState extends State<_PaymentQrDialog> {
                     const Icon(Icons.timer_off_rounded, color: Color(0xFFC81E1E), size: 48),
                     const SizedBox(height: 10),
                     const Text(
-                      'Đơn hàng đã hết hạn (Quá 5 phút)',
+                      'Đã hết thời gian chờ thanh toán',
                       style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF9B1C1C)),
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      'Dữ liệu đơn hàng chờ đã được tự động hủy sau 5 phút để bảo vệ bạn. Vui lòng tạo mã QR mới để thanh toán.',
+                      'Hãy tạo đơn mới nếu chưa chuyển tiền. Nếu đã chuyển tiền, hãy kiểm tra lịch sử hoặc liên hệ quản trị viên với mã đơn.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 13, color: Color(0xFF771D1D)),
                     ),

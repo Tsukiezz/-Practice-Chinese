@@ -1,4 +1,8 @@
 """Unit tests for HanziGo Premium, SePay integration, and Vouchers."""
+import os
+import sqlite3
+import uuid
+from unittest.mock import patch
 import re
 import time
 import unittest
@@ -21,6 +25,16 @@ from premium_service import (
 
 class TestPremiumSystem(unittest.TestCase):
     def setUp(self):
+        self.env = patch.dict(os.environ, {'SEPAY_MERCHANT_ID': '', 'SEPAY_SECRET_KEY': '', 'TURSO_DATABASE_URL': '', 'HANZIGO_DB_DRIVER': 'sqlite'})
+        self.env.start()
+        self.addCleanup(self.env.stop)
+        uri = 'file:legacy-premium-' + uuid.uuid4().hex + '?mode=memory&cache=shared'
+        connect = sqlite3.connect
+        self.keeper = connect(uri, uri=True)
+        self.addCleanup(self.keeper.close)
+        connector = patch('database.sqlite3.connect', side_effect=lambda *args, **kwargs: connect(uri, uri=True))
+        connector.start()
+        self.addCleanup(connector.stop)
         init_db()
         self.client = TestClient(app)
 
@@ -114,7 +128,7 @@ class TestPremiumSystem(unittest.TestCase):
         self.assertEqual(data["bank_account"], "80001795444")
         self.assertEqual(data["account_holder"], "NGUYEN VO VINH NGUYEN")
         self.assertEqual(data["transfer_content"], data["order_code"])
-        self.assertEqual(data["expires_in"], 300)
+        self.assertEqual(data["expires_in"], 1800)
 
     def test_one_year_order_qr_amount(self):
         res = self.client.post("/api/premium/orders", headers=self.student_headers, json={"plan_type": "1_year"})
@@ -367,7 +381,7 @@ class TestPremiumSystem(unittest.TestCase):
         self.assertFalse(revoke_data["user"]["is_premium"])
         self.assertEqual(revoke_data["user"]["premium_until"], 0)
 
-    def test_pending_order_expired_and_cancelled_after_5_minutes(self):
+    def test_pending_order_expires_after_30_minutes_and_is_retained(self):
         # Create an order
         res = self.client.post("/api/premium/orders", headers=self.student_headers, json={"plan_type": "1_month"})
         self.assertEqual(res.status_code, 201)
@@ -375,7 +389,7 @@ class TestPremiumSystem(unittest.TestCase):
 
         # Backdate order created_at to 305 seconds ago (over 5 minutes)
         with database() as conn:
-            conn.execute("UPDATE premium_orders SET created_at = ? WHERE order_code = ?", (int(time.time()) - 305, code))
+            conn.execute("UPDATE premium_orders SET created_at = ? WHERE order_code = ?", (int(time.time()) - 1805, code))
 
         # Check order status -> should report expired
         status_res = self.client.get(f"/api/premium/orders/{code}/status", headers=self.student_headers)
@@ -387,7 +401,8 @@ class TestPremiumSystem(unittest.TestCase):
         # Verify order was deleted from premium_orders table
         with database() as conn:
             row = conn.execute("SELECT * FROM premium_orders WHERE order_code = ?", (code,)).fetchone()
-            self.assertIsNone(row)
+            self.assertIsNotNone(row)
+            self.assertEqual(row["status"], "cancelled")
 
 
 if __name__ == "__main__":

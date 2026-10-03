@@ -2127,6 +2127,9 @@ async def text_to_speech(text: str = Query(..., min_length=1, max_length=1000)):
 
 
 ADMIN_DIR = Path(__file__).resolve().parent.parent / "admin"
+from sepay_gateway import register_gateway
+register_gateway(app)
+
 WEB_DIR = Path(os.environ["WEB_APP_DIR"]).resolve() if os.getenv("WEB_APP_DIR") else None
 app.mount("/admin/assets", StaticFiles(directory=ADMIN_DIR), name="admin-assets")
 app.mount("/media", StaticFiles(directory=Path(__file__).parent / "media", check_dir=False), name="media")
@@ -2219,6 +2222,7 @@ def get_my_premium_status(user=Depends(current_user)):
 def create_order(body: CreatePremiumOrderRequest, user=Depends(current_user)):
     """Create a subscription order for 1 month or 1 year with optional voucher."""
     with database() as conn:
+        conn.execute("BEGIN IMMEDIATE")
         order = create_premium_order(conn, user["id"], body.plan_type, body.voucher_code)
     return order
 
@@ -2237,26 +2241,26 @@ def check_order_status(order_code: str, user=Depends(current_user)):
         
         order = row_to_dict(row)
         # Hủy dữ liệu đơn hàng nếu quá 5 phút (300 giây) chưa thanh toán
-        if order["status"] == "pending" and (now - order["created_at"]) > 300:
-            conn.execute("DELETE FROM premium_orders WHERE id = ?", (order["id"],))
+        if order["status"] == "pending" and (now - order["created_at"]) > 1800:
+            conn.execute("UPDATE premium_orders SET status='cancelled' WHERE id = ?", (order["id"],))
             return {
                 "order_code": order["order_code"],
                 "status": "expired",
                 "is_completed": False,
                 "is_expired": True,
-                "message": "Đơn hàng đã hết thời gian chờ 5 phút và đã được hủy tự động."
+                "message": "Đã hết thời gian chờ 30 phút. Lịch sử đơn được giữ để đối chiếu nếu đã chuyển tiền."
             }
 
         u = conn.execute("SELECT premium_until FROM users WHERE id = ?", (user["id"],)).fetchone()
 
     is_completed = order["status"] == "completed"
-    seconds_left = max(0, 300 - (now - order["created_at"])) if not is_completed else 0
+    seconds_left = max(0, 1800 - (now - order["created_at"])) if not is_completed else 0
 
     return {
         "order_code": order["order_code"],
         "status": order["status"],
         "is_completed": is_completed,
-        "is_expired": False,
+        "is_expired": order["status"] == "cancelled",
         "seconds_remaining": seconds_left,
         "amount": order["amount"],
         "plan_type": order["plan_type"],
@@ -2292,6 +2296,7 @@ async def sepay_webhook(request: Request):
     merchant_header = request.headers.get("x-merchant-id") or request.headers.get("X-Merchant-Id")
 
     with database() as conn:
+        conn.execute("BEGIN IMMEDIATE")
         result = process_sepay_webhook(
             conn,
             payload,
@@ -2388,9 +2393,12 @@ def admin_get_sepay_config(user=Depends(admin_user)):
     """Retrieve SePay configuration and webhook guide."""
     with database() as conn:
         cfg = get_sepay_config(conn)
+    cfg["api_key_configured"] = bool(cfg.pop("api_key", ""))
+    cfg["gateway_configured"] = bool(os.getenv("SEPAY_SECRET_KEY") and os.getenv("SEPAY_MERCHANT_ID"))
     return {
         "config": cfg,
         "webhook_url": "/api/payment/sepay-webhook",
+        "ipn_url": "/api/payment/sepay-ipn",
         "instructions": [
             "1. Đăng nhập vào tài khoản SePay của bạn tại https://my.sepay.vn",
             "2. Vào mục 'Kết nối ngân hàng', thêm tài khoản ngân hàng của bạn (Số tài khoản, Tên ngân hàng, Tên chủ tài khoản).",
@@ -2399,7 +2407,7 @@ def admin_get_sepay_config(user=Depends(admin_user)):
             "   - URL nhận webhook: https://<domain-cua-ban>/api/payment/sepay-webhook",
             "   - Kiểu dữ liệu: JSON",
             "   - Trạng thái: Kích hoạt",
-            "5. (Tùy chọn) Nếu bạn thiết lập API Key trong SePay, hãy dán API Token vào ô 'SePay API Key' bên dưới để bảo mật webhook.",
+            "5. Webhook ngân hàng bắt buộc xác thực API Key. Merchant Secret Key thuộc cổng thanh toán, đặt riêng trong SEPAY_SECRET_KEY trên backend.",
             "6. Hệ thống tự động nhận diện mã đơn hàng HZGxxxxxx trong nội dung chuyển khoản và kích hoạt hội viên VIP tức thì!"
         ]
     }
@@ -2418,6 +2426,7 @@ def admin_update_sepay_config(body: SepayConfigUpdate, user=Depends(admin_user))
             merchant_id=body.merchant_id,
             is_active=body.is_active
         )
+    updated["api_key_configured"] = bool(updated.pop("api_key", ""))
     return {"success": True, "config": updated}
 
 

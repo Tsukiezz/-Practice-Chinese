@@ -52,3 +52,5 @@ void clearSavedReturnTab() {
     web.window.sessionStorage.removeItem('hanzigo_return_tab');
   } catch (_) {}
 }
+
+bool openPayment(String url) { web.window.location.assign(url); return true; }

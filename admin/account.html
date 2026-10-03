@@ -275,6 +275,8 @@ $('btn-proceed-sepay').onclick = async () => {
 };
 
 function showPaymentQR(order) {
+  if (order.status === 'completed') { location.reload(); return; }
+  if (order.payment_url) { location.assign(order.payment_url); return; }
   activeOrderCode = order.order_code;
   $('qr-image').src = order.qr_url;
   $('qr-bank').textContent = order.bank_name;
