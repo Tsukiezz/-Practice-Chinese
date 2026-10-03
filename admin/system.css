@@ -52,6 +52,11 @@
 .ai-fields{border:0;padding:24px;margin:0;display:grid;gap:22px;border-radius:0}.ai-fields small{font-size:11px;font-weight:400;line-height:1.6}
 .ai-switch{display:flex;align-items:center;justify-content:space-between;border:1px solid #dce7df;border-radius:12px;background:#f6f9f3;padding:16px;gap:16px}
 .ai-switch span{display:grid;gap:6px}.ai-switch input{width:22px;height:22px;min-height:22px;flex-shrink:0;accent-color:#176b50}
+.ai-section-divider{border-top:1px solid #dce7df;padding-top:18px;margin-top:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.ai-section-divider h3{margin:0 0 4px;font-size:14px;color:#176b50;font-weight:700}
+.ai-section-divider p{margin:0;font-size:12px;color:var(--muted);line-height:1.5}
+.ai-default-prompt-btn{background:#f0f6f2;border:1px solid #c7ded0;color:#176b50;border-radius:6px;font-size:11px;padding:4px 10px;cursor:pointer;font-weight:600;transition:background .15s}
+.ai-default-prompt-btn:hover{background:#e2ece4}
 .ai-savebar{padding:18px 24px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px;background:#fbfcfa}
 .ai-savebar>div{display:flex;gap:8px}.ai-save-note{font-size:12px;color:var(--muted)}
 #ai-error{padding:0 24px;font-size:13px;line-height:1.7}#ai-error:not(:empty){padding-bottom:20px}

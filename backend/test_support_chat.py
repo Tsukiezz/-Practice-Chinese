@@ -201,7 +201,43 @@ class SupportChatTest(unittest.TestCase):
             self.assertEqual(ans, OFF_TOPIC_DECLINE_MESSAGE)
             self.assertTrue(handoff)
 
+    def test_admin_can_configure_and_train_support_ai(self):
+        # 1. Admin gets current AI config with chat prompt & settings
+        config = self.client.get('/api/admin/ai-config', headers=self.admin).json()
+        self.assertIn('chat_prompt', config)
+        self.assertIn('chat_decline_message', config)
+        self.assertIn('chat_strict_mode', config)
+        self.assertIn('chat_stats', config)
+        self.assertTrue(config['chat_strict_mode'])
+
+        # 2. Admin customizes the training prompt and decline message
+        custom_prompt = 'Huấn luyện riêng cho trợ lý: Luôn trả lời ngắn gọn về tiếng Trung.'
+        custom_decline = 'Xin lỗi, câu hỏi này nằm ngoài phạm vi học tập HanziGo của chúng tôi.'
+        update_payload = {
+            'model': config['model'],
+            'system_prompt': config['system_prompt'],
+            'temperature': config['temperature'],
+            'max_tokens': config['max_tokens'],
+            'enabled': bool(config['enabled']),
+            'version': config['version'],
+            'chat_prompt': custom_prompt,
+            'chat_decline_message': custom_decline,
+            'chat_strict_mode': True
+        }
+        res = self.client.put('/api/admin/ai-config', headers=self.admin, json=update_payload)
+        self.assertEqual(res.status_code, 200)
+        updated = res.json()
+        self.assertEqual(updated['chat_prompt'], custom_prompt)
+        self.assertEqual(updated['chat_decline_message'], custom_decline)
+        self.assertTrue(updated['chat_strict_mode'])
+
+        # 3. Verify support chat now returns the custom decline message for off-topic query
+        ans, handoff = generate_reply([{'role': 'user', 'content': 'hiếu thứ hai đẹp không'}])
+        self.assertEqual(ans, custom_decline)
+        self.assertTrue(handoff)
+
 
 if __name__ == '__main__':
     unittest.main()
+
 

@@ -219,6 +219,13 @@ def init_db():
         # Additive, idempotent migration: preserve existing accounts and sessions.
         if 'version' not in {row['name'] for row in conn.execute('PRAGMA table_info(users)')}:
             conn.execute('ALTER TABLE users ADD COLUMN version INTEGER NOT NULL DEFAULT 1')
+        ai_cols = {row['name'] for row in conn.execute('PRAGMA table_info(ai_config)')}
+        if 'chat_prompt' not in ai_cols:
+            conn.execute('ALTER TABLE ai_config ADD COLUMN chat_prompt TEXT')
+        if 'chat_decline_message' not in ai_cols:
+            conn.execute('ALTER TABLE ai_config ADD COLUMN chat_decline_message TEXT')
+        if 'chat_strict_mode' not in ai_cols:
+            conn.execute('ALTER TABLE ai_config ADD COLUMN chat_strict_mode INTEGER NOT NULL DEFAULT 1')
         conn.execute("INSERT OR IGNORE INTO ai_config(id,model,system_prompt,temperature,max_tokens) VALUES(1,?,?,0.2,1000)",
                      ("gemini-3.5-flash", "Bạn là giáo viên tiếng Trung. Trả điểm 0–100 và nhận xét bằng tiếng Việt."))
 

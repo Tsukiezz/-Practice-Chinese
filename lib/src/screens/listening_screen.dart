@@ -961,7 +961,7 @@ class _ReviewCard extends StatelessWidget {
             if (item.explanation.isNotEmpty) ...[
               const SizedBox(height: 8),
               const Text(
-                'Gemini giải thích',
+                'Trợ lý AI giải thích',
                 style: TextStyle(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 4),

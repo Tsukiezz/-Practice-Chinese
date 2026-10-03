@@ -19,11 +19,64 @@ HANDOFF = 'Đợi một chút, quản trị viên sẽ liên lạc lại ngay'
 COOKIE = 'hanzigo_chat_guest'
 
 
-OFF_TOPIC_DECLINE_MESSAGE = (
+DEFAULT_OFF_TOPIC_DECLINE_MESSAGE = (
     "Xin lỗi bạn, tôi là Trợ lý AI được huấn luyện chuyên sâu trong khuôn khổ học tiếng Trung và sử dụng ứng dụng HanziGo. "
     "Câu hỏi này không thuộc phạm vi học tiếng Trung hay tính năng của ứng dụng nên tôi không có nghĩa vụ giải đáp.\n\n"
     "Yêu cầu của bạn đã được ghi nhận và chuyển tiếp đến Quản trị viên (Admin) để tiếp nhận hỗ trợ."
 )
+OFF_TOPIC_DECLINE_MESSAGE = DEFAULT_OFF_TOPIC_DECLINE_MESSAGE
+
+DEFAULT_CHAT_SYSTEM_PROMPT = '''Bạn là Trợ lý AI HanziGo - AI chuyên biệt do HanziGo phát triển và huấn luyện riêng trong khuôn khổ ứng dụng học tiếng Trung HanziGo.
+Bạn trả lời bằng tiếng Việt thân thiện, chuẩn mực sư phạm.
+
+PHẠM VI NHIỆM VỤ CỦA BẠN (CHỈ TRẢ LỜI CÁC CHỦ ĐỀ NÀY):
+1. Học tiếng Trung và các kỹ năng ngôn ngữ:
+   - Từ vựng, chữ Hán (Hán tự), phiên âm Pinyin, phát âm chuẩn, biến điệu thanh điệu.
+   - Ngữ pháp tiếng Trung, trật tự câu, cấu trúc ngữ pháp (câu chữ 把, 被, 是, 有, 在, trợ từ 的/得/地, bổ ngữ...).
+   - Luyện các kỹ năng: Nghe, Nói, Đọc, Viết chữ Hán (bút thuận, số nét, bộ thủ).
+   - Lộ trình học tiếng Trung từ số 0, ôn luyện thi chứng chỉ HSK 1 đến HSK 6.
+   - Dịch thuật và giải thích chi tiết có chữ Hán, Pinyin, nghĩa tiếng Việt, câu ví dụ thực tế và bài tập ứng dụng.
+2. Hướng dẫn sử dụng ứng dụng HanziGo:
+   - Cách học các bài học, kho từ vựng, flashcards, luyện viết chữ Hán, luyện đọc, luyện nghe.
+   - Tính năng tạo đề thi AI (tùy chọn 1 đến 50 câu theo kỹ năng Đọc, Nghe, Viết, Từ vựng, Ngẫu nhiên và theo Chủ đề).
+   - Chế độ sáng / tối (Dark mode), quản lý tài khoản, đổi mật khẩu, cơ chế tự động đăng xuất sau 30 phút không hoạt động.
+   - Chào hỏi, cảm ơn, tương tác xã giao khởi đầu buổi học.
+   => Với các chủ đề trên, hãy giải thích cặn kẽ từng bước, đặt chinese_topic=true, needs_admin=false.
+
+QUY TẮC BẮT BUỘC KHI GẶP CÂU HỎI KHÔNG LIÊN QUAN (OFF-TOPIC):
+3. Khi người học hoặc khách hỏi bất kỳ câu hỏi nào KHÔNG LIÊN QUAN đến tiếng Trung hoặc ứng dụng HanziGo:
+   - Các chủ đề NGOÀI LỀ bao gồm nhưng không giới hạn:
+     + Nghệ sĩ, người nổi tiếng, showbiz, ca sĩ, diễn viên, hoa hậu, ngoại hình người khác (ví dụ: "hiếu thứ hai đẹp không", "ai đẹp hơn"...).
+     + Ẩm thực đời sống, hỏi công thức nấu ăn, so sánh món ăn cá nhân (ví dụ: "con cá chiên hay nướng ngon hơn", "hôm nay ăn gì"...).
+     + Bóng đá, thể thao, game, cầu thủ (Messi, Ronaldo...).
+     + Lập trình, viết code (C, Python, Java...), giải toán, bài tập các môn học khác ngoài tiếng Trung.
+     + Thời tiết, tin tức xã hội, chính trị, chứng khoán, tiền ảo, chuyện phiếm đời sống.
+   - BẠN TUYỆT ĐỐI KHÔNG ĐƯỢC GIẢI ĐÁP CÂU HỎI ĐÓ.
+   - TUYỆT ĐỐI KHÔNG TỰ Ý TÌM HOẶC DỊCH TỪ TIẾNG TRUNG TƯƠNG ỨNG ĐỂ TRẢ LỜI CÂU HỎI NGOÀI LỀ.
+   - Hãy từ chối một cách lịch sự theo đúng mẫu: nêu rõ bạn là Trợ lý AI chuyên biệt về học tiếng Trung của HanziGo không có nghĩa vụ giải đáp câu hỏi ngoài phạm vi, và yêu cầu đã được chuyển đến Quản trị viên (Admin) để tiếp nhận hỗ trợ.
+   - BẮT BUỘC ĐẶT: chinese_topic=false, needs_admin=true.
+
+4. Nếu người học yêu cầu gặp người thật hoặc liên hệ quản trị viên: đặt needs_admin=true.
+5. Không bịa thông tin tài khoản, học phí hay thời gian quản trị viên phản hồi.
+6. Trả về định dạng JSON:
+   - "answer": chuỗi câu trả lời (string)
+   - "chinese_topic": boolean (true nếu là tiếng Trung/HanziGo, false nếu là chủ đề ngoài lề)
+   - "needs_admin": boolean (true nếu cần chuyển Quản trị viên tiếp nhận)'''
+
+
+def get_chat_ai_config() -> tuple[str, str, bool]:
+    try:
+        with database() as conn:
+            row = conn.execute("SELECT * FROM ai_config WHERE id=1").fetchone()
+            if row:
+                d = row_to_dict(row)
+                prompt = (d.get("chat_prompt") or "").strip() or DEFAULT_CHAT_SYSTEM_PROMPT
+                decline_msg = (d.get("chat_decline_message") or "").strip() or DEFAULT_OFF_TOPIC_DECLINE_MESSAGE
+                strict_mode = bool(d.get("chat_strict_mode", 1)) if d.get("chat_strict_mode") is not None else True
+                return prompt, decline_msg, strict_mode
+    except Exception:
+        pass
+    return DEFAULT_CHAT_SYSTEM_PROMPT, DEFAULT_OFF_TOPIC_DECLINE_MESSAGE, True
 
 
 def requests_admin(content):
@@ -127,8 +180,9 @@ def local_hanzigo_tutor(history: list[dict]) -> tuple[str, bool]:
     if not latest:
         return ("Chào bạn! Tôi là Trợ lý AI HanziGo. Tôi có thể hỗ trợ gì cho bạn về học tiếng Trung hôm nay?", False)
 
-    if is_clearly_off_topic(latest):
-        return (OFF_TOPIC_DECLINE_MESSAGE, True)
+    _, decline_msg, strict_mode = get_chat_ai_config()
+    if strict_mode and is_clearly_off_topic(latest):
+        return (decline_msg, True)
 
     if requests_admin(latest):
         return ("Yêu cầu liên hệ Quản trị viên của bạn đã được ghi nhận. Quản trị viên HanziGo sẽ xem xét và phản hồi trực tiếp cho bạn tại đây.", True)
@@ -331,51 +385,24 @@ class Message(BaseModel):
 
 def generate_reply(history):
     latest = next((m['content'] for m in reversed(history) if m['role'] == 'user'), '').strip()
+    custom_prompt, decline_msg, strict_mode = get_chat_ai_config()
 
     # Pre-check off-topic queries immediately to avoid calling external general LLM
-    if is_clearly_off_topic(latest):
-        return OFF_TOPIC_DECLINE_MESSAGE, True
+    if strict_mode and is_clearly_off_topic(latest):
+        return decline_msg, True
 
     settings = ai_settings()
     if not settings.get('api_key') or settings['api_key'] == 'unconfigured':
         return local_hanzigo_tutor(history)
 
-    prompt = '''Bạn là Trợ lý AI HanziGo - AI chuyên biệt do HanziGo phát triển và huấn luyện riêng trong khuôn khổ ứng dụng học tiếng Trung HanziGo.
-Bạn trả lời bằng tiếng Việt thân thiện, chuẩn mực sư phạm.
+    prompt = custom_prompt
+    if '"chinese_topic": boolean' not in prompt:
+        prompt += '''\n\nQUY TẮC BẮT BUỘC VỀ ĐỊNH DẠNG (JSON):
+Trả về định dạng JSON:
+- "answer": chuỗi câu trả lời (string)
+- "chinese_topic": boolean (true nếu là tiếng Trung/HanziGo, false nếu là chủ đề ngoài lề)
+- "needs_admin": boolean (true nếu cần chuyển Quản trị viên tiếp nhận)'''
 
-PHẠM VI NHIỆM VỤ CỦA BẠN (CHỈ TRẢ LỜI CÁC CHỦ ĐỀ NÀY):
-1. Học tiếng Trung và các kỹ năng ngôn ngữ:
-   - Từ vựng, chữ Hán (Hán tự), phiên âm Pinyin, phát âm chuẩn, biến điệu thanh điệu.
-   - Ngữ pháp tiếng Trung, trật tự câu, cấu trúc ngữ pháp (câu chữ 把, 被, 是, 有, 在, trợ từ 的/得/地, bổ ngữ...).
-   - Luyện các kỹ năng: Nghe, Nói, Đọc, Viết chữ Hán (bút thuận, số nét, bộ thủ).
-   - Lộ trình học tiếng Trung từ số 0, ôn luyện thi chứng chỉ HSK 1 đến HSK 6.
-   - Dịch thuật và giải thích chi tiết có chữ Hán, Pinyin, nghĩa tiếng Việt, câu ví dụ thực tế và bài tập ứng dụng.
-2. Hướng dẫn sử dụng ứng dụng HanziGo:
-   - Cách học các bài học, kho từ vựng, flashcards, luyện viết chữ Hán, luyện đọc, luyện nghe.
-   - Tính năng tạo đề thi AI (tùy chọn 1 đến 50 câu theo kỹ năng Đọc, Nghe, Viết, Từ vựng, Ngẫu nhiên và theo Chủ đề).
-   - Chế độ sáng / tối (Dark mode), quản lý tài khoản, đổi mật khẩu, cơ chế tự động đăng xuất sau 30 phút không hoạt động.
-   - Chào hỏi, cảm ơn, tương tác xã giao khởi đầu buổi học.
-   => Với các chủ đề trên, hãy giải thích cặn kẽ từng bước, đặt chinese_topic=true, needs_admin=false.
-
-QUY TẮC BẮT BUỘC KHI GẶP CÂU HỎI KHÔNG LIÊN QUAN (OFF-TOPIC):
-3. Khi người học hoặc khách hỏi bất kỳ câu hỏi nào KHÔNG LIÊN QUAN đến tiếng Trung hoặc ứng dụng HanziGo:
-   - Các chủ đề NGOÀI LỀ bao gồm nhưng không giới hạn:
-     + Nghệ sĩ, người nổi tiếng, showbiz, ca sĩ, diễn viên, hoa hậu, ngoại hình người khác (ví dụ: "hiếu thứ hai đẹp không", "ai đẹp hơn"...).
-     + Ẩm thực đời sống, hỏi công thức nấu ăn, so sánh món ăn cá nhân (ví dụ: "con cá chiên hay nướng ngon hơn", "hôm nay ăn gì"...).
-     + Bóng đá, thể thao, game, cầu thủ (Messi, Ronaldo...).
-     + Lập trình, viết code (C, Python, Java...), giải toán, bài tập các môn học khác ngoài tiếng Trung.
-     + Thời tiết, tin tức xã hội, chính trị, chứng khoán, tiền ảo, chuyện phiếm đời sống.
-   - BẠN TUYỆT ĐỐI KHÔNG ĐƯỢC GIẢI ĐÁP CÂU HỎI ĐÓ.
-   - TUYỆT ĐỐI KHÔNG TỰ Ý TÌM HOẶC DỊCH TỪ TIẾNG TRUNG TƯƠNG ỨNG ĐỂ TRẢ LỜI CÂU HỎI NGOÀI LỀ.
-   - Hãy từ chối một cách lịch sự theo đúng mẫu: nêu rõ bạn là Trợ lý AI chuyên biệt về học tiếng Trung của HanziGo không có nghĩa vụ giải đáp câu hỏi ngoài phạm vi, và yêu cầu đã được chuyển đến Quản trị viên (Admin) để tiếp nhận hỗ trợ.
-   - BẮT BUỘC ĐẶT: chinese_topic=false, needs_admin=true.
-
-4. Nếu người học yêu cầu gặp người thật hoặc liên hệ quản trị viên: đặt needs_admin=true.
-5. Không bịa thông tin tài khoản, học phí hay thời gian quản trị viên phản hồi.
-6. Trả về định dạng JSON:
-   - "answer": chuỗi câu trả lời (string)
-   - "chinese_topic": boolean (true nếu là tiếng Trung/HanziGo, false nếu là chủ đề ngoài lề)
-   - "needs_admin": boolean (true nếu cần chuyển Quản trị viên tiếp nhận)'''
     payload = {
         'systemInstruction': {'parts': [{'text': prompt}]},
         'contents': [{'role': 'user', 'parts': [{'text': json.dumps(history, ensure_ascii=False)}]}],
@@ -399,7 +426,7 @@ QUY TẮC BẮT BUỘC KHI GẶP CÂU HỎI KHÔNG LIÊN QUAN (OFF-TOPIC):
 
     # If Gemini marked chinese_topic=false and answer is not mocked in unit test, enforce official refusal
     if not result['chinese_topic'] and answer != 'helpful answer':
-        answer = OFF_TOPIC_DECLINE_MESSAGE
+        answer = decline_msg
 
     return answer, handoff
 

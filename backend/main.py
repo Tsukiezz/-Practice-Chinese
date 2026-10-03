@@ -1251,6 +1251,7 @@ def submit(exam_id: int, body: Submission, user=Depends(current_user), grader=De
 
 @app.get("/api/admin/ai-config")
 def get_ai_config(user=Depends(admin_user)):
+    from support_chat import DEFAULT_CHAT_SYSTEM_PROMPT, DEFAULT_OFF_TOPIC_DECLINE_MESSAGE
     with database() as conn:
         result = require_row(conn, "ai_config", 1)
         since = int(time.time()) - 86400
@@ -1260,10 +1261,20 @@ def get_ai_config(user=Depends(admin_user)):
         result["recent_usage"] = [row_to_dict(row) for row in conn.execute(
             """SELECT a.module,a.status,a.created_at,COALESCE(u.name,'Khách / hệ thống') AS name
                FROM ai_usage a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.id DESC LIMIT 8""").fetchall()]
+        chat_stats = conn.execute(
+            "SELECT COUNT(DISTINCT thread_id) AS threads, COUNT(*) AS messages FROM chat_messages"
+        ).fetchone()
+        result["chat_stats"] = {
+            "threads": chat_stats["threads"] if chat_stats else 0,
+            "messages": chat_stats["messages"] if chat_stats else 0
+        }
     result["model"] = configured_model(result)
     result["key_configured"] = bool(configured_api_key())
     result["fallback_model"] = os.getenv("GEMINI_FALLBACK_MODEL", "").strip()
     result["ready"] = bool(result["enabled"] and result["key_configured"] and result["model"])
+    result["chat_prompt"] = (result.get("chat_prompt") or "").strip() or DEFAULT_CHAT_SYSTEM_PROMPT
+    result["chat_decline_message"] = (result.get("chat_decline_message") or "").strip() or DEFAULT_OFF_TOPIC_DECLINE_MESSAGE
+    result["chat_strict_mode"] = bool(result.get("chat_strict_mode", 1)) if result.get("chat_strict_mode") is not None else True
     return result
 
 
@@ -1275,8 +1286,15 @@ def update_ai_config(body: AIConfig, admin=Depends(admin_user)):
         conn.execute("BEGIN IMMEDIATE")
         before = require_row(conn, "ai_config", 1)
         check_version(before, body.version)
-        conn.execute("UPDATE ai_config SET model=?,system_prompt=?,temperature=?,max_tokens=?,enabled=?,version=version+1 WHERE id=1",
-                     (body.model, body.system_prompt, body.temperature, body.max_tokens, int(body.enabled)))
+        chat_prompt = body.chat_prompt if body.chat_prompt is not None else before.get("chat_prompt", "")
+        chat_decline = body.chat_decline_message if body.chat_decline_message is not None else before.get("chat_decline_message", "")
+        chat_strict = int(body.chat_strict_mode) if body.chat_strict_mode is not None else int(before.get("chat_strict_mode", 1))
+        conn.execute("""UPDATE ai_config SET 
+                        model=?,system_prompt=?,temperature=?,max_tokens=?,enabled=?,
+                        chat_prompt=?,chat_decline_message=?,chat_strict_mode=?,
+                        version=version+1 WHERE id=1""",
+                     (body.model, body.system_prompt, body.temperature, body.max_tokens, int(body.enabled),
+                      chat_prompt, chat_decline, chat_strict))
         audit(conn, admin["id"], "update", "ai_config", 1, before, require_row(conn, "ai_config", 1))
     return get_ai_config(admin)
 
@@ -1298,7 +1316,7 @@ def test_ai_connection(admin=Depends(admin_user)):
     with database() as conn:
         audit(conn, admin["id"], "connection_test", "ai_config", 1, None,
               {"model": settings["model"], "status": "success"})
-    return {"status": "ok", "message": "Đã nhận phản hồi hợp lệ từ Gemini. Không tạo điểm học viên."}
+    return {"status": "ok", "message": "Đã nhận phản hồi hợp lệ từ Trợ lý AI. Không tạo điểm học viên."}
 
 
 @app.get("/api/admin/results")

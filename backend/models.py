@@ -295,6 +295,9 @@ class AIConfig(Body):
     max_tokens: int = Field(ge=1, le=16000)
     enabled: bool
     version: int = Field(ge=1)
+    chat_prompt: str | None = Field(default=None, max_length=20000)
+    chat_decline_message: str | None = Field(default=None, max_length=2000)
+    chat_strict_mode: bool | None = Field(default=None)
 
 
 class Override(Body):

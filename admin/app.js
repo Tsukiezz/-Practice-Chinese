@@ -16,7 +16,7 @@ const pages = {
   vocabulary: ['Kho 5.000 từ & nét chuẩn', 'Nguồn 5.000 từ vựng HSK 1–6 và thứ tự nét canvas chuẩn.'],
   exams: ['Ngân hàng đề thi HSK', 'Biên soạn và quản lý đề thi Nghe, Đọc, Viết theo chuẩn HSK 1–6.'],
   lessons: ['Lộ trình 48 bài học', 'Danh mục bài học giáo trình HanziGo và mục tiêu từng cấp độ.'],
-  ai: ['Cấu hình Trợ lý AI', 'Quản lý model Gemini, hướng dẫn chấm bài thi và giới hạn xử lý.'],
+  ai: ['Cấu hình Trợ lý AI', 'Quản lý mô hình, huấn luyện trợ lý học tập và hướng dẫn chấm bài.'],
   logs: ['Nhật ký quản trị', 'Các thay đổi được ghi nhận cùng người thực hiện và thời gian minh bạch.'],
 };
 let token = sessionStorage.getItem('hanzigo_admin_token') || '';
@@ -46,7 +46,7 @@ const NAV_GROUPS = [
   {
     id: 'system',
     title: '⚙️ Hệ thống & Trí tuệ AI',
-    desc: 'Cấu hình model Gemini AI và nhật ký kiểm toán hệ thống',
+    desc: 'Cấu hình mô hình Trợ lý AI và nhật ký kiểm toán hệ thống',
     items: ['chats','ai','logs']
   }
 ];

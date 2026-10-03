@@ -313,7 +313,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                         if (!mounted) return;
                         ScaffoldMessenger.of(this.context).showSnackBar(
                           SnackBar(
-                            content: Text('Gemini chấm ${result.score.toStringAsFixed(0)} điểm. ${result.feedback}'),
+                            content: Text('Trợ lý AI chấm ${result.score.toStringAsFixed(0)} điểm. ${result.feedback}'),
                           ),
                         );
                       } on StudentApiException catch (e) {
@@ -328,7 +328,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                       dimension: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Nộp cho Gemini'),
+                  : const Text('Nộp cho Trợ lý AI'),
             ),
           ],
         ),
