@@ -37,33 +37,89 @@ def requests_admin(content):
         r'|\b(?:contact|speak to|talk to|connect me to)\s+(?:an?\s+)?(?:admin|human|agent)\b', text))
 
 
-def is_clearly_off_topic(content: str) -> bool:
-    if not content:
+def is_on_topic_chinese_or_hanzigo(content: str) -> bool:
+    if not content or not content.strip():
         return False
-    # If content contains Chinese characters, treat as Chinese context
+    # 1. Any message containing Chinese characters is definitely about Chinese
     if any('\u4e00' <= ch <= '\u9fff' for ch in content):
-        return False
-
-    text = ''.join(ch for ch in unicodedata.normalize('NFD', content.lower())
-                   if unicodedata.category(ch) != 'Mn').replace('đ', 'd')
-
-    # If explicitly asking for Chinese translation / Chinese terms / HanziGo:
-    if re.search(r'\b(?:tieng trung|tieng hoa|chu han|pinyin|han tu|dich sang|dich giup|noi the nao|phat am|nghia la gi|hsk|hanzigo)\b', text):
-        return False
-
-    # 1. Football, athletes, sports outside Chinese language learning:
-    if re.search(r'\b(?:cau thu|bong da|messi|ronaldo|pele|maradona|ngoai hang anh|champions league|c1\b|world cup|real madrid|barcelona|barca|chelsea|manchester|mu\b|bong ro|tennis|quan vot|fifa)\b', text):
         return True
 
-    # 2. General programming / coding unrelated to Chinese:
-    if re.search(r'\b(?:code cho toi|viet code|viet chuong trinh|chuong trinh c\b|lap trinh c\b|lap trinh python|lap trinh java|viet ham|debug code|viet script|c\+\+|javascript)\b', text):
+    norm = ''.join(
+        ch for ch in unicodedata.normalize('NFD', content.lower())
+        if unicodedata.category(ch) != 'Mn'
+    ).replace('đ', 'd').strip()
+
+    # Explicit off-topic overrides even if some words might appear:
+    # Sports, footballers, leagues
+    if re.search(r'\b(?:cau thu|bong da|messi|ronaldo|pele|maradona|ngoai hang anh|champions league|c1\b|world cup|real madrid|barcelona|barca|chelsea|manchester|mu\b|arsenal|liverpool|bong ro|nba|tennis|quan vot|fifa)\b', norm):
+        return False
+    # General programming / coding unrelated to Chinese
+    if re.search(r'\b(?:code cho toi|viet code|viet chuong trinh|chuong trinh c\b|lap trinh c\b|lap trinh python|lap trinh java|viet ham|debug code|viet script|c\+\+|javascript|html/css)\b', norm):
+        return False
+    # Non-learning topics: showbiz, celebrities, casual pop culture
+    if re.search(r'\b(?:hieu thu hai|son tung|jack\b|den vau|showbiz|dien vien|ca si|hoa hau|idol|kpop|phim chieu rap|gia vang|chung khoan|bitcoin|tien ao|thoi tiet|du bao thoi tiet|tong thong|chinh tri|chien tranh|quoc phong)\b', norm):
+        return False
+    # Casual taste / opinion questions about cooking/food unrelated to Chinese language:
+    # e.g., "con cá chiên hay nướng ngon hơn", "ăn món gì ngon", "nấu món gì"
+    if re.search(r'\b(?:ngon hon|ngon khong|mon gi ngon|nau mon gi|nau an ngon|cong thuc nau|cach nau|cach lam mon|chien hay nuong|luoc hay xao)\b', norm) and not re.search(r'\b(?:tieng trung|tieng hoa|trung quoc|am thuc trung)\b', norm):
+        return False
+    # Casual appearance / beauty opinions:
+    # e.g., "hiếu thứ hai đẹp không", "ai đẹp hơn", "mặc gì đẹp"
+    if re.search(r'\b(?:dep khong|xau khong|ai dep hon|mac gi dep|co dep khong)\b', norm) and not re.search(r'\b(?:chu|chu han|viet chu|net chu|giao dien|font|tieng trung)\b', norm):
+        return False
+
+    # Positive category 1: Chinese language learning
+    chinese_keywords = (
+        r'\b(?:tieng trung|tieng hoa|han ngu|trung van|trung quoc|bac kinh|thuong hai|dai loan|'
+        r'chu han|han tu|pinyin|binh am|phien am|thanh mau|van mau|thanh dieu|bien dieu|thanh 1|thanh 2|thanh 3|thanh 4|thanh nhe|'
+        r'hsk|hskk|tocfl|'
+        r'bo thu|but thuan|so net|net so|net ngang|net phay|net mac|'
+        r'cau chu ba|cau chu bi|tro tu|bo ngu|ngu phap|ngu am|'
+        r'dich sang|dich giup|dich cau|dich tu|dich tieng|'
+        r'noi the nao|viet the nao|doc the nao|phat am the nao|'
+        r'tieng trung la gi|tieng trung noi sao|tieng trung noi the nao|nghia la gi trong tieng trung|'
+        r'tu vung|kho tu|mau cau|hoi thoai|giao tiep)\b'
+    )
+    if re.search(chinese_keywords, norm):
         return True
 
-    # 3. Non-Chinese general queries:
-    if re.search(r'\b(?:thoi tiet hom nay|du bao thoi tiet|gia vang hom nay|chung khoan hom nay|bitcoin|tien ao|cong thuc nau an|nau mon gi ngon|chieu phim gi|showbiz|tong thong my)\b', text):
+    # Positive category 2: HanziGo app features / usage
+    app_keywords = (
+        r'\b(?:hanzigo|ung dung|app|'
+        r'bai hoc|kho tu vung|flashcard|luyen viet|viet chu|luyen doc|bai doc|luyen nghe|bai nghe|phat am|'
+        r'de thi|tao de|kiem tra|thi thu|cham diem|cham thi|ket qua thi|'
+        r'che do toi|dark mode|giao dien|giao dien toi|mau toi|mau sang|'
+        r'dang xuat|tu dong dang xuat|tai khoan|doi mat khau|dang nhap|dang ky|quen mat khau|otp|email|'
+        r'lo trinh|phuong phap|cach hoc|bat dau hoc|hoc tot)\b'
+    )
+    if re.search(app_keywords, norm):
+        return True
+
+    # Positive category 3: Polite greetings, farewells, gratitude, asking about the bot
+    pleasantries = (
+        r'\b(?:xin chao|chao ban|chao bot|chao tro ly|chao ad|chao admin|hello|hi\b|alo|'
+        r'cam on|thanks|thank you|tam biet|bye|'
+        r'ban la ai|ban ten gi|tro ly ai|ban giup duoc gi|ban lam duoc gi)\b'
+    )
+    if re.search(pleasantries, norm):
+        return True
+
+    # Positive category 4: Requests for human / admin support
+    if requests_admin(content):
+        return True
+
+    # Positive category 5: Basic Pinyin romanization expressions
+    pinyin_basics = r'\b(?:ni hao|nihao|xiexie|xie xie|zaijian|zai jian|laoshi|lao shi|zao an|wan an)\b'
+    if re.search(pinyin_basics, norm):
         return True
 
     return False
+
+
+def is_clearly_off_topic(content: str) -> bool:
+    if not content or not content.strip():
+        return False
+    return not is_on_topic_chinese_or_hanzigo(content)
 
 
 def local_hanzigo_tutor(history: list[dict]) -> tuple[str, bool]:
@@ -145,10 +201,10 @@ def local_hanzigo_tutor(history: list[dict]) -> tuple[str, bool]:
                 r = conn.execute("SELECT hanzi, pinyin, meaning, hsk, example FROM vocabulary WHERE hanzi = ?", (h,)).fetchone()
                 if r:
                     words.append(dict(r))
-            if not words:
+            if not words and re.search(r'\b(?:tu vung|dich|tieng trung la gi|noi the nao|viet the nao|nghia la gi|chu han|han tu|kho tu)\b', norm):
                 keywords = re.findall(r'\b[a-zA-Zàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]{2,}\b', latest.lower())
                 for kw in keywords[:3]:
-                    if kw in ['toi', 'ban', 'muon', 'hoc', 'tu', 'cau', 'nghia', 'cho', 'xin']:
+                    if kw in ['toi', 'ban', 'muon', 'hoc', 'tu', 'cau', 'nghia', 'cho', 'xin', 'tieng', 'trung', 'han', 'hoa', 'la', 'gi']:
                         continue
                     rows = conn.execute("SELECT hanzi, pinyin, meaning, hsk, example FROM vocabulary WHERE meaning LIKE ? LIMIT 2", (f"%{kw}%",)).fetchall()
                     for r in rows:
@@ -302,11 +358,17 @@ PHẠM VI NHIỆM VỤ CỦA BẠN (CHỈ TRẢ LỜI CÁC CHỦ ĐỀ NÀY):
    => Với các chủ đề trên, hãy giải thích cặn kẽ từng bước, đặt chinese_topic=true, needs_admin=false.
 
 QUY TẮC BẮT BUỘC KHI GẶP CÂU HỎI KHÔNG LIÊN QUAN (OFF-TOPIC):
-3. Khi người học hoặc khách hỏi bất kỳ câu hỏi nào KHÔNG LIÊN QUAN đến tiếng Trung hoặc ứng dụng HanziGo (ví dụ: hỏi về bóng đá, thể thao, lập trình/viết code, giải trí, showbiz, chính trị, thời tiết, chứng khoán, kiến thức đời sống tổng quát ngoài tiếng Trung...):
-   - BẠN TUYỆT ĐỐI KHÔNG CÓ NGHĨA VỤ PHẢI TRẢ LỜI VÀ KHÔNG ĐƯỢC GIẢI ĐÁP CÂU HỎI ĐÓ.
-   - Tuyệt đối KHÔNG viết code (C, Python, Java...), KHÔNG bình luận bóng đá (Messi, Ronaldo...), KHÔNG trả lời chủ đề ngoài lề.
-   - Hãy từ chối một cách lịch sự và nêu rõ bạn là Trợ lý AI chuyên biệt về tiếng Trung của HanziGo không có nghĩa vụ giải đáp câu hỏi ngoài phạm vi, và yêu cầu đã được chuyển đến Quản trị viên (Admin) để tiếp nhận hỗ trợ.
-   - Đặt chinese_topic=false, needs_admin=true.
+3. Khi người học hoặc khách hỏi bất kỳ câu hỏi nào KHÔNG LIÊN QUAN đến tiếng Trung hoặc ứng dụng HanziGo:
+   - Các chủ đề NGOÀI LỀ bao gồm nhưng không giới hạn:
+     + Nghệ sĩ, người nổi tiếng, showbiz, ca sĩ, diễn viên, hoa hậu, ngoại hình người khác (ví dụ: "hiếu thứ hai đẹp không", "ai đẹp hơn"...).
+     + Ẩm thực đời sống, hỏi công thức nấu ăn, so sánh món ăn cá nhân (ví dụ: "con cá chiên hay nướng ngon hơn", "hôm nay ăn gì"...).
+     + Bóng đá, thể thao, game, cầu thủ (Messi, Ronaldo...).
+     + Lập trình, viết code (C, Python, Java...), giải toán, bài tập các môn học khác ngoài tiếng Trung.
+     + Thời tiết, tin tức xã hội, chính trị, chứng khoán, tiền ảo, chuyện phiếm đời sống.
+   - BẠN TUYỆT ĐỐI KHÔNG ĐƯỢC GIẢI ĐÁP CÂU HỎI ĐÓ.
+   - TUYỆT ĐỐI KHÔNG TỰ Ý TÌM HOẶC DỊCH TỪ TIẾNG TRUNG TƯƠNG ỨNG ĐỂ TRẢ LỜI CÂU HỎI NGOÀI LỀ.
+   - Hãy từ chối một cách lịch sự theo đúng mẫu: nêu rõ bạn là Trợ lý AI chuyên biệt về học tiếng Trung của HanziGo không có nghĩa vụ giải đáp câu hỏi ngoài phạm vi, và yêu cầu đã được chuyển đến Quản trị viên (Admin) để tiếp nhận hỗ trợ.
+   - BẮT BUỘC ĐẶT: chinese_topic=false, needs_admin=true.
 
 4. Nếu người học yêu cầu gặp người thật hoặc liên hệ quản trị viên: đặt needs_admin=true.
 5. Không bịa thông tin tài khoản, học phí hay thời gian quản trị viên phản hồi.

@@ -155,7 +155,10 @@ class SupportChatTest(unittest.TestCase):
         off_topics = [
             'cầu thủ nào hay nhất thế giới mọi thời đại',
             'messi hơn ronaldo đúng không',
-            'có thể code cho tôi một chương trình C hay không'
+            'có thể code cho tôi một chương trình C hay không',
+            'hiếu thứ hai đẹp không',
+            'con cá chiên hay nướng ngon hơn',
+            'thời tiết ngày mai thế nào',
         ]
         for query in off_topics:
             reply, handoff = generate_reply([{'role': 'user', 'content': query}])
@@ -190,6 +193,15 @@ class SupportChatTest(unittest.TestCase):
         self.assertIn('Chế độ Tối', ans)
         self.assertFalse(handoff)
 
+    @patch('support_chat.ai_settings', return_value={'model': 'model-test', 'api_key': 'unconfigured'})
+    def test_local_hanzigo_tutor_declines_off_topic_queries(self, settings):
+        from support_chat import OFF_TOPIC_DECLINE_MESSAGE, local_hanzigo_tutor
+        for q in ['hiếu thứ hai đẹp không', 'con cá chiên hay nướng ngon hơn', 'thời tiết hôm nay thế nào']:
+            ans, handoff = local_hanzigo_tutor([{'role': 'user', 'content': q}])
+            self.assertEqual(ans, OFF_TOPIC_DECLINE_MESSAGE)
+            self.assertTrue(handoff)
+
 
 if __name__ == '__main__':
     unittest.main()
+
