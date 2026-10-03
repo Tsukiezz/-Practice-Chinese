@@ -390,6 +390,18 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
     loadTransactions();
   };
 
-  // Initial load
+  // Initial load and real-time polling every 6 seconds
   loadTransactions();
+  const pollTimer = setInterval(() => {
+    if (!document.body.contains(panel)) {
+      clearInterval(pollTimer);
+      return;
+    }
+    const txPane = panel.querySelector('#tab-transactions');
+    if (txPane && txPane.style.display !== 'none') {
+      loadTransactions();
+      refreshDashboardStats();
+    }
+  }, 6000);
 }
+

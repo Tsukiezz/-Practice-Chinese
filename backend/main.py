@@ -42,8 +42,9 @@ from premium_service import (
     PLAN_PRICES, COMPARISON_FEATURES,
     create_ai_100_score_voucher, get_sepay_config, update_sepay_config,
     create_premium_order, complete_premium_order, redeem_voucher_direct,
-    process_sepay_webhook
+    process_sepay_webhook, cleanup_expired_pending_orders
 )
+
 from services import (configured_api_key, configured_model, evaluate_with_ai,
                       compare_handwriting_strokes,
                       gemini_capability_provider, gemini_exam_provider,
@@ -2224,22 +2225,39 @@ def create_order(body: CreatePremiumOrderRequest, user=Depends(current_user)):
 
 @app.get("/api/premium/orders/{order_code}/status")
 def check_order_status(order_code: str, user=Depends(current_user)):
-    """Check status of a pending order (used for polling QR payment dialog)."""
+    """Check status of a pending order (used for polling QR payment dialog). Auto-cancels if over 5 minutes."""
+    now = int(time.time())
     with database() as conn:
         row = conn.execute(
             "SELECT * FROM premium_orders WHERE order_code = ? AND user_id = ?",
             (order_code.strip(), user["id"])
         ).fetchone()
         if not row:
-            raise HTTPException(404, "Không tìm thấy đơn hàng.")
+            raise HTTPException(404, "Không tìm thấy đơn hàng hoặc đơn đã hết thời gian thanh toán.")
+        
+        order = row_to_dict(row)
+        # Hủy dữ liệu đơn hàng nếu quá 5 phút (300 giây) chưa thanh toán
+        if order["status"] == "pending" and (now - order["created_at"]) > 300:
+            conn.execute("DELETE FROM premium_orders WHERE id = ?", (order["id"],))
+            return {
+                "order_code": order["order_code"],
+                "status": "expired",
+                "is_completed": False,
+                "is_expired": True,
+                "message": "Đơn hàng đã hết thời gian chờ 5 phút và đã được hủy tự động."
+            }
+
         u = conn.execute("SELECT premium_until FROM users WHERE id = ?", (user["id"],)).fetchone()
 
-    order = row_to_dict(row)
-    now = int(time.time())
+    is_completed = order["status"] == "completed"
+    seconds_left = max(0, 300 - (now - order["created_at"])) if not is_completed else 0
+
     return {
         "order_code": order["order_code"],
         "status": order["status"],
-        "is_completed": order["status"] == "completed",
+        "is_completed": is_completed,
+        "is_expired": False,
+        "seconds_remaining": seconds_left,
         "amount": order["amount"],
         "plan_type": order["plan_type"],
         "premium_until": u["premium_until"] if u else 0,
@@ -2296,6 +2314,8 @@ def admin_premium_dashboard(user=Depends(admin_user)):
     """Return overview metrics for HanziGo Premium, SePay transactions, and Vouchers."""
     now = int(time.time())
     with database() as conn:
+        # Hủy dữ liệu các đơn chờ quá 5 phút
+        cleanup_expired_pending_orders(conn)
         active_subscribers = conn.execute("SELECT COUNT(*) FROM users WHERE premium_until > ?", (now,)).fetchone()[0]
         total_orders = conn.execute("SELECT COUNT(*) FROM premium_orders").fetchone()[0]
         completed_orders = conn.execute("SELECT COUNT(*) FROM premium_orders WHERE status = 'completed'").fetchone()[0]
@@ -2324,8 +2344,10 @@ def admin_premium_transactions(
     offset: int = Query(default=0, ge=0),
     user=Depends(admin_user)
 ):
-    """List bank transfer orders with user information and status."""
+    """List bank transfer orders with user information and status. Expired pending orders (>5m) are auto-cleaned."""
     with database() as conn:
+        # Hủy dữ liệu các đơn chờ quá 5 phút
+        cleanup_expired_pending_orders(conn)
         query = """
             SELECT o.*, u.name AS user_name, u.email AS user_email
             FROM premium_orders o
@@ -2348,6 +2370,7 @@ def admin_premium_transactions(
         "total": total_count,
         "items": [row_to_dict(r) for r in rows]
     }
+
 
 
 @app.post("/api/admin/premium/transactions/{order_id}/activate")

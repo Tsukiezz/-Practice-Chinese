@@ -98,9 +98,11 @@ class TestPremiumSystem(unittest.TestCase):
         self.assertEqual(data["amount"], 49000)
         self.assertEqual(data["original_amount"], 49000)
         self.assertTrue(data["order_code"].startswith("HZG"))
-        self.assertIn("qr.sepay.vn", data["qr_url"])
+        self.assertIn("vietqr", data["qr_url"])
+        self.assertEqual(data["expires_in"], 300)
 
     def test_order_creation_with_discount_voucher(self):
+
         # Admin creates 20% voucher
         with database() as conn:
             conn.execute(
@@ -336,7 +338,30 @@ class TestPremiumSystem(unittest.TestCase):
         self.assertFalse(revoke_data["user"]["is_premium"])
         self.assertEqual(revoke_data["user"]["premium_until"], 0)
 
+    def test_pending_order_expired_and_cancelled_after_5_minutes(self):
+        # Create an order
+        res = self.client.post("/api/premium/orders", headers=self.student_headers, json={"plan_type": "1_month"})
+        self.assertEqual(res.status_code, 201)
+        code = res.json()["order_code"]
+
+        # Backdate order created_at to 305 seconds ago (over 5 minutes)
+        with database() as conn:
+            conn.execute("UPDATE premium_orders SET created_at = ? WHERE order_code = ?", (int(time.time()) - 305, code))
+
+        # Check order status -> should report expired
+        status_res = self.client.get(f"/api/premium/orders/{code}/status", headers=self.student_headers)
+        self.assertEqual(status_res.status_code, 200)
+        status_data = status_res.json()
+        self.assertTrue(status_data["is_expired"])
+        self.assertEqual(status_data["status"], "expired")
+
+        # Verify order was deleted from premium_orders table
+        with database() as conn:
+            row = conn.execute("SELECT * FROM premium_orders WHERE order_code = ?", (code,)).fetchone()
+            self.assertIsNone(row)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

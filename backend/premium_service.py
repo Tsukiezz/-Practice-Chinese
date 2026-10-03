@@ -134,14 +134,44 @@ def update_sepay_config(
 
 
 def build_vietqr_url(bank_name: str, bank_account: str, amount: int, order_code: str) -> str:
-    """Generate VietQR image URL formatted for SePay."""
-    clean_bank = bank_name.strip().replace(" ", "")
+    """Generate official standard VietQR image URL (high resolution, scan-optimized without bloated logos)."""
+    clean_bank = bank_name.strip().replace(" ", "").upper()
     clean_acc = bank_account.strip().replace(" ", "")
-    return f"https://qr.sepay.vn/img?acc={clean_acc}&bank={clean_bank}&amount={amount}&des={order_code}"
+    bank_map = {
+        "MBBANK": "MB",
+        "MB": "MB",
+        "VIETCOMBANK": "VCB",
+        "VCB": "VCB",
+        "TECHCOMBANK": "TCB",
+        "TCB": "TCB",
+        "VIETINBANK": "CTG",
+        "CTG": "CTG",
+        "BIDV": "BIDV",
+        "ACB": "ACB",
+        "VPBANK": "VPB",
+        "VPB": "VPB",
+        "TPBANK": "TPB",
+        "TPB": "TPB",
+    }
+    std_bank = bank_map.get(clean_bank, clean_bank)
+    return f"https://img.vietqr.io/image/{std_bank}-{clean_acc}-qr_only.png?amount={amount}&addInfo={order_code}"
+
+
+def cleanup_expired_pending_orders(conn, max_age_seconds: int = 300) -> int:
+    """Hủy dữ liệu các đơn hàng đang chờ chuyển khoản quá 5 phút."""
+    cutoff = int(time.time()) - max_age_seconds
+    deleted = conn.execute(
+        "DELETE FROM premium_orders WHERE status = 'pending' AND created_at < ?",
+        (cutoff,)
+    ).rowcount
+    return deleted
 
 
 def create_premium_order(conn, user_id: int, plan_type: str, voucher_code: str | None = None) -> dict[str, Any]:
     """Create a new payment order for HanziGo Premium with optional voucher code."""
+    # Auto clean up past expired pending orders (> 5 minutes)
+    cleanup_expired_pending_orders(conn)
+
     if plan_type not in PLAN_PRICES:
         raise HTTPException(400, "Gói hội viên không hợp lệ. Vui lòng chọn 1_month hoặc 1_year.")
 
@@ -213,8 +243,10 @@ def create_premium_order(conn, user_id: int, plan_type: str, voucher_code: str |
         "account_holder": cfg["account_holder"],
         "transfer_content": code,
         "qr_url": qr_url,
+        "expires_in": 300,
         "created_at": now
     }
+
 
 
 def complete_premium_order(conn, order_id_or_code: int | str, sepay_transaction_id: str | None = None, sepay_reference_code: str | None = None) -> dict[str, Any]:

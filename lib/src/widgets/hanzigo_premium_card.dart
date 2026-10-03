@@ -689,16 +689,37 @@ class _PaymentQrDialog extends StatefulWidget {
 
 class _PaymentQrDialogState extends State<_PaymentQrDialog> {
   Timer? _pollingTimer;
+  Timer? _countdownTimer;
+  int _secondsRemaining = 300;
   bool _isCompleted = false;
+  bool _isExpired = false;
 
   @override
   void initState() {
     super.initState();
+    final exp = widget.order['expires_in'];
+    if (exp is int && exp > 0) {
+      _secondsRemaining = exp;
+    }
+    _startCountdown();
     _startPolling();
+  }
+
+  void _startCountdown() {
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsRemaining > 1) {
+        if (mounted) setState(() => _secondsRemaining--);
+      } else {
+        timer.cancel();
+        _pollingTimer?.cancel();
+        if (mounted) setState(() => _isExpired = true);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     _pollingTimer?.cancel();
     super.dispose();
   }
@@ -718,13 +739,22 @@ class _PaymentQrDialogState extends State<_PaymentQrDialog> {
           final data = jsonDecode(res.body) as Map<String, dynamic>;
           if (data['is_completed'] == true) {
             timer.cancel();
+            _countdownTimer?.cancel();
             if (mounted) {
               setState(() => _isCompleted = true);
               Future.delayed(const Duration(seconds: 2), () {
                 if (mounted) widget.onSuccess();
               });
             }
+          } else if (data['is_expired'] == true || data['status'] == 'expired') {
+            timer.cancel();
+            _countdownTimer?.cancel();
+            if (mounted) setState(() => _isExpired = true);
           }
+        } else if (res.statusCode == 404) {
+          timer.cancel();
+          _countdownTimer?.cancel();
+          if (mounted) setState(() => _isExpired = true);
         }
       } catch (_) {}
     });
@@ -772,16 +802,90 @@ class _PaymentQrDialogState extends State<_PaymentQrDialog> {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 13),
               ),
+            ] else if (_isExpired) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFDE8E8),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFF98080)),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.timer_off_rounded, color: Color(0xFFC81E1E), size: 48),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Đơn hàng đã hết hạn (Quá 5 phút)',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF9B1C1C)),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Dữ liệu đơn hàng chờ đã được tự động hủy sau 5 phút để bảo vệ bạn. Vui lòng tạo mã QR mới để thanh toán.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 13, color: Color(0xFF771D1D)),
+                    ),
+                    const SizedBox(height: 14),
+                    FilledButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      style: FilledButton.styleFrom(backgroundColor: const Color(0xFF153E35)),
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Đóng & Tạo đơn mới'),
+                    ),
+                  ],
+                ),
+              ),
             ] else ...[
               if (order['qr_url'] != null)
-                Image.network(
-                  order['qr_url'],
-                  width: 200,
-                  height: 200,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.qr_code, size: 100),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFC7DCCE), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Image.network(
+                    order['qr_url'],
+                    width: 220,
+                    height: 220,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.qr_code, size: 100),
+                  ),
                 ),
-              const SizedBox(height: 12),
+              Container(
+                margin: const EdgeInsets.only(top: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7DB),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFFFD700)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.timer_outlined, size: 15, color: Color(0xFF946200)),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Thời gian giữ đơn: ${(_secondsRemaining ~/ 60).toString().padLeft(2, '0')}:${(_secondsRemaining % 60).toString().padLeft(2, '0')} (Tự hủy sau 5p)',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF946200)),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  '💡 Bạn có thể quét mã QR bằng ACB, MB, VCB... hoặc vào app ngân hàng chuyển khoản nhanh 24/7 theo thông tin dưới đây (hệ thống tự động kích hoạt sau 1-2 giây):',
+                  style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700, height: 1.35),
+                  textAlign: TextAlign.center,
+                ),
+              ),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -858,6 +962,7 @@ class _PaymentQrDialogState extends State<_PaymentQrDialog> {
       ),
     );
   }
+
 
   Widget _infoRow(String label, String value, {bool copyable = false, bool isHighlight = false}) {
     return Padding(
