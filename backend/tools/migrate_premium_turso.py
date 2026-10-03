@@ -46,6 +46,9 @@ VALUES(1, 'MBBank', '0399888999', 'NGUYEN VO VINH NIEN', 'SP-LIVE-O573535', 'sps
 UPDATE sepay_config
 SET merchant_id = 'SP-LIVE-O573535',
     api_key = 'spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o',
+    bank_name = 'ACB',
+    account_holder = 'NGUYEN VO VINH NGUYEN',
+    bank_account = CASE WHEN bank_account = '0399888999' THEN '' ELSE bank_account END,
     is_active = 1
 WHERE id = 1;
 

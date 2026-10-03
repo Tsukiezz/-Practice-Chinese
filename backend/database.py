@@ -228,9 +228,9 @@ def init_db():
         conn.executescript("""
         CREATE TABLE IF NOT EXISTS sepay_config (
             id INTEGER PRIMARY KEY CHECK(id=1),
-            bank_name TEXT NOT NULL DEFAULT 'MBBank',
-            bank_account TEXT NOT NULL DEFAULT '0399888999',
-            account_holder TEXT NOT NULL DEFAULT 'NGUYEN VO VINH NIEN',
+            bank_name TEXT NOT NULL DEFAULT 'ACB',
+            bank_account TEXT NOT NULL DEFAULT '',
+            account_holder TEXT NOT NULL DEFAULT 'NGUYEN VO VINH NGUYEN',
             merchant_id TEXT NOT NULL DEFAULT 'SP-LIVE-O573535',
             api_key TEXT NOT NULL DEFAULT 'spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o',
             is_active INTEGER NOT NULL DEFAULT 1,
@@ -244,13 +244,16 @@ def init_db():
 
         conn.execute("""
             INSERT OR IGNORE INTO sepay_config(id, bank_name, bank_account, account_holder, merchant_id, api_key)
-            VALUES(1, 'MBBank', '0399888999', 'NGUYEN VO VINH NIEN', 'SP-LIVE-O573535', 'spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o')
+            VALUES(1, 'ACB', '', 'NGUYEN VO VINH NGUYEN', 'SP-LIVE-O573535', 'spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o')
         """)
 
         conn.execute("""
             UPDATE sepay_config
             SET merchant_id = CASE WHEN merchant_id = '' THEN 'SP-LIVE-O573535' ELSE merchant_id END,
-                api_key = CASE WHEN api_key = '' THEN 'spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o' ELSE api_key END
+                api_key = CASE WHEN api_key = '' THEN 'spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o' ELSE api_key END,
+                account_holder = CASE WHEN account_holder = 'NGUYEN VO VINH NIEN' THEN 'NGUYEN VO VINH NGUYEN' ELSE account_holder END,
+                bank_name = CASE WHEN bank_name = 'MBBank' THEN 'ACB' ELSE bank_name END,
+                bank_account = CASE WHEN bank_account = '0399888999' THEN '' ELSE bank_account END
             WHERE id = 1
         """)
 

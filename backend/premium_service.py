@@ -108,7 +108,7 @@ def get_sepay_config(conn) -> dict[str, Any]:
     if not row:
         conn.execute(
             """INSERT OR IGNORE INTO sepay_config (id, bank_name, bank_account, account_holder, merchant_id, api_key, is_active)
-               VALUES (1, 'MBBank', '0399888999', 'NGUYEN VO VINH NIEN', 'SP-LIVE-O573535', 'spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o', 1)"""
+               VALUES (1, 'ACB', '', 'NGUYEN VO VINH NGUYEN', 'SP-LIVE-O573535', 'spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o', 1)"""
         )
         row = conn.execute("SELECT * FROM sepay_config WHERE id = 1").fetchone()
     return dict(row)
@@ -152,9 +152,19 @@ def build_vietqr_url(bank_name: str, bank_account: str, amount: int, order_code:
         "VPB": "VPB",
         "TPBANK": "TPB",
         "TPB": "TPB",
+        "SACOMBANK": "STB",
+        "STB": "STB",
+        "HDBANK": "HDB",
+        "HDB": "HDB",
+        "OCB": "OCB",
+        "MSB": "MSB",
+        "SHB": "SHB",
+        "VIB": "VIB",
+        "AGRIBANK": "VBA",
+        "VBA": "VBA",
     }
     std_bank = bank_map.get(clean_bank, clean_bank)
-    return f"https://img.vietqr.io/image/{std_bank}-{clean_acc}-qr_only.png?amount={amount}&addInfo={order_code}"
+    return f"https://qr.sepay.vn/img?acc={clean_acc}&bank={std_bank}&amount={amount}&des={order_code}&template=qronly"
 
 
 def cleanup_expired_pending_orders(conn, max_age_seconds: int = 300) -> int:

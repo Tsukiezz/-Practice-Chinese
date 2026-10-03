@@ -895,7 +895,7 @@ class _PaymentQrDialogState extends State<_PaymentQrDialog> {
                 ),
                 child: Column(
                   children: [
-                    _infoRow('Ngân hàng:', order['bank_name'] ?? 'MBBank'),
+                    _infoRow('Ngân hàng:', order['bank_name'] ?? 'ACB'),
                     _infoRow(
                       'Số tài khoản:',
                       order['bank_account'] ?? '',

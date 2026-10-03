@@ -509,7 +509,7 @@ class RedeemVoucherRequest(Body):
 
 class SepayConfigUpdate(Body):
     bank_name: str = Field(min_length=2, max_length=50)
-    bank_account: str = Field(min_length=4, max_length=50)
+    bank_account: str = Field(default="", min_length=0, max_length=50)
     account_holder: str = Field(min_length=2, max_length=100)
     merchant_id: str = Field(default="", max_length=100)
     api_key: str = Field(default="", max_length=200)

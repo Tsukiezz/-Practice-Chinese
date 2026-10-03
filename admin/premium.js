@@ -42,6 +42,7 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
     <div class="admin-tabs" style="display:flex;gap:10px;margin-bottom:20px;border-bottom:2px solid #e0e8e4;padding-bottom:12px">
       <button type="button" class="tab-btn active" data-prem-tab="transactions" style="padding:10px 18px;border-radius:10px;border:none;cursor:pointer;font-weight:700">💳 Người chuyển khoản & Giao dịch</button>
       <button type="button" class="tab-btn" data-prem-tab="vouchers" style="padding:10px 18px;border-radius:10px;border:none;cursor:pointer;font-weight:700">🎟️ Quản lý Mã Voucher (Admin & AI)</button>
+      <button type="button" class="tab-btn" data-prem-tab="sepay" style="padding:10px 18px;border-radius:10px;border:none;cursor:pointer;font-weight:700">⚙️ Cấu hình Ngân hàng SePay</button>
     </div>
 
     <!-- Tab 1: Transactions -->
@@ -147,6 +148,72 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
         </div>
       </section>
     </div>
+    <!-- Tab 3: Cấu hình Ngân hàng SePay -->
+    <div id="tab-sepay" class="tab-pane" style="display:none">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(360px, 1fr));gap:24px">
+        <!-- Form Cấu hình -->
+        <section class="system-card" style="padding:24px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <span style="font-size:24px">🏦</span>
+            <h3 style="margin:0">Cấu hình Ngân hàng thụ hưởng SePay</h3>
+          </div>
+          <p style="color:var(--muted);font-size:13px;margin-bottom:18px">
+            Vui lòng điền đúng <b>Ngân hàng</b> và <b>Số tài khoản</b> mà bạn đã liên kết trên tài khoản SePay của bạn. Hệ thống sẽ tạo mã VietQR theo đúng tài khoản này để học viên quét mã chuyển tiền thành công 100%.
+          </p>
+          <form id="sepay-config-form">
+            <label style="display:block;margin:12px 0 6px;font-weight:600">Ngân hàng thụ hưởng (*)
+              <select name="bank_name" id="cfg-bank-name" style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px;font-weight:600">
+                <option value="ACB">ACB - Ngân hàng TMCP Á Châu</option>
+                <option value="MB">MBBank - Ngân hàng Quân Đội</option>
+                <option value="VCB">Vietcombank - Ngân hàng Ngoại Thương</option>
+                <option value="TCB">Techcombank - Ngân hàng Kỹ Thương</option>
+                <option value="CTG">VietinBank - Ngân hàng Công Thương</option>
+                <option value="BIDV">BIDV - Đầu tư & Phát triển Việt Nam</option>
+                <option value="VPB">VPBank - Việt Nam Thịnh Vượng</option>
+                <option value="TPB">TPBank - Tiên Phong</option>
+                <option value="STB">Sacombank - Sài Gòn Thương Tín</option>
+                <option value="HDB">HDBank - Phát triển TP.HCM</option>
+                <option value="OCB">OCB - Phương Đông</option>
+                <option value="MSB">MSB - Hàng Hải</option>
+                <option value="SHB">SHB - Sài Gòn - Hà Nội</option>
+                <option value="VIB">VIB - Quốc Tế</option>
+              </select>
+            </label>
+            <label style="display:block;margin:12px 0 6px;font-weight:600">Số tài khoản ngân hàng (*)
+              <input name="bank_account" id="cfg-bank-account" placeholder="Nhập số tài khoản ngân hàng của bạn..." required style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px;font-family:monospace;font-size:16px;font-weight:700;color:#153e35">
+            </label>
+            <label style="display:block;margin:12px 0 6px;font-weight:600">Tên chủ tài khoản (Viết hoa không dấu) (*)
+              <input name="account_holder" id="cfg-account-holder" value="NGUYEN VO VINH NGUYEN" required style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px;text-transform:uppercase;font-weight:600">
+            </label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+              <label style="display:block;font-weight:600">Merchant ID (SePay)
+                <input name="merchant_id" id="cfg-merchant-id" value="SP-LIVE-O573535" style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px;font-size:12px">
+              </label>
+              <label style="display:block;font-weight:600">Secret Key / Webhook Key
+                <input name="api_key" id="cfg-api-key" type="password" value="spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o" style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px;font-size:12px">
+              </label>
+            </div>
+            <div style="margin-top:20px;display:flex;gap:10px">
+              <button type="submit" class="primary" style="background:#153e35;color:#fff;padding:12px 24px;border-radius:8px;font-weight:700;border:none;cursor:pointer">💾 Lưu cấu hình Ngân hàng</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Live QR Preview & Webhook info -->
+        <section class="system-card" style="padding:24px;display:flex;flex-direction:column;align-items:center;text-align:center">
+          <h3 style="margin:0 0 8px">🔍 Quét thử mã QR thực tế</h3>
+          <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Mã QR cập nhật thời gian thực theo số tài khoản bạn nhập. Hãy mở app ngân hàng trên điện thoại (ACB ONE,...) để quét thử kiểm tra:</p>
+          <div id="cfg-qr-box" style="padding:14px;background:#fff;border-radius:14px;border:2px solid #c7dcce;display:inline-block;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,0.06)">
+            <img id="cfg-qr-img" src="" alt="Mã VietQR" style="width:200px;height:200px;display:block">
+          </div>
+          <div id="cfg-qr-preview-info" style="font-size:13px;color:#153e35;font-weight:700;line-height:1.6;margin-bottom:16px"></div>
+          <div style="background:#eef6f2;padding:12px 16px;border-radius:10px;text-align:left;width:100%;font-size:12.5px;color:#153e35">
+            <b>🔗 Webhook nhận tiền tự động SePay:</b><br>
+            <code style="word-break:break-all;color:#0d5940;font-size:12px">https://hanzigo-chinese-learning.vercel.app/api/payment/sepay-webhook</code>
+          </div>
+        </section>
+      </div>
+    </div>
   `;
 
   content.innerHTML = '';
@@ -156,7 +223,8 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
   const tabButtons = panel.querySelectorAll('[data-prem-tab]');
   const tabPanes = {
     'transactions': panel.querySelector('#tab-transactions'),
-    'vouchers': panel.querySelector('#tab-vouchers')
+    'vouchers': panel.querySelector('#tab-vouchers'),
+    'sepay': panel.querySelector('#tab-sepay')
   };
 
   tabButtons.forEach(btn => {
@@ -176,6 +244,7 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
       });
       if (target === 'transactions') loadTransactions();
       else if (target === 'vouchers') loadVouchers();
+      else if (target === 'sepay') loadSepayConfig();
     };
   });
 
@@ -373,6 +442,75 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
       notify(err.message);
     }
   };
+
+  // Load SePay Configuration
+  async function loadSepayConfig() {
+    const form = panel.querySelector('#sepay-config-form');
+    if (!form) return;
+    try {
+      const res = await api('/admin/premium/sepay-config');
+      const cfg = res.config || {};
+      if (cfg.bank_name) form.elements.bank_name.value = cfg.bank_name;
+      if (cfg.bank_account) form.elements.bank_account.value = cfg.bank_account;
+      if (cfg.account_holder) form.elements.account_holder.value = cfg.account_holder;
+      if (cfg.merchant_id) form.elements.merchant_id.value = cfg.merchant_id;
+      if (cfg.api_key) form.elements.api_key.value = cfg.api_key;
+      updatePreviewQr();
+    } catch (err) {
+      notify('Không thể tải cấu hình SePay: ' + err.message);
+    }
+  }
+
+  function updatePreviewQr() {
+    const form = panel.querySelector('#sepay-config-form');
+    if (!form) return;
+    const bank = (form.elements.bank_name.value || 'ACB').trim();
+    const acc = (form.elements.bank_account.value || '').trim().replace(/\s+/g, '');
+    const holder = (form.elements.account_holder.value || '').trim().toUpperCase();
+    const qrImg = panel.querySelector('#cfg-qr-img');
+    const info = panel.querySelector('#cfg-qr-preview-info');
+    if (!acc) {
+      if (qrImg) qrImg.style.display = 'none';
+      if (info) info.innerHTML = '<span style="color:#c5221f">⚠️ Vui lòng nhập số tài khoản ngân hàng để xem trước mã QR.</span>';
+      return;
+    }
+    const sampleCode = 'HZG_TEST';
+    const qrUrl = `https://qr.sepay.vn/img?acc=${encodeURIComponent(acc)}&bank=${encodeURIComponent(bank)}&amount=49000&des=${sampleCode}&template=qronly`;
+    if (qrImg) {
+      qrImg.src = qrUrl;
+      qrImg.style.display = 'block';
+    }
+    if (info) {
+      info.innerHTML = `Ngân hàng: <b>${escape(bank)}</b> &bull; Số TK: <b style="color:#d9534f">${escape(acc)}</b><br>Chủ TK: <b>${escape(holder)}</b>`;
+    }
+  }
+
+  const sepayForm = panel.querySelector('#sepay-config-form');
+  if (sepayForm) {
+    sepayForm.elements.bank_name.onchange = updatePreviewQr;
+    sepayForm.elements.bank_account.oninput = updatePreviewQr;
+    sepayForm.elements.account_holder.oninput = updatePreviewQr;
+
+    sepayForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const body = {
+        bank_name: form.elements.bank_name.value.trim(),
+        bank_account: form.elements.bank_account.value.trim().replace(/\s+/g, ''),
+        account_holder: form.elements.account_holder.value.trim().toUpperCase(),
+        merchant_id: form.elements.merchant_id.value.trim(),
+        api_key: form.elements.api_key.value.trim(),
+        is_active: 1
+      };
+      try {
+        await api('/admin/premium/sepay-config', 'PUT', body);
+        notify('✅ Đã lưu cấu hình ngân hàng SePay thành công! Học viên sẽ quét đúng mã QR này.');
+        updatePreviewQr();
+      } catch (err) {
+        notify('Lỗi lưu cấu hình: ' + err.message);
+      }
+    };
+  }
 
   // Refresh overall dashboard stats
   async function refreshDashboardStats() {
