@@ -2218,13 +2218,31 @@ def redeem_voucher(body: RedeemVoucherRequest, user=Depends(current_user)):
 async def sepay_webhook(request: Request):
     """Receive SePay bank transfer webhook and automatically activate HanziGo Premium."""
     try:
-        payload = await request.json()
+        raw_body = await request.body()
+        payload = json.loads(raw_body.decode("utf-8")) if raw_body else {}
     except Exception:
         raise HTTPException(400, "Invalid JSON payload.")
 
     auth_header = request.headers.get("authorization") or request.headers.get("Authorization")
+    signature_header = request.headers.get("x-sepay-signature") or request.headers.get("X-SePay-Signature")
+    timestamp_header = request.headers.get("x-sepay-timestamp") or request.headers.get("X-SePay-Timestamp")
+    custom_secret = (
+        request.headers.get("x-secret-key") or request.headers.get("X-Secret-Key") or
+        request.headers.get("x-api-key") or request.headers.get("X-Api-Key")
+    )
+    merchant_header = request.headers.get("x-merchant-id") or request.headers.get("X-Merchant-Id")
+
     with database() as conn:
-        result = process_sepay_webhook(conn, payload, auth_header)
+        result = process_sepay_webhook(
+            conn,
+            payload,
+            auth_header=auth_header,
+            signature_header=signature_header,
+            timestamp_header=timestamp_header,
+            custom_secret=custom_secret,
+            merchant_header=merchant_header,
+            raw_body=raw_body
+        )
     return result
 
 
@@ -2335,6 +2353,7 @@ def admin_update_sepay_config(body: SepayConfigUpdate, user=Depends(admin_user))
             bank_account=body.bank_account,
             account_holder=body.account_holder,
             api_key=body.api_key,
+            merchant_id=body.merchant_id,
             is_active=body.is_active
         )
     return {"success": True, "config": updated}

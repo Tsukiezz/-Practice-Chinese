@@ -84,8 +84,11 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
             <label style="display:block;margin:12px 0 6px;font-weight:600">Tên chủ tài khoản (Viết hoa không dấu)
               <input name="account_holder" required placeholder="Ví dụ: NGUYEN VO VINH NIEN" style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px">
             </label>
-            <label style="display:block;margin:12px 0 6px;font-weight:600">SePay API Token / Key (Tùy chọn bảo mật)
-              <input name="api_key" placeholder="Dán API Token từ SePay để bảo mật xác thực webhook" style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px">
+            <label style="display:block;margin:12px 0 6px;font-weight:600">Merchant ID (Mã định danh SePay)
+              <input name="merchant_id" placeholder="Ví dụ: SP-LIVE-O573535" style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px">
+            </label>
+            <label style="display:block;margin:12px 0 6px;font-weight:600">Secret Key / API Token SePay
+              <input name="api_key" placeholder="Ví dụ: spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o" style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px">
             </label>
             <label style="display:flex;align-items:center;gap:8px;margin:16px 0;font-weight:600;cursor:pointer">
               <input type="checkbox" name="is_active" value="1" checked style="width:18px;height:18px"> Kích hoạt cổng thanh toán SePay
@@ -108,19 +111,11 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
             </div>
           </div>
           <ol style="padding-left:20px;line-height:1.7;color:#24332e;font-size:14px">
-            <li><b>Bước 1:</b> Truy cập <a href="https://my.sepay.vn" target="_blank" rel="noopener" style="color:#153e35;text-decoration:underline">my.sepay.vn</a> và đăng nhập vào tài khoản SePay của bạn.</li>
-            <li><b>Bước 2:</b> Vào mục <b>"Ngân hàng"</b> ➔ Thêm tài khoản ngân hàng của bạn (Số tài khoản, Tên ngân hàng, Chủ tài khoản).</li>
-            <li><b>Bước 3:</b> Cập nhật Số tài khoản, Ngân hàng và Chủ tài khoản ở biểu mẫu bên trái cho khớp 100% với tài khoản ngân hàng trên SePay.</li>
-            <li><b>Bước 4:</b> Tại SePay, vào mục <b>"Tích hợp Webhook"</b> ➔ Tạo webhook mới:
-              <ul style="padding-left:18px;margin:4px 0">
-                <li><b>URL nhận webhook:</b> Dán URL ở khung màu xanh bên trên.</li>
-                <li><b>Phương thức (Method):</b> POST</li>
-                <li><b>Kiểu dữ liệu:</b> JSON</li>
-                <li><b>Sự kiện:</b> Giao dịch nhận tiền (tiền vào / In)</li>
-              </ul>
-            </li>
-            <li><b>Bước 5:</b> Bật trạng thái webhook là <b>"Kích hoạt"</b>.</li>
-            <li><b>Bước 6 (Tự động kích hoạt VIP):</b> Khi học viên quét VietQR chuyển khoản gói 49.000đ hoặc 490.000đ, nội dung chuyển khoản có chứa mã đơn hàng (ví dụ: <code>HZG123456</code>). SePay sẽ ngay lập tức gửi thông báo về website và tài khoản người dùng được <b>kích hoạt VIP tự động trong 1 giây</b>!</li>
+            <li><b>Bước 1 (Cơ bản):</b> Tại <a href="https://my.sepay.vn" target="_blank" rel="noopener" style="color:#153e35;text-decoration:underline">my.sepay.vn</a> ➔ Vào <b>Tích hợp WebHooks</b> ➔ Bấm <b>Tạo webhook đầu tiên</b>. Dán URL nhận webhook ở khung màu xanh bên trên.</li>
+            <li><b>Bước 2 (Tài khoản):</b> Chọn tài khoản ngân hàng thụ hưởng (MBBank <code>0399888999</code>) và <b>BẬT "Dùng để xác thực thanh toán"</b>.</li>
+            <li><b>Bước 3 (Bảo mật):</b> Chọn <b>API Key</b> (dán Secret Key của bạn: <code>spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o</code>) hoặc chọn <b>HMAC-SHA256</b>. Hệ thống tự động xác thực chữ ký bảo mật.</li>
+            <li><b>Bước 4 (Cảnh báo & Hoàn tất):</b> Bấm Hoàn tất và đảm bảo Webhook ở trạng thái <b>Kích hoạt</b>.</li>
+            <li><b>Cơ chế nhận tiền thật & Tự động trao VIP:</b> Khi học viên quét VietQR chuyển tiền, tiền thật vào tài khoản ngân hàng (<code>transferType: in</code>) với nội dung chứa mã đơn <code>HZG...</code>, SePay sẽ bắn Webhook ngay lập tức. Hệ thống đối soát số tiền và <b>tự động nâng cấp tài khoản lên HanziGo Premium VIP chỉ sau 1-2 giây</b>!</li>
           </ol>
         </section>
       </div>
@@ -357,6 +352,7 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
       form.elements.bank_name.value = cfg.bank_name || '';
       form.elements.bank_account.value = cfg.bank_account || '';
       form.elements.account_holder.value = cfg.account_holder || '';
+      form.elements.merchant_id.value = cfg.merchant_id || '';
       form.elements.api_key.value = cfg.api_key || '';
       form.elements.is_active.checked = Boolean(cfg.is_active);
     } catch (err) {
@@ -372,6 +368,7 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
       bank_name: form.elements.bank_name.value.trim(),
       bank_account: form.elements.bank_account.value.trim(),
       account_holder: form.elements.account_holder.value.trim().toUpperCase(),
+      merchant_id: form.elements.merchant_id.value.trim(),
       api_key: form.elements.api_key.value.trim(),
       is_active: form.elements.is_active.checked ? 1 : 0
     };

@@ -1,4 +1,6 @@
 """HanziGo Premium & SePay payment and voucher service."""
+import hashlib
+import hmac
 import re
 import secrets
 import time
@@ -105,20 +107,28 @@ def get_sepay_config(conn) -> dict[str, Any]:
     row = conn.execute("SELECT * FROM sepay_config WHERE id = 1").fetchone()
     if not row:
         conn.execute(
-            """INSERT OR IGNORE INTO sepay_config (id, bank_name, bank_account, account_holder, api_key, is_active)
-               VALUES (1, 'MBBank', '0399888999', 'NGUYEN VO VINH NIEN', '', 1)"""
+            """INSERT OR IGNORE INTO sepay_config (id, bank_name, bank_account, account_holder, merchant_id, api_key, is_active)
+               VALUES (1, 'MBBank', '0399888999', 'NGUYEN VO VINH NIEN', 'SP-LIVE-O573535', 'spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o', 1)"""
         )
         row = conn.execute("SELECT * FROM sepay_config WHERE id = 1").fetchone()
     return dict(row)
 
 
-def update_sepay_config(conn, bank_name: str, bank_account: str, account_holder: str, api_key: str = "", is_active: int = 1) -> dict[str, Any]:
+def update_sepay_config(
+    conn,
+    bank_name: str,
+    bank_account: str,
+    account_holder: str,
+    api_key: str = "",
+    merchant_id: str = "",
+    is_active: int = 1
+) -> dict[str, Any]:
     """Update SePay configuration in database."""
     conn.execute(
         """UPDATE sepay_config
-           SET bank_name = ?, bank_account = ?, account_holder = ?, api_key = ?, is_active = ?, version = version + 1
+           SET bank_name = ?, bank_account = ?, account_holder = ?, api_key = ?, merchant_id = ?, is_active = ?, version = version + 1
            WHERE id = 1""",
-        (bank_name.strip(), bank_account.strip(), account_holder.strip(), api_key.strip(), is_active)
+        (bank_name.strip(), bank_account.strip(), account_holder.strip(), api_key.strip(), merchant_id.strip(), is_active)
     )
     return get_sepay_config(conn)
 
@@ -338,73 +348,133 @@ def redeem_voucher_direct(conn, user_id: int, code: str) -> dict[str, Any]:
     }
 
 
-def process_sepay_webhook(conn, payload: dict[str, Any], auth_header: str | None = None) -> dict[str, Any]:
-    """Process incoming bank transfer notification from SePay webhook."""
+def _verify_sepay_signature(signature_header: str, timestamp_header: str | None, raw_body: bytes, secret_key: str) -> bool:
+    """Verify SePay HMAC-SHA256 signature."""
+    if not signature_header or not secret_key:
+        return False
+    clean_sig = signature_header.replace("sha256=", "").strip()
+    key_bytes = secret_key.encode("utf-8")
+    candidates = []
+    if timestamp_header:
+        candidates.append(f"{timestamp_header}.".encode("utf-8") + raw_body)
+    candidates.append(raw_body)
+    for msg in candidates:
+        computed = hmac.new(key_bytes, msg, hashlib.sha256).hexdigest()
+        if hmac.compare_digest(computed.lower(), clean_sig.lower()):
+            return True
+    return False
+
+
+def process_sepay_webhook(
+    conn,
+    payload: dict[str, Any],
+    auth_header: str | None = None,
+    signature_header: str | None = None,
+    timestamp_header: str | None = None,
+    custom_secret: str | None = None,
+    merchant_header: str | None = None,
+    raw_body: bytes = b""
+) -> dict[str, Any]:
+    """Process incoming bank transfer notification from SePay webhook and auto-activate HanziGo Premium."""
     cfg = get_sepay_config(conn)
+    configured_key = (cfg.get("api_key") or "").strip()
+    configured_merchant = (cfg.get("merchant_id") or "").strip()
 
-    # Optional token verification if admin configured an API key
-    configured_key = cfg.get("api_key", "").strip()
-    if configured_key:
-        # SePay typically passes 'Apikey <token>' or bearer token
-        token_match = False
-        if auth_header:
+    # Authentication verification if API Key or Secret Key is configured
+    has_auth_attempt = bool(
+        auth_header or signature_header or custom_secret or
+        payload.get("token") or payload.get("secret_key") or payload.get("apiKey")
+    )
+
+    if configured_key and has_auth_attempt:
+        is_valid = False
+        if signature_header and _verify_sepay_signature(signature_header, timestamp_header, raw_body, configured_key):
+            is_valid = True
+        if not is_valid and auth_header:
             clean_token = auth_header.replace("Apikey", "").replace("Bearer", "").strip()
-            token_match = (clean_token == configured_key)
-        if not token_match:
-            # Check payload query or token field
-            if payload.get("token") == configured_key:
-                token_match = True
-        if not token_match:
-            raise HTTPException(401, "SePay API key không hợp lệ.")
+            if hmac.compare_digest(clean_token, configured_key):
+                is_valid = True
+        if not is_valid and custom_secret and hmac.compare_digest(custom_secret.strip(), configured_key):
+            is_valid = True
+        if not is_valid:
+            payload_token = payload.get("token") or payload.get("secret_key") or payload.get("apiKey")
+            if payload_token and hmac.compare_digest(str(payload_token).strip(), configured_key):
+                is_valid = True
 
-    # Only process incoming money ('in')
-    transfer_type = payload.get("transferType", "in")
-    if str(transfer_type).lower() != "in":
-        return {"success": True, "message": "Bỏ qua giao dịch không phải tiền vào (transferType != 'in')."}
+        if not is_valid:
+            raise HTTPException(401, "SePay API key hoặc chữ ký không hợp lệ.")
+
+    # ONLY process incoming money ('in') - Real money into bank account
+    transfer_type = str(payload.get("transferType", "in")).strip().lower()
+    if transfer_type != "in":
+        return {
+            "success": True,
+            "ignored": True,
+            "message": f"Bỏ qua giao dịch không phải tiền vào tài khoản (transferType='{transfer_type}')."
+        }
+
+    # Verify recipient bank account matches if present in payload
+    incoming_acc = str(payload.get("accountNumber", "")).strip().replace(" ", "")
+    cfg_acc = str(cfg.get("bank_account", "")).strip().replace(" ", "")
+    if incoming_acc and cfg_acc and incoming_acc != cfg_acc:
+        return {
+            "success": False,
+            "message": f"Số tài khoản nhận ({incoming_acc}) không khớp với tài khoản hệ thống ({cfg_acc})."
+        }
 
     content = str(payload.get("content", ""))
+    description = str(payload.get("description", ""))
+    search_text = f"{content} {description}"
     transfer_amount = int(payload.get("transferAmount", 0) or 0)
     sepay_tx_id = str(payload.get("id", ""))
     sepay_ref = str(payload.get("referenceCode", ""))
 
-    # Find pending order matching order code in content
-    # Order code format: HZG\d{6} or custom
-    matches = re.findall(r"HZG[0-9A-Z_]+", content, re.IGNORECASE)
+    # Find pending or existing order matching order code in content
+    matches = re.findall(r"HZG[0-9A-Z_]+", search_text, re.IGNORECASE)
     matched_order = None
 
     if matches:
         for candidate in matches:
             row = conn.execute(
-                """SELECT * FROM premium_orders WHERE UPPER(order_code) = UPPER(?) AND status = 'pending'""",
+                """SELECT * FROM premium_orders WHERE UPPER(order_code) = UPPER(?)""",
                 (candidate.strip(),)
             ).fetchone()
             if row:
                 matched_order = dict(row)
                 break
 
-    # If no regex match, search all pending orders to check if order_code is in content
+    # If no regex match, search all orders to check if order_code is substring of content
     if not matched_order:
-        pending_rows = conn.execute("SELECT * FROM premium_orders WHERE status = 'pending'").fetchall()
-        for p in pending_rows:
+        orders = conn.execute("SELECT * FROM premium_orders ORDER BY id DESC LIMIT 50").fetchall()
+        for p in orders:
             p_dict = dict(p)
-            if p_dict["order_code"].upper() in content.upper():
+            if p_dict["order_code"].upper() in search_text.upper():
                 matched_order = p_dict
                 break
 
     if not matched_order:
         return {
             "success": True,
-            "message": f"Không tìm thấy đơn hàng chờ thanh toán tương ứng trong nội dung: '{content}'."
+            "message": f"Không tìm thấy đơn hàng tương ứng trong nội dung chuyển khoản: '{content}'."
         }
 
-    # Verify amount
+    # If order is already completed, return idempotent success
+    if matched_order["status"] == "completed":
+        return {
+            "success": True,
+            "message": f"Đơn hàng {matched_order['order_code']} đã được kích hoạt trước đó.",
+            "order_code": matched_order["order_code"],
+            "already_completed": True
+        }
+
+    # Verify amount: received amount must be >= order amount
     if transfer_amount < matched_order["amount"]:
         return {
             "success": False,
-            "message": f"Số tiền chuyển khoản ({transfer_amount}đ) ít hơn số tiền đơn hàng ({matched_order['amount']}đ)."
+            "message": f"Số tiền chuyển khoản ({transfer_amount}đ) ít hơn số tiền đơn hàng ({matched_order['amount']}đ). Chưa kích hoạt Premium."
         }
 
-    # Complete order & upgrade user
+    # Complete order & upgrade user to HanziGo Premium immediately
     result = complete_premium_order(
         conn,
         matched_order["id"],
@@ -417,5 +487,6 @@ def process_sepay_webhook(conn, payload: dict[str, Any], auth_header: str | None
         "message": "Kích hoạt HanziGo Premium thành công qua SePay.",
         "order_code": matched_order["order_code"],
         "user_id": matched_order["user_id"],
-        "plan_type": matched_order["plan_type"]
+        "plan_type": matched_order["plan_type"],
+        "premium_until": result.get("premium_until")
     }

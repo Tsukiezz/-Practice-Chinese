@@ -702,7 +702,7 @@ class _PaymentQrDialogState extends State<_PaymentQrDialog> {
   }
 
   void _startPolling() {
-    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
       try {
         final orderCode = widget.order['order_code'];
         final res = await http.get(

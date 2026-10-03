@@ -146,6 +146,12 @@ class TestPremiumSystem(unittest.TestCase):
         self.assertEqual(user_data["streak_freezes"], 3)
 
     def test_sepay_webhook_flow(self):
+        import hashlib, hmac, json
+
+        # Set known API key in test DB
+        with database() as conn:
+            conn.execute("UPDATE sepay_config SET api_key='spsk_live_test_secret', merchant_id='SP-LIVE-O573535' WHERE id=1")
+
         # Create an order
         order_res = self.client.post(
             "/api/premium/orders",
@@ -156,8 +162,46 @@ class TestPremiumSystem(unittest.TestCase):
         order = order_res.json()
         order_code = order["order_code"]
 
-        # Simulate SePay webhook callback
-        webhook_payload = {
+        # 1. Ignore outgoing money (transferType: 'out')
+        out_payload = {
+            "id": 99991230,
+            "gateway": "MBBank",
+            "accountNumber": "0399888999",
+            "content": f"Chuyen tien di {order_code}",
+            "transferType": "out",
+            "transferAmount": 49000,
+        }
+        res_out = self.client.post("/api/payment/sepay-webhook", json=out_payload, headers={"Authorization": "Apikey spsk_live_test_secret"})
+        self.assertEqual(res_out.status_code, 200)
+        self.assertTrue(res_out.json().get("ignored"))
+
+        # Order must still be pending
+        st_res = self.client.get(f"/api/premium/orders/{order_code}/status", headers=self.student_headers)
+        self.assertFalse(st_res.json()["is_completed"])
+
+        # 2. Reject underpaid amount (transferAmount: 20,000 < 49,000)
+        underpaid_payload = {
+            "id": 99991231,
+            "gateway": "MBBank",
+            "accountNumber": "0399888999",
+            "content": f"Thanh toan thieu {order_code}",
+            "transferType": "in",
+            "transferAmount": 20000,
+        }
+        res_under = self.client.post("/api/payment/sepay-webhook", json=underpaid_payload, headers={"Authorization": "Apikey spsk_live_test_secret"})
+        self.assertEqual(res_under.status_code, 200)
+        self.assertFalse(res_under.json()["success"])
+
+        # Order must still be pending
+        st_res = self.client.get(f"/api/premium/orders/{order_code}/status", headers=self.student_headers)
+        self.assertFalse(st_res.json()["is_completed"])
+
+        # 3. Reject invalid auth key
+        res_bad_auth = self.client.post("/api/payment/sepay-webhook", json=out_payload, headers={"Authorization": "Apikey wrong_key"})
+        self.assertEqual(res_bad_auth.status_code, 401)
+
+        # 4. Successful incoming payment with HMAC signature
+        valid_payload = {
             "id": 99991234,
             "gateway": "MBBank",
             "transactionDate": "2026-10-03 20:00:00",
@@ -168,12 +212,23 @@ class TestPremiumSystem(unittest.TestCase):
             "transferAmount": 49000,
             "referenceCode": "FT261003TEST",
         }
+        raw_body = json.dumps(valid_payload).encode("utf-8")
+        timestamp = "1727960000"
+        sig = hmac.new(b"spsk_live_test_secret", f"{timestamp}.".encode("utf-8") + raw_body, hashlib.sha256).hexdigest()
 
-        hook_res = self.client.post("/api/payment/sepay-webhook", json=webhook_payload)
+        hook_res = self.client.post(
+            "/api/payment/sepay-webhook",
+            content=raw_body,
+            headers={
+                "Content-Type": "application/json",
+                "X-SePay-Signature": f"sha256={sig}",
+                "X-SePay-Timestamp": timestamp
+            }
+        )
         self.assertEqual(hook_res.status_code, 200)
         self.assertTrue(hook_res.json()["success"])
 
-        # Verify order status polling
+        # Verify order status polling immediately completed
         status_res = self.client.get(f"/api/premium/orders/{order_code}/status", headers=self.student_headers)
         self.assertEqual(status_res.status_code, 200)
         status_data = status_res.json()
