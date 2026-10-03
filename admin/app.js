@@ -381,9 +381,14 @@ function renderUsers(content, data, params) {
       <button>Tìm kiếm</button>
       <button type="button" id="add-user" class="primary">+ Thêm tài khoản</button>
     </form>
-    ${table(['Người dùng', 'Vai trò', 'Trạng thái', 'Thao tác'], data.map(r => `<tr>
+    ${table(['Người dùng', 'Vai trò', 'Hội viên VIP', 'Trạng thái', 'Thao tác'], data.map(r => `<tr>
       <td><b>${escape(r.name)}</b><br><small>${escape(r.email)}</small></td>
       <td><span class="tag ${r.role === 'admin' ? 'published' : ''}">${statusLabel(r.role)}</span></td>
+      <td>
+        ${r.is_premium
+          ? `<span class="tag" style="background:#fef7e0;color:#b06000;border:1px solid #ffd700;font-weight:700">👑 VIP (${date(r.premium_until)})</span>`
+          : '<span style="color:var(--muted);font-size:12px">Học viên thường</span>'}
+      </td>
       <td><span class="tag ${r.is_active ? '' : 'locked'}">${r.is_active ? 'Hoạt động' : 'Đã khóa'}</span></td>
       <td>
         <div class="actions">
@@ -391,6 +396,8 @@ function renderUsers(content, data, params) {
           <button class="danger" data-delete-user="${r.id}">Xóa</button>
           <button data-reset-pw="${r.id}">Đổi MK</button>
           <button data-user-ai-exams="${r.id}">Đề thi AI</button>
+          <button data-grant-vip="${r.id}" style="background:#f9f5d7;color:#8a6d05;border:1px solid #e2cb6b;font-weight:600">👑 ${r.is_premium ? 'Gia hạn VIP' : 'Cấp VIP'}</button>
+          ${r.is_premium ? `<button class="danger" data-revoke-vip="${r.id}" style="border:1px solid #d9534f;color:#d9534f;font-weight:600">🚫 Gỡ VIP</button>` : ''}
         </div>
       </td>
     </tr>`))}
@@ -502,7 +509,85 @@ function renderUsers(content, data, params) {
     page = 'student_ai_exams';
     loadPage(`?user_id=${uid}`);
   });
+
+  // Grant / Extend VIP
+  document.querySelectorAll('[data-grant-vip]').forEach(b => b.onclick = () => {
+    const row = data.find(r => r.id === Number(b.dataset.grantVip));
+    const isAlreadyVip = row.is_premium;
+    openEditor(`👑 ${isAlreadyVip ? 'Gia hạn' : 'Ban phát / Cấp'} HanziGo Premium cho ${escape(row.name)}`, `
+      <p style="margin-bottom:12px">
+        Tài khoản: <b>${escape(row.email)}</b><br>
+        Trạng thái hiện tại: <b>${isAlreadyVip ? `👑 Đang là VIP (Hết hạn: ${date(row.premium_until)})` : 'Học viên thường (Chưa có VIP)'}</b>
+      </p>
+      <div class="grid">
+        <label>Thời hạn ban phát / cấp VIP
+          <select name="duration_days" id="sel-vip-duration">
+            <option value="30">1 Tháng (30 ngày)</option>
+            <option value="90">3 Tháng (90 ngày)</option>
+            <option value="180">6 Tháng (180 ngày)</option>
+            <option value="365">1 Năm (365 ngày)</option>
+            <option value="36500">🌟 Trọn đời (Vĩnh viễn ~100 năm)</option>
+            <option value="custom">Tùy chọn số ngày khác…</option>
+          </select>
+        </label>
+        <label id="vip-custom-days-group" style="display:none">Số ngày cụ thể
+          <input type="number" name="custom_days" min="1" max="36500" value="60">
+        </label>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <label>Tặng kèm Băng bảo vệ chuỗi (Streak Freezes)
+          <input type="number" name="added_freezes" min="0" max="50" value="0">
+        </label>
+        <label>Ghi chú của Quản trị viên
+          <input name="note" placeholder="Ví dụ: Thưởng thành tích xuất sắc, quà tặng sự kiện...">
+        </label>
+      </div>
+      <p class="note" style="margin-top:10px">Học viên sẽ được mở khóa toàn bộ quyền lợi HanziGo Premium (Luyện đề AI không giới hạn, Giải thích chi tiết, Khôi phục chuỗi...).</p>
+    `, async form => {
+      const durationSelect = form.elements.duration_days.value;
+      const durationDays = durationSelect === 'custom'
+        ? Number(form.elements.custom_days.value || 30)
+        : Number(durationSelect);
+      const addedFreezes = Number(form.elements.added_freezes.value || 0);
+      const note = form.elements.note.value.trim();
+
+      const res = await api(`/admin/users/${row.id}/premium`, 'POST', {
+        action: 'grant',
+        duration_days: durationDays,
+        added_freezes: addedFreezes,
+        note: note
+      });
+      notify(res.message || 'Đã cấp VIP thành công!');
+      loadPage(params);
+    }, '👑 Xác nhận Cấp VIP');
+
+    // Hook custom days input show/hide
+    setTimeout(() => {
+      const sel = document.querySelector('#sel-vip-duration');
+      const customGroup = document.querySelector('#vip-custom-days-group');
+      if (sel && customGroup) {
+        sel.onchange = () => {
+          customGroup.style.display = sel.value === 'custom' ? 'block' : 'none';
+        };
+      }
+    }, 50);
+  });
+
+  // Revoke VIP
+  document.querySelectorAll('[data-revoke-vip]').forEach(b => b.onclick = async () => {
+    const row = data.find(r => r.id === Number(b.dataset.revokeVip));
+    const confirmed = confirm(`Bạn có chắc chắn muốn gỡ quyền HanziGo Premium của học viên "${row.name}" (${row.email})?`);
+    if (!confirmed) return;
+    try {
+      const res = await api(`/admin/users/${row.id}/premium`, 'POST', { action: 'revoke' });
+      notify(res.message || 'Đã gỡ VIP của học viên.');
+      loadPage(params);
+    } catch (err) {
+      notify(err.message);
+    }
+  });
 }
+
 
 function renderStudentAiExams(content, data, params) {
   const filter = new URLSearchParams(params);

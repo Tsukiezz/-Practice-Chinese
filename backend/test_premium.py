@@ -27,12 +27,14 @@ class TestPremiumSystem(unittest.TestCase):
         # Create student user
         now = int(time.time())
         with database() as conn:
-            # Clean up test records
             conn.execute("DELETE FROM premium_orders")
             conn.execute("DELETE FROM vouchers")
+            conn.execute("DELETE FROM audit_logs WHERE actor_id IN (SELECT id FROM users WHERE email IN ('student_prem@test.com', 'admin_prem@test.com'))")
             conn.execute("DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email IN ('student_prem@test.com', 'admin_prem@test.com'))")
+
             conn.execute("DELETE FROM users WHERE email IN ('student_prem@test.com', 'admin_prem@test.com')")
             conn.execute("UPDATE sepay_config SET bank_name='MBBank', bank_account='0399888999', account_holder='NGUYEN VO VINH NIEN', api_key='', is_active=1 WHERE id=1")
+
 
             # Create test student
             self.student_id = conn.execute(
@@ -286,6 +288,55 @@ class TestPremiumSystem(unittest.TestCase):
         codes = [item["code"] for item in list_v.json()["items"]]
         self.assertIn("TESTADMIN50", codes)
 
+    def test_admin_cannot_manually_activate_transaction(self):
+        # Create an order
+        order_res = self.client.post("/api/premium/orders", headers=self.student_headers, json={"plan_type": "1_month"})
+        self.assertEqual(order_res.status_code, 201)
+        order_id = order_res.json()["id"]
+
+        # Admin attempting manual activation must receive 403 Forbidden
+        act_res = self.client.post(f"/api/admin/premium/transactions/{order_id}/activate", headers=self.admin_headers)
+        self.assertEqual(act_res.status_code, 403)
+        self.assertIn("Không thể thao tác thủ công", act_res.json()["detail"])
+
+    def test_admin_grant_and_revoke_student_premium(self):
+        # 1. Admin grants VIP (30 days + 2 streak freezes)
+        grant_res = self.client.post(
+            f"/api/admin/users/{self.student_id}/premium",
+            headers=self.admin_headers,
+            json={
+                "action": "grant",
+                "duration_days": 30,
+                "added_freezes": 2,
+                "note": "Ban phát tặng học viên chăm chỉ"
+            }
+        )
+        self.assertEqual(grant_res.status_code, 200)
+        grant_data = grant_res.json()
+        self.assertTrue(grant_data["success"])
+        self.assertTrue(grant_data["user"]["is_premium"])
+        self.assertGreater(grant_data["user"]["premium_until"], int(time.time()))
+        self.assertEqual(grant_data["user"]["streak_freezes"], 2)
+
+        # 2. Check public user via /api/admin/users
+        users_res = self.client.get(f"/api/admin/users?search=student_prem@test.com", headers=self.admin_headers)
+        self.assertEqual(users_res.status_code, 200)
+        student_record = users_res.json()[0]
+        self.assertTrue(student_record["is_premium"])
+
+        # 3. Admin revokes VIP
+        revoke_res = self.client.post(
+            f"/api/admin/users/{self.student_id}/premium",
+            headers=self.admin_headers,
+            json={"action": "revoke"}
+        )
+        self.assertEqual(revoke_res.status_code, 200)
+        revoke_data = revoke_res.json()
+        self.assertTrue(revoke_data["success"])
+        self.assertFalse(revoke_data["user"]["is_premium"])
+        self.assertEqual(revoke_data["user"]["premium_until"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()
+

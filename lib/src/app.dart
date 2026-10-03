@@ -481,6 +481,15 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             children: [
               HomeScreen(
                 userName: _authService.currentUser?.name ?? '',
+                user: _authService.currentUser,
+                token: _authService.token,
+                apiBaseUrl: _apiBaseUrl,
+                onRefreshUser: () async {
+                  try {
+                    await _authService.refreshUser(_apiBaseUrl);
+                    if (mounted) setState(() {});
+                  } catch (_) {}
+                },
                 onOpenLessons: () => _navigateToTab(1),
                 onOpenListening: () => _navigateToTab(2),
                 onOpenReading: () => _navigateToTab(3),

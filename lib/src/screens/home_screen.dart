@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
+import '../widgets/hanzigo_premium_card.dart';
 
 
 class HomeScreen extends StatelessWidget {
@@ -11,8 +13,16 @@ class HomeScreen extends StatelessWidget {
     this.onOpenDictionary,
     this.onOpenProfile,
     this.onOpenAiExam,
+    this.user,
+    this.token,
+    this.apiBaseUrl,
+    this.onRefreshUser,
   });
   final String userName;
+  final AuthUser? user;
+  final String? token;
+  final String? apiBaseUrl;
+  final VoidCallback? onRefreshUser;
   final VoidCallback onOpenLessons;
   final VoidCallback? onOpenListening,
       onOpenReading,
@@ -64,9 +74,18 @@ class HomeScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 18),
+            if (apiBaseUrl != null && apiBaseUrl!.isNotEmpty)
+              HanziGoPremiumCard(
+                user: user,
+                token: token,
+                apiBaseUrl: apiBaseUrl!,
+                onUserUpdated: onRefreshUser,
+                margin: const EdgeInsets.only(bottom: 22),
+              ),
             Container(
               padding: const EdgeInsets.all(24),
+
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary.withValues(alpha: .92)],

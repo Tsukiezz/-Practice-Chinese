@@ -524,3 +524,11 @@ class AdminCreateVoucherRequest(Body):
     expires_at: int = Field(default=0, ge=0)
     description: str = Field(default="", max_length=255)
 
+
+class AdminUserPremiumAction(Body):
+    action: Literal["grant", "revoke"]
+    duration_days: int = Field(default=30, ge=1, le=36500)
+    added_freezes: int = Field(default=0, ge=0, le=100)
+    note: str = Field(default="", max_length=255)
+
+

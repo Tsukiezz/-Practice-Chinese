@@ -11,8 +11,8 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
         <div>
           <span style="background:rgba(255,215,0,0.2);color:#ffd700;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase">👑 Trung tâm Quản trị HanziGo Premium</span>
-          <h2 style="margin:8px 0 4px;font-size:24px;color:#fff">Quản lý Hội viên VIP & Cổng SePay VietQR</h2>
-          <p style="margin:0;opacity:0.85;font-size:14px">Theo dõi danh sách người chuyển khoản, quản lý mã Voucher giảm giá & cấu hình kết nối SePay tự động.</p>
+          <h2 style="margin:8px 0 4px;font-size:24px;color:#fff">Quản lý Hội viên VIP & Giao dịch SePay VietQR</h2>
+          <p style="margin:0;opacity:0.85;font-size:14px">Theo dõi danh sách người chuyển khoản và quản lý mã Voucher ưu đãi (Admin & AI).</p>
         </div>
         <button id="prem-refresh-btn" class="primary" style="background:#ffd700;color:#153e35;font-weight:700;border:none">↻ Tải lại dữ liệu</button>
       </div>
@@ -41,7 +41,6 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
     <!-- Navigation Tabs -->
     <div class="admin-tabs" style="display:flex;gap:10px;margin-bottom:20px;border-bottom:2px solid #e0e8e4;padding-bottom:12px">
       <button type="button" class="tab-btn active" data-prem-tab="transactions" style="padding:10px 18px;border-radius:10px;border:none;cursor:pointer;font-weight:700">💳 Người chuyển khoản & Giao dịch</button>
-      <button type="button" class="tab-btn" data-prem-tab="sepay-guide" style="padding:10px 18px;border-radius:10px;border:none;cursor:pointer;font-weight:700">⚙️ Cấu hình SePay & Hướng dẫn</button>
       <button type="button" class="tab-btn" data-prem-tab="vouchers" style="padding:10px 18px;border-radius:10px;border:none;cursor:pointer;font-weight:700">🎟️ Quản lý Mã Voucher (Admin & AI)</button>
     </div>
 
@@ -51,7 +50,7 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
         <div class="system-card-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
           <div>
             <h3 style="margin:0 0 4px">Lịch sử người chuyển khoản & Đơn mua VIP</h3>
-            <p style="margin:0;font-size:13px;color:var(--muted)">Tất cả các giao dịch mua gói 1 Tháng (49k) và 1 Năm (490k) qua SePay VietQR.</p>
+            <p style="margin:0;font-size:13px;color:var(--muted)">Hệ thống tự động kích hoạt VIP khi SePay nhận đúng tiền thật vào tài khoản ngân hàng.</p>
           </div>
           <div style="display:flex;gap:8px">
             <select id="filter-tx-status" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd7ce">
@@ -67,61 +66,7 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
       </section>
     </div>
 
-    <!-- Tab 2: SePay Config & Step-by-step Guide -->
-    <div id="tab-sepay-guide" class="tab-pane" style="display:none">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(360px, 1fr));gap:20px">
-        <!-- Configuration Form -->
-        <section class="system-card">
-          <h3 style="margin-top:0">Cập nhật thông tin SePay</h3>
-          <p style="color:var(--muted);font-size:13px">Hệ thống tạo mã VietQR SePay tự động theo tài khoản ngân hàng dưới đây:</p>
-          <form id="sepay-config-form">
-            <label style="display:block;margin:12px 0 6px;font-weight:600">Ngân hàng thụ hưởng
-              <input name="bank_name" required placeholder="Ví dụ: MBBank, Vietcombank, Techcombank, ACB..." style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px">
-            </label>
-            <label style="display:block;margin:12px 0 6px;font-weight:600">Số tài khoản ngân hàng
-              <input name="bank_account" required placeholder="Ví dụ: 0399888999" style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px">
-            </label>
-            <label style="display:block;margin:12px 0 6px;font-weight:600">Tên chủ tài khoản (Viết hoa không dấu)
-              <input name="account_holder" required placeholder="Ví dụ: NGUYEN VO VINH NIEN" style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px">
-            </label>
-            <label style="display:block;margin:12px 0 6px;font-weight:600">Merchant ID (Mã định danh SePay)
-              <input name="merchant_id" placeholder="Ví dụ: SP-LIVE-O573535" style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px">
-            </label>
-            <label style="display:block;margin:12px 0 6px;font-weight:600">Secret Key / API Token SePay
-              <input name="api_key" placeholder="Ví dụ: spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o" style="width:100%;padding:10px;border-radius:8px;border:1px solid #cbd7ce;margin-top:4px">
-            </label>
-            <label style="display:flex;align-items:center;gap:8px;margin:16px 0;font-weight:600;cursor:pointer">
-              <input type="checkbox" name="is_active" value="1" checked style="width:18px;height:18px"> Kích hoạt cổng thanh toán SePay
-            </label>
-            <button type="submit" class="primary" style="width:100%;padding:12px;border-radius:10px;font-weight:700">💾 Lưu cấu hình SePay</button>
-          </form>
-        </section>
-
-        <!-- Step by Step Guide Card -->
-        <section class="system-card" style="background:#fcfdfc;border:1px solid #c7dcce">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-            <span style="font-size:24px">📖</span>
-            <h3 style="margin:0">Hướng dẫn kết nối SePay từng bước</h3>
-          </div>
-          <div style="background:#e8f4ed;padding:12px 16px;border-radius:10px;margin-bottom:14px;border:1px solid #c3e2cf">
-            <b style="color:#153e35;display:block;margin-bottom:4px">Đường dẫn Webhook SePay của bạn:</b>
-            <div style="display:flex;align-items:center;gap:8px">
-              <code id="sepay-webhook-url-box" style="background:#fff;padding:6px 10px;border-radius:6px;font-size:13px;word-break:break-all;flex:1">https://${window.location.host}/api/payment/sepay-webhook</code>
-              <button type="button" id="copy-webhook-url-btn" style="padding:6px 12px;border:1px solid #153e35;background:#fff;border-radius:6px;cursor:pointer;font-size:12px">Copy</button>
-            </div>
-          </div>
-          <ol style="padding-left:20px;line-height:1.7;color:#24332e;font-size:14px">
-            <li><b>Bước 1 (Cơ bản):</b> Tại <a href="https://my.sepay.vn" target="_blank" rel="noopener" style="color:#153e35;text-decoration:underline">my.sepay.vn</a> ➔ Vào <b>Tích hợp WebHooks</b> ➔ Bấm <b>Tạo webhook đầu tiên</b>. Dán URL nhận webhook ở khung màu xanh bên trên.</li>
-            <li><b>Bước 2 (Tài khoản):</b> Chọn tài khoản ngân hàng thụ hưởng (MBBank <code>0399888999</code>) và <b>BẬT "Dùng để xác thực thanh toán"</b>.</li>
-            <li><b>Bước 3 (Bảo mật):</b> Chọn <b>API Key</b> (dán Secret Key của bạn: <code>spsk_live_paj8JXvTF1ouCh8HeE4mRevPMmX1Ei1o</code>) hoặc chọn <b>HMAC-SHA256</b>. Hệ thống tự động xác thực chữ ký bảo mật.</li>
-            <li><b>Bước 4 (Cảnh báo & Hoàn tất):</b> Bấm Hoàn tất và đảm bảo Webhook ở trạng thái <b>Kích hoạt</b>.</li>
-            <li><b>Cơ chế nhận tiền thật & Tự động trao VIP:</b> Khi học viên quét VietQR chuyển tiền, tiền thật vào tài khoản ngân hàng (<code>transferType: in</code>) với nội dung chứa mã đơn <code>HZG...</code>, SePay sẽ bắn Webhook ngay lập tức. Hệ thống đối soát số tiền và <b>tự động nâng cấp tài khoản lên HanziGo Premium VIP chỉ sau 1-2 giây</b>!</li>
-          </ol>
-        </section>
-      </div>
-    </div>
-
-    <!-- Tab 3: Voucher Management -->
+    <!-- Tab 2: Voucher Management -->
     <div id="tab-vouchers" class="tab-pane" style="display:none">
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(360px, 1fr));gap:20px;margin-bottom:20px">
         <!-- Create Voucher Card -->
@@ -193,8 +138,8 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
           </div>
           <select id="filter-voucher-creator" style="padding:8px 12px;border-radius:8px;border:1px solid #cbd7ce">
             <option value="">Tất cả nguồn tạo</option>
-            <option value="admin">👑 Admin tạo</option>
-            <option value="ai">🤖 AI tạo tự động (Thưởng 100 điểm)</option>
+            <option value="admin">Chỉ mã do Admin tạo</option>
+            <option value="ai">Chỉ mã do AI tạo (100 điểm)</option>
           </select>
         </div>
         <div id="vouchers-table-container">
@@ -204,14 +149,14 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
     </div>
   `;
 
-  content.append(panel);
+  content.innerHTML = '';
+  content.appendChild(panel);
 
   // Tab switching logic
   const tabButtons = panel.querySelectorAll('[data-prem-tab]');
   const tabPanes = {
-    transactions: panel.querySelector('#tab-transactions'),
-    'sepay-guide': panel.querySelector('#tab-sepay-guide'),
-    vouchers: panel.querySelector('#tab-vouchers'),
+    'transactions': panel.querySelector('#tab-transactions'),
+    'vouchers': panel.querySelector('#tab-vouchers')
   };
 
   tabButtons.forEach(btn => {
@@ -230,7 +175,6 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
         if (pane) pane.style.display = (k === target) ? 'block' : 'none';
       });
       if (target === 'transactions') loadTransactions();
-      else if (target === 'sepay-guide') loadSepayConfig();
       else if (target === 'vouchers') loadVouchers();
     };
   });
@@ -241,13 +185,6 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
     activeBtn.style.background = '#153e35';
     activeBtn.style.color = '#fff';
   }
-
-  // Copy webhook URL
-  panel.querySelector('#copy-webhook-url-btn').onclick = () => {
-    const text = panel.querySelector('#sepay-webhook-url-box').textContent;
-    navigator.clipboard.writeText(text);
-    notify('Đã sao chép Webhook URL vào bộ nhớ tạm.');
-  };
 
   // Generate random voucher code
   panel.querySelector('#btn-gen-rand-code').onclick = () => {
@@ -261,7 +198,7 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
     panel.querySelector('#voucher-percent-group').style.display = isFree ? 'none' : 'block';
   };
 
-  // Load transactions
+  // Load transactions (Strictly read-only for Admin, real money verified by SePay)
   async function loadTransactions() {
     const container = panel.querySelector('#tx-table-container');
     container.innerHTML = '<p class="loading">Đang tải danh sách người chuyển khoản…</p>';
@@ -286,7 +223,7 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
                 <th>Trạng thái</th>
                 <th>Mã GD SePay</th>
                 <th>Thời gian</th>
-                <th>Thao tác</th>
+                <th>Xác nhận SePay</th>
               </tr>
             </thead>
             <tbody>
@@ -312,8 +249,10 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
                       <small>${date(order.created_at)}</small>
                       ${order.completed_at ? `<small style="color:#137333;display:block">Hoàn thành: ${date(order.completed_at)}</small>` : ''}
                     </td>
-                    <td data-label="Thao tác">
-                      ${!isPaid ? `<button class="primary" style="padding:6px 12px;font-size:12px;border-radius:6px" data-activate-order="${order.id}">Kích hoạt ngay</button>` : '<span style="color:#137333;font-weight:700">Đã là VIP</span>'}
+                    <td data-label="Xác nhận SePay">
+                      ${isPaid
+                        ? '<span style="color:#137333;font-weight:700;display:inline-flex;align-items:center;gap:4px">✓ Đã nhận tiền THẬT</span>'
+                        : '<span style="color:#b06000;font-size:12px;font-style:italic">⏳ Đang chờ SePay nhận tiền thật…</span>'}
                     </td>
                   </tr>
                 `;
@@ -322,63 +261,12 @@ export function renderPremiumManagement(content, initialData, api, notify, dialo
           </table>
         </div>
       `;
-
-      container.querySelectorAll('[data-activate-order]').forEach(btn => {
-        btn.onclick = async () => {
-          if (!confirm('Bạn có chắc muốn kích hoạt thủ công đơn hàng này cho học viên?')) return;
-          try {
-            await api(`/admin/premium/transactions/${btn.dataset.activateOrder}/activate`, 'POST');
-            notify('Đã kích hoạt HanziGo Premium thành công cho đơn hàng!');
-            loadTransactions();
-            refreshDashboardStats();
-          } catch (e) {
-            notify(e.message);
-          }
-        };
-      });
     } catch (err) {
       container.innerHTML = `<div class="error">${escape(err.message)}</div>`;
     }
   }
 
   panel.querySelector('#filter-tx-status').onchange = loadTransactions;
-
-  // Load SePay Config
-  async function loadSepayConfig() {
-    try {
-      const res = await api('/admin/premium/sepay-config');
-      const form = panel.querySelector('#sepay-config-form');
-      const cfg = res.config;
-      form.elements.bank_name.value = cfg.bank_name || '';
-      form.elements.bank_account.value = cfg.bank_account || '';
-      form.elements.account_holder.value = cfg.account_holder || '';
-      form.elements.merchant_id.value = cfg.merchant_id || '';
-      form.elements.api_key.value = cfg.api_key || '';
-      form.elements.is_active.checked = Boolean(cfg.is_active);
-    } catch (err) {
-      notify(err.message);
-    }
-  }
-
-  // Submit SePay Config Form
-  panel.querySelector('#sepay-config-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const body = {
-      bank_name: form.elements.bank_name.value.trim(),
-      bank_account: form.elements.bank_account.value.trim(),
-      account_holder: form.elements.account_holder.value.trim().toUpperCase(),
-      merchant_id: form.elements.merchant_id.value.trim(),
-      api_key: form.elements.api_key.value.trim(),
-      is_active: form.elements.is_active.checked ? 1 : 0
-    };
-    try {
-      await api('/admin/premium/sepay-config', 'PUT', body);
-      notify('Đã cập nhật cấu hình SePay thành công!');
-    } catch (err) {
-      notify(err.message);
-    }
-  };
 
   // Load Vouchers
   async function loadVouchers() {

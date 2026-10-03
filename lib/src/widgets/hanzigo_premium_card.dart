@@ -12,12 +12,14 @@ class HanziGoPremiumCard extends StatelessWidget {
     required this.token,
     required this.apiBaseUrl,
     this.onUserUpdated,
+    this.margin,
   });
 
   final AuthUser? user;
   final String? token;
   final String apiBaseUrl;
   final VoidCallback? onUserUpdated;
+  final EdgeInsetsGeometry? margin;
 
   bool get _isVip => user?.isVip ?? false;
 
@@ -39,7 +41,7 @@ class HanziGoPremiumCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      margin: margin ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(

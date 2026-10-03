@@ -36,7 +36,8 @@ from models import (AIConfig, AdminCreateUser, AdminResetPassword, DictionaryLoo
                     RegisterRequest, RegisterVerify,
                     Submission, UserUpdate, Word, WordUpdate, WritingSubmission,
                     CreatePremiumOrderRequest, RedeemVoucherRequest,
-                    SepayConfigUpdate, AdminCreateVoucherRequest)
+                    SepayConfigUpdate, AdminCreateVoucherRequest, AdminUserPremiumAction)
+
 from premium_service import (
     PLAN_PRICES, COMPARISON_FEATURES,
     create_ai_100_score_voucher, get_sepay_config, update_sepay_config,
@@ -499,6 +500,46 @@ def admin_reset_user_password(user_id: int, body: AdminResetPassword, admin=Depe
         after = public_user(require_row(conn, "users", user_id))
         audit(conn, admin["id"], "reset_password", "user", user_id, {"email": user["email"]}, {"email": user["email"]})
     return {"status": "ok", "message": f"Đặt lại mật khẩu cho {user['email']} thành công", "user": after}
+
+
+@app.post("/api/admin/users/{user_id}/premium")
+def admin_manage_user_premium(user_id: int, body: AdminUserPremiumAction, admin=Depends(admin_user)):
+    """Admin grants or revokes HanziGo Premium directly for a student."""
+    now = int(time.time())
+    with database() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        before = require_row(conn, "users", user_id)
+        if body.action == "grant":
+            curr_until = before["premium_until"] or 0
+            base_time = max(now, curr_until)
+            duration_days = max(1, int(body.duration_days))
+            new_until = base_time + duration_days * 86400
+            freezes_to_add = max(0, int(body.added_freezes))
+            conn.execute(
+                "UPDATE users SET premium_until=?, streak_freezes=COALESCE(streak_freezes,0)+?, version=version+1 WHERE id=?",
+                (new_until, freezes_to_add, user_id)
+            )
+            action_name = "grant_premium"
+            msg = f"Đã cấp quyền HanziGo Premium ({duration_days} ngày) cho học viên thành công!"
+        elif body.action == "revoke":
+            conn.execute(
+                "UPDATE users SET premium_until=0, version=version+1 WHERE id=?",
+                (user_id,)
+            )
+            action_name = "revoke_premium"
+            msg = "Đã gỡ quyền HanziGo Premium của học viên."
+        else:
+            raise HTTPException(400, "Hành động không hợp lệ.")
+
+        after = require_row(conn, "users", user_id)
+        audit(conn, admin["id"], action_name, "user", user_id, public_user(before), public_user(after))
+
+    return {
+        "success": True,
+        "action": body.action,
+        "message": msg,
+        "user": public_user(after)
+    }
 
 
 @app.get("/api/admin/student-lessons")
@@ -2311,14 +2352,12 @@ def admin_premium_transactions(
 
 @app.post("/api/admin/premium/transactions/{order_id}/activate")
 def admin_activate_order(order_id: int, user=Depends(admin_user)):
-    """Admin manual activation for a subscriber order."""
-    with database() as conn:
-        result = complete_premium_order(conn, order_id, sepay_reference_code="ADMIN_MANUAL_ACTIVATION")
-    return {
-        "success": True,
-        "message": f"Đã kích hoạt thành công đơn hàng {result['order_code']}.",
-        "order": result
-    }
+    """Admin manual activation is disabled. Transactions must reflect real money received via SePay."""
+    raise HTTPException(
+        403,
+        "Không thể thao tác thủ công trên giao dịch SePay. Trạng thái chỉ được cập nhật tự động khi SePay nhận đúng tiền thật từ ngân hàng."
+    )
+
 
 
 @app.get("/api/admin/premium/sepay-config")
