@@ -4,6 +4,7 @@ from decimal import Decimal, InvalidOperation
 import hashlib
 import hmac
 import html
+import json
 import os
 import time
 from urllib.parse import urlencode
@@ -114,6 +115,8 @@ def register_gateway(app):
             raise HTTPException(409, 'Đơn không còn chờ thanh toán.')
         fields = checkout_fields(dict(row))
         inputs = ''.join(f'<input type="hidden" name="{key}" value="{html.escape(value, quote=True)}">' for key, value in fields.items())
+        status_url = '/api/payment/sepay-status?' + urlencode({'code': code, 'user_id': user_id, 'expires': expires, 'token': token})
+        watch = '<script>try { sessionStorage.setItem("hanzigo_payment_status", ' + json.dumps(status_url).replace('<', chr(92) + 'u003c') + '); } catch (e) {}</script>'
         plan = {'1_month': '1 tháng', '1_year': '1 năm'}.get(row['plan_type'], 'Premium')
         amount = f"{row['amount']:,}".replace(',', '.')
         return payment_page('Thanh toán Premium', f'''<div class="eyebrow">HanziGo Premium</div>
@@ -126,7 +129,18 @@ def register_gateway(app):
 <div class="total"><dt>Tổng thanh toán</dt><dd>{amount} ₫</dd></div></dl>
 <form method="POST" action="https://pay.sepay.vn/v1/checkout/init">{inputs}<button class="button" type="submit">Tiếp tục thanh toán tại SePay →</button></form>
 <p class="note">Bạn sẽ chuyển đến SePay để thanh toán. Premium được kích hoạt sau khi HanziGo nhận xác nhận giao dịch.</p>
-<p class="note">Link có hiệu lực trong 30 phút kể từ khi tạo. Nếu đã chuyển tiền, hãy kiểm tra tài khoản trước khi tạo đơn mới.</p></section></div>''')
+<p class="note">Link có hiệu lực trong 30 phút kể từ khi tạo. Nếu đã chuyển tiền, hãy kiểm tra tài khoản trước khi tạo đơn mới.</p></section></div>{watch}''')
+
+    @app.get('/api/payment/sepay-status')
+    def payment_status(code: str, user_id: int, expires: int, token: str):
+        if expires < int(time.time()) or not hmac.compare_digest(token, link_signature(code, user_id, expires)):
+            raise HTTPException(403, 'Phiên kiểm tra hết hạn. Hãy mở tài khoản để xem Premium.')
+        with database() as conn:
+            row = conn.execute("SELECT status FROM premium_orders WHERE order_code=? AND user_id=? AND payment_gateway='sepay_pg'", (code, user_id)).fetchone()
+        if not row:
+            raise HTTPException(404, 'Không tìm thấy đơn hàng.')
+        from fastapi.responses import JSONResponse
+        return JSONResponse({'is_completed': row['status'] == 'completed'}, headers={'Cache-Control': 'no-store'})
 
     @app.post('/api/payment/sepay-ipn')
     async def ipn(request: Request):
@@ -147,5 +161,38 @@ def register_gateway(app):
         elif result == 'error':
             message = 'SePay báo thanh toán chưa hoàn tất. Hãy kiểm tra lại trạng thái đơn.'
         return payment_page('Kiểm tra thanh toán', '<section class="card status"><div class="eyebrow">HanziGo Premium</div>'
-            '<h1>Thông tin thanh toán</h1><p>' + message + '</p><dl><div><dt>Mã đơn</dt><dd>' + html.escape(code) +
-            '</dd></div></dl><a class="button" href="/account">Kiểm tra tài khoản</a></section>')
+            '<h1 id="payment-title">Thông tin thanh toán</h1><p id="payment-message" role="status" aria-live="polite">' + message + '</p><dl><div><dt>Mã đơn</dt><dd>' + html.escape(code) +
+            '</dd></div></dl><a class="button" href="/account">Kiểm tra tài khoản</a><a class="back" href="/">Trở về HanziGo</a></section>' + payment_watch_script(code))
+
+
+def payment_watch_script(code):
+    expected = json.dumps(code).replace('<', chr(92) + 'u003c')
+    return '<script>const expectedCode=' + expected + ';' + r"""
+(() => {
+ const title=document.getElementById('payment-title'), message=document.getElementById('payment-message');
+ let endpoint;
+ try {
+   endpoint=new URL(sessionStorage.getItem('hanzigo_payment_status') || '', location.origin);
+   if(endpoint.origin!==location.origin || endpoint.pathname!=='/api/payment/sepay-status' || endpoint.searchParams.get('code')!==expectedCode) throw Error();
+ } catch(e) { message.textContent='Mở tài khoản để xem Premium. Không cần thanh toán lại nếu đã chuyển tiền.'; return; }
+ let attempts=0;
+ async function check() {
+   try {
+     const response=await fetch(endpoint.href,{cache:'no-store',signal:AbortSignal.timeout(10000)});
+     if(response.status===403 || response.status===404) {
+       message.textContent='Phiên theo dõi kết thúc. Mở tài khoản để kiểm tra Premium; không chuyển tiền lại.'; return;
+     }
+     if(!response.ok) throw Error();
+     const data=await response.json();
+     if(data.is_completed===true) {
+       title.textContent='Premium đã được kích hoạt!';
+       message.textContent='HanziGo đã nhận xác nhận từ SePay. Trở về ứng dụng để sử dụng Premium.';
+       sessionStorage.removeItem('hanzigo_payment_status'); return;
+     }
+     message.textContent='Đang chờ SePay xác nhận. Trang tự cập nhật, bạn không cần thanh toán lại.';
+   } catch(e) { message.textContent='Kết nối tạm gián đoạn. Hệ thống sẽ tự kiểm tra lại; đừng thanh toán thêm.'; }
+   if(++attempts<200) setTimeout(check,3000);
+   else message.textContent='Chưa nhận xác nhận. Hãy kiểm tra tài khoản hoặc liên hệ hỗ trợ với mã đơn; không thanh toán lại.';
+ }
+ check();
+})();</script>"""

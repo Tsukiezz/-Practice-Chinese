@@ -108,6 +108,10 @@ class GatewayTest(unittest.TestCase):
         with TestClient(app) as client:
             response = client.get(self.order['payment_url'].replace('https://example.test', ''))
             self.assertEqual(response.status_code, 200)
+            status_url = self.order['payment_url'].replace('https://example.test', '').replace('/payment/sepay/checkout?', '/api/payment/sepay-status?')
+            self.assertFalse(client.get(status_url).json()['is_completed'])
+            self.assertEqual(client.get(status_url + 'bad').status_code, 403)
+
             self.assertIn('https://pay.sepay.vn/v1/checkout/init', response.text)
             self.assertNotIn('test-only-secret', response.text)
             self.assertEqual(response.headers['cache-control'], 'no-store')
@@ -117,3 +121,5 @@ class GatewayTest(unittest.TestCase):
             self.assertEqual(client.post('/api/payment/sepay-ipn', json=self.payload).status_code, 401)
             self.assertEqual(client.post('/api/payment/sepay-ipn', json=self.payload,
                 headers={'X-Secret-Key': 'test-only-secret'}).status_code, 200)
+
+            self.assertTrue(client.get(status_url).json()['is_completed'])
