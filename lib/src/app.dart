@@ -515,6 +515,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                 studentService: _studentService,
                 comprehensiveRepository: _comprehensiveRepository,
                 user: _authService.currentUser,
+                token: _authService.token,
+                apiBaseUrl: _apiBaseUrl,
+                onRefreshUser: () async {
+                  try {
+                    await _authService.refreshUser(_apiBaseUrl);
+                    if (mounted) setState(() {});
+                  } catch (_) {}
+                },
                 onBack: _navigateBack,
                 onEditProfile: kIsWeb
                     ? () => openAccount(_authService.token!, returnTab: _index)

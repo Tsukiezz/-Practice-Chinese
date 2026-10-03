@@ -17,6 +17,7 @@ import 'translation_screen.dart';
 import '../services/custom_exam_service.dart';
 import '../services/reading_exam_service.dart';
 import 'practice_screen.dart';
+import '../widgets/hanzigo_premium_card.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({
@@ -25,6 +26,9 @@ class ProfileScreen extends StatelessWidget {
     this.studentService,
     this.comprehensiveRepository,
     this.user,
+    this.token,
+    this.apiBaseUrl,
+    this.onRefreshUser,
     this.onEditProfile,
     this.onOpenAdmin,
     this.onBack,
@@ -34,6 +38,9 @@ class ProfileScreen extends StatelessWidget {
   final StudentService? studentService;
   final ReadingExamRepository? comprehensiveRepository;
   final AuthUser? user;
+  final String? token;
+  final String? apiBaseUrl;
+  final VoidCallback? onRefreshUser;
   final VoidCallback? onEditProfile;
   final VoidCallback? onOpenAdmin;
   final VoidCallback? onBack;
@@ -86,6 +93,13 @@ class ProfileScreen extends StatelessWidget {
             name: user?.name ?? 'Học viên',
             email: user?.email ?? '',
           ),
+          if (apiBaseUrl != null)
+            HanziGoPremiumCard(
+              user: user,
+              token: token,
+              apiBaseUrl: apiBaseUrl!,
+              onUserUpdated: onRefreshUser,
+            ),
           if (onEditProfile != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),

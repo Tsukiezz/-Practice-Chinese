@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -34,7 +34,15 @@ from models import (AIConfig, AdminCreateUser, AdminResetPassword, DictionaryLoo
                     HandwritingRecognition, HandwritingRecognitionResponse,
                     HandwritingSubmission, Login, Override, Register,
                     RegisterRequest, RegisterVerify,
-                    Submission, UserUpdate, Word, WordUpdate, WritingSubmission)
+                    Submission, UserUpdate, Word, WordUpdate, WritingSubmission,
+                    CreatePremiumOrderRequest, RedeemVoucherRequest,
+                    SepayConfigUpdate, AdminCreateVoucherRequest)
+from premium_service import (
+    PLAN_PRICES, COMPARISON_FEATURES,
+    create_ai_100_score_voucher, get_sepay_config, update_sepay_config,
+    create_premium_order, complete_premium_order, redeem_voucher_direct,
+    process_sepay_webhook
+)
 from services import (configured_api_key, configured_model, evaluate_with_ai,
                       compare_handwriting_strokes,
                       gemini_capability_provider, gemini_exam_provider,
@@ -109,7 +117,16 @@ def hash_password(password, salt):
 
 
 def public_user(row):
-    return {key: row[key] for key in ("id", "name", "email", "role", "is_active", "created_at", "version")}
+    now = int(time.time())
+    keys = row.keys() if hasattr(row, "keys") else row
+    p_until = row["premium_until"] if "premium_until" in keys else 0
+    is_prem = bool(p_until and p_until > now)
+    freezes = row["streak_freezes"] if "streak_freezes" in keys else 0
+    res = {key: row[key] for key in ("id", "name", "email", "role", "is_active", "created_at", "version")}
+    res["premium_until"] = p_until
+    res["is_premium"] = is_prem
+    res["streak_freezes"] = freezes
+    return res
 
 
 def session(conn, user):
@@ -1179,7 +1196,14 @@ def _submit_extended_exam(exam_id, exam, questions, body, user, grader):
             (user["id"], exam_id, snapshot, score, score, feedback,
              graded_by, int(time.time())),
         ).lastrowid
-        return require_row(conn, "results", rid)
+        res_data = require_row(conn, "results", rid)
+        if score >= 100:
+            try:
+                from premium_service import create_ai_100_score_voucher
+                res_data["reward_voucher"] = create_ai_100_score_voucher(conn, user["id"])
+            except Exception as exc:
+                logging.warning("Failed to auto-create AI voucher on extended exam: %s", exc)
+        return res_data
 
 
 @app.post("/api/exams/{exam_id}/submit", status_code=201)
@@ -1246,7 +1270,14 @@ def submit(exam_id: int, body: Submission, user=Depends(current_user), grader=De
         check_version(current, body.version)
         rid = conn.execute("INSERT INTO results(user_id,exam_id,kind,content,score,original_score,feedback,graded_by,created_at) VALUES(?,?,'exam',?,?,?,?,?,?)",
                            (user["id"], exam_id, snapshot, score, score, feedback, graded_by, int(time.time()))).lastrowid
-        return require_row(conn, "results", rid)
+        res_data = require_row(conn, "results", rid)
+        if score >= 100:
+            try:
+                from premium_service import create_ai_100_score_voucher
+                res_data["reward_voucher"] = create_ai_100_score_voucher(conn, user["id"])
+            except Exception as exc:
+                logging.warning("Failed to auto-create AI voucher on submit: %s", exc)
+        return res_data
 
 
 @app.get("/api/admin/ai-config")
@@ -2094,6 +2125,285 @@ async def fresh_web_assets(request, call_next):
     if not request.url.path.startswith(("/api/", "/media/")):
         response.headers["Cache-Control"] = "no-store, max-age=0"
     return response
+
+
+# ==========================================
+# HanziGo Premium & SePay Payment Integration
+# ==========================================
+
+@app.get("/api/premium/plans")
+def get_premium_plans():
+    """Return available HanziGo Premium subscription plans, comparison table, and payment info."""
+    with database() as conn:
+        cfg = get_sepay_config(conn)
+    return {
+        "plans": PLAN_PRICES,
+        "comparison": COMPARISON_FEATURES,
+        "payment_info": {
+            "bank_name": cfg["bank_name"],
+            "bank_account": cfg["bank_account"],
+            "account_holder": cfg["account_holder"],
+            "is_active": bool(cfg["is_active"]),
+        }
+    }
+
+
+@app.get("/api/premium/me")
+def get_my_premium_status(user=Depends(current_user)):
+    """Return current user's HanziGo Premium membership details."""
+    now = int(time.time())
+    with database() as conn:
+        u = conn.execute("SELECT premium_until, streak_freezes FROM users WHERE id = ?", (user["id"],)).fetchone()
+        orders = conn.execute(
+            """SELECT id, order_code, plan_type, amount, status, created_at, completed_at
+               FROM premium_orders WHERE user_id = ? ORDER BY id DESC LIMIT 5""",
+            (user["id"],)
+        ).fetchall()
+
+    p_until = u["premium_until"] if u else 0
+    is_premium = bool(p_until > now)
+    days_left = max(0, (p_until - now) // 86400) if is_premium else 0
+
+    return {
+        "is_premium": is_premium,
+        "premium_until": p_until,
+        "days_remaining": days_left,
+        "streak_freezes": u["streak_freezes"] if u else 0,
+        "recent_orders": [row_to_dict(o) for o in orders]
+    }
+
+
+@app.post("/api/premium/orders", status_code=201)
+def create_order(body: CreatePremiumOrderRequest, user=Depends(current_user)):
+    """Create a subscription order for 1 month or 1 year with optional voucher."""
+    with database() as conn:
+        order = create_premium_order(conn, user["id"], body.plan_type, body.voucher_code)
+    return order
+
+
+@app.get("/api/premium/orders/{order_code}/status")
+def check_order_status(order_code: str, user=Depends(current_user)):
+    """Check status of a pending order (used for polling QR payment dialog)."""
+    with database() as conn:
+        row = conn.execute(
+            "SELECT * FROM premium_orders WHERE order_code = ? AND user_id = ?",
+            (order_code.strip(), user["id"])
+        ).fetchone()
+        if not row:
+            raise HTTPException(404, "Không tìm thấy đơn hàng.")
+        u = conn.execute("SELECT premium_until FROM users WHERE id = ?", (user["id"],)).fetchone()
+
+    order = row_to_dict(row)
+    now = int(time.time())
+    return {
+        "order_code": order["order_code"],
+        "status": order["status"],
+        "is_completed": order["status"] == "completed",
+        "amount": order["amount"],
+        "plan_type": order["plan_type"],
+        "premium_until": u["premium_until"] if u else 0,
+        "is_premium": bool(u and u["premium_until"] > now)
+    }
+
+
+@app.post("/api/premium/redeem-voucher")
+def redeem_voucher(body: RedeemVoucherRequest, user=Depends(current_user)):
+    """Redeem voucher: immediately activate 1-month free Premium or report percentage discount."""
+    with database() as conn:
+        result = redeem_voucher_direct(conn, user["id"], body.code)
+    return result
+
+
+@app.post("/api/payment/sepay-webhook")
+async def sepay_webhook(request: Request):
+    """Receive SePay bank transfer webhook and automatically activate HanziGo Premium."""
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(400, "Invalid JSON payload.")
+
+    auth_header = request.headers.get("authorization") or request.headers.get("Authorization")
+    with database() as conn:
+        result = process_sepay_webhook(conn, payload, auth_header)
+    return result
+
+
+# ==========================================
+# Admin Management: HanziGo Premium & SePay
+# ==========================================
+
+@app.get("/api/admin/premium/dashboard")
+def admin_premium_dashboard(user=Depends(admin_user)):
+    """Return overview metrics for HanziGo Premium, SePay transactions, and Vouchers."""
+    now = int(time.time())
+    with database() as conn:
+        active_subscribers = conn.execute("SELECT COUNT(*) FROM users WHERE premium_until > ?", (now,)).fetchone()[0]
+        total_orders = conn.execute("SELECT COUNT(*) FROM premium_orders").fetchone()[0]
+        completed_orders = conn.execute("SELECT COUNT(*) FROM premium_orders WHERE status = 'completed'").fetchone()[0]
+        pending_orders = conn.execute("SELECT COUNT(*) FROM premium_orders WHERE status = 'pending'").fetchone()[0]
+        total_revenue = conn.execute("SELECT COALESCE(SUM(amount), 0) FROM premium_orders WHERE status = 'completed'").fetchone()[0]
+        total_vouchers = conn.execute("SELECT COUNT(*) FROM vouchers").fetchone()[0]
+        ai_vouchers = conn.execute("SELECT COUNT(*) FROM vouchers WHERE created_by = 'ai'").fetchone()[0]
+        admin_vouchers = conn.execute("SELECT COUNT(*) FROM vouchers WHERE created_by != 'ai'").fetchone()[0]
+
+    return {
+        "active_subscribers": active_subscribers,
+        "total_orders": total_orders,
+        "completed_orders": completed_orders,
+        "pending_orders": pending_orders,
+        "total_revenue": total_revenue,
+        "total_vouchers": total_vouchers,
+        "ai_vouchers": ai_vouchers,
+        "admin_vouchers": admin_vouchers
+    }
+
+
+@app.get("/api/admin/premium/transactions")
+def admin_premium_transactions(
+    status: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    user=Depends(admin_user)
+):
+    """List bank transfer orders with user information and status."""
+    with database() as conn:
+        query = """
+            SELECT o.*, u.name AS user_name, u.email AS user_email
+            FROM premium_orders o
+            LEFT JOIN users u ON u.id = o.user_id
+        """
+        params: list[Any] = []
+        if status:
+            query += " WHERE o.status = ?"
+            params.append(status)
+        query += " ORDER BY o.id DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        rows = conn.execute(query, params).fetchall()
+        total_count = conn.execute(
+            "SELECT COUNT(*) FROM premium_orders" + (" WHERE status = ?" if status else ""),
+            ([status] if status else [])
+        ).fetchone()[0]
+
+    return {
+        "total": total_count,
+        "items": [row_to_dict(r) for r in rows]
+    }
+
+
+@app.post("/api/admin/premium/transactions/{order_id}/activate")
+def admin_activate_order(order_id: int, user=Depends(admin_user)):
+    """Admin manual activation for a subscriber order."""
+    with database() as conn:
+        result = complete_premium_order(conn, order_id, sepay_reference_code="ADMIN_MANUAL_ACTIVATION")
+    return {
+        "success": True,
+        "message": f"Đã kích hoạt thành công đơn hàng {result['order_code']}.",
+        "order": result
+    }
+
+
+@app.get("/api/admin/premium/sepay-config")
+def admin_get_sepay_config(user=Depends(admin_user)):
+    """Retrieve SePay configuration and webhook guide."""
+    with database() as conn:
+        cfg = get_sepay_config(conn)
+    return {
+        "config": cfg,
+        "webhook_url": "/api/payment/sepay-webhook",
+        "instructions": [
+            "1. Đăng nhập vào tài khoản SePay của bạn tại https://my.sepay.vn",
+            "2. Vào mục 'Kết nối ngân hàng', thêm tài khoản ngân hàng của bạn (Số tài khoản, Tên ngân hàng, Tên chủ tài khoản).",
+            "3. Cập nhật thông tin ngân hàng tương ứng vào biểu mẫu bên dưới.",
+            "4. Vào mục 'Tích hợp Webhook' trên SePay, tạo webhook mới:",
+            "   - URL nhận webhook: https://<domain-cua-ban>/api/payment/sepay-webhook",
+            "   - Kiểu dữ liệu: JSON",
+            "   - Trạng thái: Kích hoạt",
+            "5. (Tùy chọn) Nếu bạn thiết lập API Key trong SePay, hãy dán API Token vào ô 'SePay API Key' bên dưới để bảo mật webhook.",
+            "6. Hệ thống tự động nhận diện mã đơn hàng HZGxxxxxx trong nội dung chuyển khoản và kích hoạt hội viên VIP tức thì!"
+        ]
+    }
+
+
+@app.put("/api/admin/premium/sepay-config")
+def admin_update_sepay_config(body: SepayConfigUpdate, user=Depends(admin_user)):
+    """Update SePay payment configuration."""
+    with database() as conn:
+        updated = update_sepay_config(
+            conn,
+            bank_name=body.bank_name,
+            bank_account=body.bank_account,
+            account_holder=body.account_holder,
+            api_key=body.api_key,
+            is_active=body.is_active
+        )
+    return {"success": True, "config": updated}
+
+
+@app.get("/api/admin/premium/vouchers")
+def admin_list_vouchers(
+    created_by: str | None = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=500),
+    user=Depends(admin_user)
+):
+    """List all discount and free-month vouchers, distinguishing Admin vs AI generated."""
+    with database() as conn:
+        query = """
+            SELECT v.*, u.email AS assigned_user_email
+            FROM vouchers v
+            LEFT JOIN users u ON u.id = v.user_id
+        """
+        params: list[Any] = []
+        if created_by:
+            query += " WHERE v.created_by = ?"
+            params.append(created_by)
+        query += " ORDER BY v.id DESC LIMIT ?"
+        params.append(limit)
+
+        rows = conn.execute(query, params).fetchall()
+
+    return {"items": [row_to_dict(r) for r in rows]}
+
+
+@app.post("/api/admin/premium/vouchers", status_code=201)
+def admin_create_voucher(body: AdminCreateVoucherRequest, user=Depends(admin_user)):
+    """Create a new discount or 1-month free voucher."""
+    code = body.code.strip().upper() if body.code else f"VIP{secrets.randbelow(90000) + 10000}"
+    now = int(time.time())
+
+    with database() as conn:
+        exists = conn.execute("SELECT 1 FROM vouchers WHERE UPPER(code) = ?", (code,)).fetchone()
+        if exists:
+            raise HTTPException(400, f"Mã voucher '{code}' đã tồn tại.")
+
+        vid = conn.execute(
+            """INSERT INTO vouchers (
+                code, discount_percent, is_free_month, max_uses, used_count,
+                created_by, description, is_active, expires_at, created_at
+            ) VALUES (?, ?, ?, ?, 0, 'admin', ?, 1, ?, ?)""",
+            (
+                code,
+                body.discount_percent if not body.is_free_month else 100,
+                1 if body.is_free_month else 0,
+                body.max_uses,
+                body.description or ("1 Tháng HanziGo Premium miễn phí" if body.is_free_month else f"Giảm {body.discount_percent}% gói HanziGo Premium"),
+                body.expires_at,
+                now
+            )
+        ).lastrowid
+        created = conn.execute("SELECT * FROM vouchers WHERE id = ?", (vid,)).fetchone()
+
+    return row_to_dict(created)
+
+
+@app.delete("/api/admin/premium/vouchers/{voucher_id}")
+def admin_delete_voucher(voucher_id: int, user=Depends(admin_user)):
+    """Delete or deactivate a voucher."""
+    with database() as conn:
+        res = conn.execute("DELETE FROM vouchers WHERE id = ?", (voucher_id,))
+        if res.rowcount == 0:
+            raise HTTPException(404, "Không tìm thấy mã voucher.")
+    return {"success": True, "message": "Đã xóa mã voucher thành công."}
 
 
 @app.get("/flutter_service_worker.js", include_in_schema=False)

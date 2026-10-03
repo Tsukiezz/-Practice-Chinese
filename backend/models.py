@@ -496,3 +496,30 @@ class HandwritingRecognitionResponse(Body):
     score: float = Field(ge=0, le=100)
     feedback: str = Field(min_length=1, max_length=2000)
     details: HandwritingRecognitionDetails
+
+
+class CreatePremiumOrderRequest(Body):
+    plan_type: Literal["1_month", "1_year"]
+    voucher_code: str | None = Field(default=None, max_length=50)
+
+
+class RedeemVoucherRequest(Body):
+    code: str = Field(min_length=3, max_length=50)
+
+
+class SepayConfigUpdate(Body):
+    bank_name: str = Field(min_length=2, max_length=50)
+    bank_account: str = Field(min_length=4, max_length=50)
+    account_holder: str = Field(min_length=2, max_length=100)
+    api_key: str = Field(default="", max_length=200)
+    is_active: int = Field(default=1, ge=0, le=1)
+
+
+class AdminCreateVoucherRequest(Body):
+    code: str | None = Field(default=None, max_length=50)
+    discount_percent: int = Field(default=0, ge=0, le=100)
+    is_free_month: bool = Field(default=False)
+    max_uses: int = Field(default=1, ge=1, le=100000)
+    expires_at: int = Field(default=0, ge=0)
+    description: str = Field(default="", max_length=255)
+

@@ -588,6 +588,22 @@ def register_ai_exam_routes(app, current_user):
         # Time rule: 1 minute per question
         duration_minutes = body.question_count * 1
 
+        now = int(time.time())
+        is_premium = bool((user.get("premium_until") or 0) > now or user.get("role") == "admin")
+        if not is_premium:
+            day_start = now - (now % 86400)
+            with database() as conn:
+                daily_count_row = conn.execute(
+                    "SELECT COUNT(*) FROM student_ai_exams WHERE user_id = ? AND created_at >= ?",
+                    (user["id"], day_start)
+                ).fetchone()
+                if daily_count_row and daily_count_row[0] >= 3:
+                    raise HTTPException(
+                        403,
+                        "Bạn đã sử dụng hết giới hạn 3 đề thi AI miễn phí hôm nay. "
+                        "Nâng cấp lên HanziGo Premium để tạo đề thi AI không giới hạn!"
+                    )
+
         # Attempt Gemini generation first
         questions = generate_questions_with_gemini(
             user["id"], body.question_count, body.content_type, body.hsk_level, body.topic
@@ -770,12 +786,21 @@ def register_ai_exam_routes(app, current_user):
                 )
             )
 
+            reward_voucher = None
+            if score >= 100:
+                try:
+                    from premium_service import create_ai_100_score_voucher
+                    reward_voucher = create_ai_100_score_voucher(conn, user["id"])
+                except Exception as exc:
+                    logging.warning("Failed to auto-create AI voucher: %s", exc)
+
         return {
             "exam_id": exam_id,
             "status": "completed",
             "score": score,
             "feedback": feedback_data,
             "submitted_at": now,
+            "reward_voucher": reward_voucher,
         }
 
     @app.delete("/api/me/ai-exams/{exam_id}", status_code=204)

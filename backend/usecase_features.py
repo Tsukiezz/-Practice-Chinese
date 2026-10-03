@@ -119,8 +119,9 @@ def register_features(app, current_user, hash_password):
     def account(user=Depends(current_user)):
         with database() as c:
             p=c.execute("SELECT * FROM profiles WHERE user_id=?",(user["id"],)).fetchone()
-            u=c.execute("SELECT name,email,role FROM users WHERE id=?",(user["id"],)).fetchone()
-            u_dict = row_to_dict(u)
+            u=c.execute("SELECT name,email,role,premium_until,streak_freezes FROM users WHERE id=?",(user["id"],)).fetchone()
+            u_dict = row_to_dict(u) if u else {}
+            u_dict["is_premium"] = bool((u_dict.get("premium_until") or 0) > int(time.time()))
             p_dict = row_to_dict(p) if p else {"phone":"","birth_date":"","avatar":"","daily_goal":1,"weekly_goal":5}
             return {**u_dict, **p_dict}
 

@@ -217,8 +217,63 @@ def init_db():
         CREATE INDEX IF NOT EXISTS verification_codes_lookup ON verification_codes(email, purpose, used);
         """)
         # Additive, idempotent migration: preserve existing accounts and sessions.
-        if 'version' not in {row['name'] for row in conn.execute('PRAGMA table_info(users)')}:
+        user_cols = {row['name'] for row in conn.execute('PRAGMA table_info(users)')}
+        if 'version' not in user_cols:
             conn.execute('ALTER TABLE users ADD COLUMN version INTEGER NOT NULL DEFAULT 1')
+        if 'premium_until' not in user_cols:
+            conn.execute('ALTER TABLE users ADD COLUMN premium_until INTEGER NOT NULL DEFAULT 0')
+        if 'streak_freezes' not in user_cols:
+            conn.execute('ALTER TABLE users ADD COLUMN streak_freezes INTEGER NOT NULL DEFAULT 0')
+
+        conn.executescript("""
+        CREATE TABLE IF NOT EXISTS sepay_config (
+            id INTEGER PRIMARY KEY CHECK(id=1),
+            bank_name TEXT NOT NULL DEFAULT 'MBBank',
+            bank_account TEXT NOT NULL DEFAULT '0399888999',
+            account_holder TEXT NOT NULL DEFAULT 'NGUYEN VO VINH NIEN',
+            api_key TEXT NOT NULL DEFAULT '',
+            is_active INTEGER NOT NULL DEFAULT 1,
+            version INTEGER NOT NULL DEFAULT 1
+        );
+        INSERT OR IGNORE INTO sepay_config(id, bank_name, bank_account, account_holder, api_key)
+        VALUES(1, 'MBBank', '0399888999', 'NGUYEN VO VINH NIEN', '');
+
+        CREATE TABLE IF NOT EXISTS premium_orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_code TEXT NOT NULL UNIQUE,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            plan_type TEXT NOT NULL,
+            amount INTEGER NOT NULL,
+            original_amount INTEGER NOT NULL,
+            voucher_code TEXT,
+            discount_percent INTEGER NOT NULL DEFAULT 0,
+            status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','completed','cancelled')),
+            payment_gateway TEXT NOT NULL DEFAULT 'sepay',
+            sepay_transaction_id TEXT,
+            sepay_reference_code TEXT,
+            created_at INTEGER NOT NULL,
+            completed_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_premium_orders_code ON premium_orders(order_code);
+        CREATE INDEX IF NOT EXISTS idx_premium_orders_user ON premium_orders(user_id);
+
+        CREATE TABLE IF NOT EXISTS vouchers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code TEXT NOT NULL UNIQUE,
+            discount_percent INTEGER NOT NULL DEFAULT 0,
+            is_free_month INTEGER NOT NULL DEFAULT 0,
+            max_uses INTEGER NOT NULL DEFAULT 1,
+            used_count INTEGER NOT NULL DEFAULT 0,
+            created_by TEXT NOT NULL DEFAULT 'admin',
+            user_id INTEGER,
+            description TEXT NOT NULL DEFAULT '',
+            is_active INTEGER NOT NULL DEFAULT 1,
+            expires_at INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_vouchers_code ON vouchers(code);
+        """)
+
         ai_cols = {row['name'] for row in conn.execute('PRAGMA table_info(ai_config)')}
         if 'chat_prompt' not in ai_cols:
             conn.execute('ALTER TABLE ai_config ADD COLUMN chat_prompt TEXT')

@@ -9,6 +9,9 @@ class AuthUser {
     required this.email,
     required this.role,
     required this.expiresAt,
+    this.premiumUntil = 0,
+    this.isPremium = false,
+    this.streakFreezes = 0,
   });
 
   final int id;
@@ -16,16 +19,25 @@ class AuthUser {
   final String email;
   final String role;
   final int expiresAt;
+  final int premiumUntil;
+  final bool isPremium;
+  final int streakFreezes;
 
   bool get isAdmin => role == 'admin';
+  bool get isVip => isPremium || (premiumUntil > (DateTime.now().millisecondsSinceEpoch ~/ 1000));
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final pUntil = json['premium_until'] as int? ?? 0;
     return AuthUser(
       id: json['id'] as int,
       name: json['name'] as String,
       email: json['email'] as String,
       role: json['role'] as String,
       expiresAt: json['expires_at'] as int? ?? 0,
+      premiumUntil: pUntil,
+      isPremium: (json['is_premium'] as bool?) ?? (pUntil > now),
+      streakFreezes: json['streak_freezes'] as int? ?? 0,
     );
   }
 
@@ -35,6 +47,9 @@ class AuthUser {
         'email': email,
         'role': role,
         'expires_at': expiresAt,
+        'premium_until': premiumUntil,
+        'is_premium': isPremium,
+        'streak_freezes': streakFreezes,
       };
 }
 

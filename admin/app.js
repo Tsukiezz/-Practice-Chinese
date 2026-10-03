@@ -1,6 +1,7 @@
 import {renderChatInbox} from './support-inbox.js';
 import {renderAIConfig} from './ai-settings.js';
 import {renderAuditLog} from './audit-log.js';
+import {renderPremiumManagement} from './premium.js';
 const root = document.querySelector('#app');
 const dialog = document.querySelector('#editor');
 const pages = {
@@ -18,6 +19,7 @@ const pages = {
   lessons: ['Lộ trình 48 bài học', 'Danh mục bài học giáo trình HanziGo và mục tiêu từng cấp độ.'],
   ai: ['Cấu hình Trợ lý AI', 'Quản lý mô hình, huấn luyện trợ lý học tập và hướng dẫn chấm bài.'],
   logs: ['Nhật ký quản trị', 'Các thay đổi được ghi nhận cùng người thực hiện và thời gian minh bạch.'],
+  premium: ['👑 HanziGo Premium & SePay', 'Quản lý người chuyển khoản SePay, kích hoạt VIP và cấu hình mã Voucher giảm giá.'],
 };
 let token = sessionStorage.getItem('hanzigo_admin_token') || '';
 let user = null;
@@ -48,6 +50,12 @@ const NAV_GROUPS = [
     title: '⚙️ Hệ thống & Trí tuệ AI',
     desc: 'Cấu hình mô hình Trợ lý AI và nhật ký kiểm toán hệ thống',
     items: ['chats','ai','logs']
+  },
+  {
+    id: 'premium_group',
+    title: '👑 HanziGo Premium & SePay',
+    desc: 'Quản lý người chuyển khoản SePay, cấu hình tài khoản ngân hàng và mã giảm giá/1 tháng miễn phí',
+    items: ['premium']
   }
 ];
 const expandedGroups = new Set();
@@ -260,7 +268,8 @@ async function loadPage(params = '') {
       exams: '/admin/exams',
       lessons: '/lessons',
       ai: '/admin/ai-config',
-      logs: '/admin/audit-logs?paginated=true&limit=50'
+      logs: '/admin/audit-logs?paginated=true&limit=50',
+      premium: '/admin/premium/dashboard'
     }[page];
     const data = await api(endpoint + params);
     if (id !== loadId) return;
@@ -279,7 +288,8 @@ async function loadPage(params = '') {
       exams: renderExams,
       lessons: renderLessonsCatalog,
       ai: (content, data) => renderAIConfig(content, data, api, notify),
-      logs: (content, data) => renderAuditLog(content, data, api, dialog)
+      logs: (content, data) => renderAuditLog(content, data, api, dialog),
+      premium: (content, data) => renderPremiumManagement(content, data, api, notify, dialog)
     })[page](content, data, params);
   } catch (err) {
     if (id !== loadId) { notify(err.message); return; }

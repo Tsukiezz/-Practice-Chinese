@@ -8,6 +8,148 @@ body{background:#121b18;color:#e2ece7}section{background:#1b2823;border:1px soli
 </style><link rel="stylesheet" href="/admin/assets/learner-theme.css"></head><body><main>
 <a id="back" href="javascript:void(0)">← Trở về HanziGo</a><h1 id="title">Thông tin cá nhân</h1>
 <p id="message" role="status" aria-live="polite"></p>
+<section id="premium-section" hidden style="background:linear-gradient(135deg,#1d332a,#153e35);color:#fff;border-radius:22px;padding:24px;border:1.5px solid #ffd700;box-shadow:0 8px 24px rgba(212,175,55,0.18)">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+    <div>
+      <span id="prem-badge" style="background:#ffd700;color:#153e35;font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px">HỘI VIÊN THƯỜNG</span>
+      <h2 style="margin:8px 0 4px;font-size:22px;color:#fff">👑 HanziGo Premium</h2>
+      <p id="prem-desc" style="margin:0;font-size:13px;opacity:0.9">Nâng cấp để mở khóa: Không giới hạn AI tạo đề, cọ viết chữ Hán, trọn bộ HSK 1–9 & bảo lưu chuỗi.</p>
+    </div>
+    <div id="prem-meta" style="text-align:right;font-size:13px;color:#ffd700;font-weight:700"></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px">
+    <button type="button" id="btn-open-vip-subscribe" style="background:linear-gradient(135deg,#ffd700,#ffb300);color:#153e35;font-weight:800;border:none;padding:14px;border-radius:14px;cursor:pointer;font-size:15px;box-shadow:0 4px 12px rgba(255,215,0,0.3)">
+      👑 Đăng ký Hội viên VIP
+    </button>
+    <button type="button" id="btn-open-voucher-redeem" style="background:rgba(255,255,255,0.12);color:#fff;font-weight:700;border:1px solid rgba(255,255,255,0.35);padding:14px;border-radius:14px;cursor:pointer;font-size:15px">
+      🎟️ Nhập mã Voucher
+    </button>
+  </div>
+</section>
+
+<!-- Dialog for VIP Subscription & Comparison Table -->
+<dialog id="vip-dialog" style="border-radius:20px;border:none;padding:24px;max-width:620px;width:95%;background:#fff;color:#24332e;box-shadow:0 12px 40px rgba(0,0,0,0.3)">
+  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e0e8e4;padding-bottom:12px">
+    <h3 style="margin:0;font-size:20px;color:#153e35">👑 Đăng ký Hội viên HanziGo Premium</h3>
+    <button type="button" id="btn-close-vip-dialog" style="background:none;border:none;font-size:22px;cursor:pointer;color:#60736a;padding:0 6px">×</button>
+  </div>
+  
+  <p style="margin:12px 0 6px;font-size:14px;color:#60736a">So sánh đặc quyền Hội viên Miễn phí và Hội viên HanziGo Premium:</p>
+  <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin:8px 0 16px;border:1px solid #e0e8e4">
+      <thead>
+        <tr style="background:#f4f7f5;color:#153e35">
+          <th style="padding:8px 10px;border:1px solid #e0e8e4;text-align:left">Tính năng chi tiết</th>
+          <th style="padding:8px 10px;border:1px solid #e0e8e4;text-align:center">HanziGo (Miễn phí)</th>
+          <th style="padding:8px 10px;border:1px solid #e0e8e4;text-align:center;background:#fef9e7;color:#b06000">👑 HanziGo Premium</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;font-weight:600">AI tạo đề thi</td>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;text-align:center;color:#c5221f">❌ 3 đề / ngày</td>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;text-align:center;font-weight:700;color:#137333;background:#fef9e7">🌟 Không giới hạn</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;font-weight:600">Tùy biến đầu cọ (Bút lông, bút mực, cọ thư pháp)</td>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;text-align:center;color:#c5221f">❌ Cọ mặc định</td>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;text-align:center;font-weight:700;color:#137333;background:#fef9e7">🌟 Mở khóa toàn bộ</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;font-weight:600">Lộ trình HSK (HSK 1 đến 6/9) & Giao tiếp</td>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;text-align:center;color:#c5221f">❌ Chỉ HSK 1 – 6</td>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;text-align:center;font-weight:700;color:#137333;background:#fef9e7">🌟 Trọn bộ HSK 1 – 9 & Giao tiếp</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;font-weight:600">Tùy chọn giao diện màu sắc</td>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;text-align:center;color:#c5221f">❌ Không có</td>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;text-align:center;font-weight:700;color:#137333;background:#fef9e7">🌟 Tất cả màu</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;font-weight:600">Đóng băng chuỗi ngày học (Streak Freeze)</td>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;text-align:center;color:#c5221f">❌ Mất chuỗi nếu quên học</td>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;text-align:center;font-weight:700;color:#137333;background:#fef9e7">🌟 Tặng 3 lượt bảo lưu / tháng</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;font-weight:600">Huy hiệu & Khung đại diện Premium</td>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;text-align:center;color:#c5221f">❌ Giao diện thường</td>
+          <td style="padding:8px 10px;border:1px solid #e0e8e4;text-align:center;font-weight:700;color:#137333;background:#fef9e7">🌟 Huy hiệu Premium mạ vàng</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h4 style="margin:16px 0 10px;font-size:16px;color:#153e35">Chọn gói hội viên phù hợp:</h4>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+    <label style="border:2px solid #235546;padding:14px;border-radius:14px;cursor:pointer;background:#f4fbf7;display:block">
+      <input type="radio" name="plan_choice" value="1_month" checked style="margin-right:6px">
+      <b style="font-size:15px;color:#153e35">Gói 1 Tháng</b>
+      <div style="font-size:18px;font-weight:800;color:#153e35;margin-top:4px">49.000 VNĐ</div>
+      <small style="color:#60736a;font-size:12px">Thanh toán linh hoạt từng tháng</small>
+    </label>
+    <label style="border:2px solid #d4af37;padding:14px;border-radius:14px;cursor:pointer;background:#fffdf6;position:relative;display:block">
+      <span style="position:absolute;top:-10px;right:10px;background:#d4af37;color:#fff;font-size:11px;font-weight:800;padding:2px 8px;border-radius:10px">TIẾT KIỆM 2 THÁNG ⭐</span>
+      <input type="radio" name="plan_choice" value="1_year" style="margin-right:6px">
+      <b style="font-size:15px;color:#153e35">Gói 1 Năm</b>
+      <div style="font-size:18px;font-weight:800;color:#b06000;margin-top:4px">490.000 VNĐ</div>
+      <small style="color:#60736a;font-size:12px">Chỉ ~40.800đ/tháng (12 tháng)</small>
+    </label>
+  </div>
+
+  <button type="button" id="btn-proceed-sepay" class="primary" style="width:100%;padding:14px;font-size:16px;font-weight:700;border-radius:14px;background:#235546">
+    ⚡ Chuyển khoản VietQR SePay tự động
+  </button>
+</dialog>
+
+<!-- Dialog for Voucher Input -->
+<dialog id="voucher-dialog" style="border-radius:20px;border:none;padding:24px;max-width:480px;width:90%;background:#fff;color:#24332e;box-shadow:0 12px 40px rgba(0,0,0,0.3)">
+  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e0e8e4;padding-bottom:12px">
+    <h3 style="margin:0;font-size:20px;color:#153e35">🎟️ Nhập mã Voucher HanziGo Premium</h3>
+    <button type="button" id="btn-close-voucher-dialog" style="background:none;border:none;font-size:22px;cursor:pointer;color:#60736a;padding:0 6px">×</button>
+  </div>
+  <p style="margin:12px 0 8px;font-size:14px;color:#60736a">
+    Nhập mã giảm giá (%) hoặc mã 1 tháng miễn phí do Quản trị viên cấp hoặc AI tặng thưởng khi đạt 100 điểm:
+  </p>
+  <form id="form-redeem-voucher">
+    <input id="input-voucher-code" required placeholder="Ví dụ: HZG8392019482 hoặc VIP2026..." style="text-transform:uppercase;font-weight:700;font-size:16px;padding:12px;letter-spacing:1px;margin-bottom:12px">
+    <div id="voucher-result-msg" style="margin-bottom:12px;font-size:14px;font-weight:600"></div>
+    <button type="submit" id="btn-submit-voucher" class="primary" style="width:100%;padding:13px;border-radius:12px;font-weight:700;background:#235546">
+      Áp dụng mã Voucher
+    </button>
+  </form>
+</dialog>
+
+<!-- Dialog for SePay VietQR Payment Display -->
+<dialog id="qr-dialog" style="border-radius:20px;border:none;padding:24px;max-width:460px;width:92%;background:#fff;color:#24332e;box-shadow:0 12px 40px rgba(0,0,0,0.3);text-align:center">
+  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e0e8e4;padding-bottom:10px">
+    <h3 style="margin:0;font-size:18px;color:#153e35">Quét VietQR để kích hoạt VIP</h3>
+    <button type="button" id="btn-close-qr-dialog" style="background:none;border:none;font-size:22px;cursor:pointer;color:#60736a;padding:0 6px">×</button>
+  </div>
+  
+  <div style="margin:16px 0">
+    <img id="qr-image" alt="VietQR SePay" style="width:240px;height:240px;border-radius:12px;border:2px solid #e0e8e4;margin:auto;display:block">
+  </div>
+
+  <div style="background:#f4fbf7;border:1px solid #c7dcce;border-radius:12px;padding:12px;text-align:left;font-size:13px;line-height:1.6;margin-bottom:14px">
+    <div><b>Ngân hàng:</b> <span id="qr-bank">MBBank</span></div>
+    <div><b>Số tài khoản:</b> <b id="qr-account" style="color:#153e35;font-size:15px">0399888999</b></div>
+    <div><b>Chủ tài khoản:</b> <span id="qr-holder">NGUYEN VO VINH NIEN</span></div>
+    <div><b>Số tiền:</b> <b id="qr-amount" style="color:#c5221f;font-size:16px">49.000 đ</b></div>
+    <div style="margin-top:4px;padding-top:4px;border-top:1px dashed #cbd7ce">
+      <b>Nội dung chuyển khoản (bắt buộc đúng):</b>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+        <code id="qr-content" style="background:#fff;padding:4px 8px;border-radius:6px;font-size:16px;font-weight:800;color:#153e35;border:1px solid #153e35">HZG000000</code>
+        <button type="button" id="btn-copy-content" style="padding:4px 10px;font-size:12px;border-radius:6px;border:1px solid #153e35;background:#fff;cursor:pointer">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="qr-polling-status" style="font-size:14px;color:#b06000;font-weight:600">
+    ⏳ Đang chờ hệ thống nhận chuyển khoản qua SePay…
+  </div>
+</dialog>
+
 <section id="profile-section" hidden><p><a href="/appearance">🎨 Màu giao diện →</a></p><form id="profile">
 <img id="preview" alt="Ảnh đại diện" hidden>
 <label>Họ tên<input name="name" required maxlength="120"></label>
@@ -79,6 +221,121 @@ function goBack(e) {
 }
 $('back').onclick = goBack;
 
+let pollTimer = null;
+let activeOrderCode = null;
+
+function updatePremiumUI(user) {
+  const isVip = Boolean(user.is_premium);
+  $('prem-badge').textContent = isVip ? '👑 HỘI VIÊN HANZI GO PREMIUM' : 'HỘI VIÊN THƯỜNG';
+  $('prem-badge').style.background = isVip ? '#ffd700' : '#8fa69c';
+  $('prem-badge').style.color = isVip ? '#153e35' : '#fff';
+  
+  if (isVip && user.premium_until) {
+    const expDate = new Date(user.premium_until * 1000).toLocaleDateString('vi-VN');
+    $('prem-meta').innerHTML = `Hạn dùng: <b>${expDate}</b><br><small style="color:#ffd700">🛡️ ${user.streak_freezes || 0} lượt Streak Freeze</small>`;
+    $('btn-open-vip-subscribe').textContent = '👑 Gia hạn Hội viên VIP';
+  } else {
+    $('prem-meta').textContent = 'Chưa kích hoạt VIP';
+    $('btn-open-vip-subscribe').textContent = '👑 Đăng ký Hội viên VIP';
+  }
+  $('premium-section').hidden = false;
+}
+
+$('btn-open-vip-subscribe').onclick = () => $('vip-dialog').showModal();
+$('btn-close-vip-dialog').onclick = () => $('vip-dialog').close();
+
+$('btn-open-voucher-redeem').onclick = () => {
+  $('voucher-result-msg').textContent = '';
+  $('voucher-result-msg').style.color = 'inherit';
+  $('form-redeem-voucher').reset();
+  $('voucher-dialog').showModal();
+};
+$('btn-close-voucher-dialog').onclick = () => $('voucher-dialog').close();
+
+$('btn-close-qr-dialog').onclick = () => {
+  if (pollTimer) clearInterval(pollTimer);
+  $('qr-dialog').close();
+};
+
+$('btn-copy-content').onclick = () => {
+  navigator.clipboard.writeText($('qr-content').textContent.trim());
+  message('Đã sao chép nội dung chuyển khoản!');
+};
+
+$('btn-proceed-sepay').onclick = async () => {
+  const plan = document.querySelector('input[name="plan_choice"]:checked')?.value || '1_month';
+  $('vip-dialog').close();
+  message('Đang tạo mã VietQR thanh toán SePay…');
+  try {
+    const order = await api('/premium/orders', 'POST', {plan_type: plan});
+    showPaymentQR(order);
+  } catch (e) {
+    message(e.message);
+  }
+};
+
+function showPaymentQR(order) {
+  activeOrderCode = order.order_code;
+  $('qr-image').src = order.qr_url;
+  $('qr-bank').textContent = order.bank_name;
+  $('qr-account').textContent = order.bank_account;
+  $('qr-holder').textContent = order.account_holder;
+  $('qr-amount').textContent = Number(order.amount).toLocaleString('vi-VN') + ' đ';
+  $('qr-content').textContent = order.transfer_content;
+  $('qr-polling-status').textContent = '⏳ Đang chờ hệ thống nhận chuyển khoản qua SePay…';
+  $('qr-dialog').showModal();
+
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const st = await api('/premium/orders/' + activeOrderCode + '/status');
+      if (st.is_completed) {
+        clearInterval(pollTimer);
+        $('qr-polling-status').innerHTML = '🎉 <b style="color:#137333">Thanh toán thành công! Bạn đã là Hội viên VIP!</b>';
+        message('Chúc mừng! Giao dịch SePay đã thành công. Tài khoản của bạn đã được nâng cấp lên HanziGo Premium!');
+        setTimeout(async () => {
+          $('qr-dialog').close();
+          const refreshed = await api('/account');
+          updatePremiumUI(refreshed);
+        }, 2000);
+      }
+    } catch (_) {}
+  }, 3000);
+}
+
+$('form-redeem-voucher').onsubmit = async (e) => {
+  e.preventDefault();
+  const code = $('input-voucher-code').value.trim().toUpperCase();
+  if (!code) return;
+  const msgEl = $('voucher-result-msg');
+  msgEl.textContent = 'Đang kiểm tra mã…';
+  msgEl.style.color = '#153e35';
+
+  try {
+    const res = await api('/premium/redeem-voucher', 'POST', {code});
+    if (res.type === 'free_month') {
+      msgEl.style.color = '#137333';
+      msgEl.textContent = '🎉 ' + res.message;
+      message('Chúc mừng! Đã kích hoạt thành công 1 tháng HanziGo Premium miễn phí!');
+      const refreshed = await api('/account');
+      updatePremiumUI(refreshed);
+      setTimeout(() => $('voucher-dialog').close(), 2500);
+    } else {
+      msgEl.style.color = '#137333';
+      msgEl.innerHTML = `Mã hợp lệ! Bạn được <b>giảm ${res.discount_percent}%</b>. Giá 1 tháng: <b>${res.discounted_1_month.toLocaleString('vi-VN')} đ</b>.<br><button type="button" id="btn-buy-with-voucher" style="margin-top:8px;padding:8px 14px;border:none;border-radius:8px;background:#ffd700;color:#153e35;font-weight:800;cursor:pointer">Mua gói 1 tháng với giá ưu đãi →</button>`;
+      $('btn-buy-with-voucher').onclick = async () => {
+        $('voucher-dialog').close();
+        message('Đang tạo đơn hàng ưu đãi…');
+        const order = await api('/premium/orders', 'POST', {plan_type: '1_month', voucher_code: code});
+        showPaymentQR(order);
+      };
+    }
+  } catch (err) {
+    msgEl.style.color = '#c5221f';
+    msgEl.textContent = err.message;
+  }
+};
+
 (async()=>{
  if(location.pathname==='/recover'){
   $('title').textContent='Quên mật khẩu';$('recovery-section').hidden=false;
@@ -92,6 +349,7 @@ $('back').onclick = goBack;
     sessionStorage.removeItem('hanzigo_account_token');
     throw Error('Tài khoản quản trị viên vui lòng sử dụng trang /admin.');
   }
+  updatePremiumUI(data);
   $('profile-section').hidden=false;$('password-section').hidden=false;
  }
 })().catch(e=>message(e.message));
