@@ -14,7 +14,9 @@ Các return URL `/payment/sepay/return` chỉ hiển thị thông báo; không c
 
 Flutter Web trên điện thoại/máy tính mở link checkout. Bản native hiện sao chép link để mở trong trình duyệt; trở lại ứng dụng và tải lại tài khoản để cập nhật Premium. Trang HTML `/account` chuyển thẳng sang checkout.
 
-Webhook ngân hàng cũ `/api/payment/sepay-webhook` là luồng khác. Nó bắt buộc xác thực và không xử lý đơn `sepay_pg`. Giữ cấu hình API key của webhook ngân hàng riêng nếu vẫn dùng luồng QR trực tiếp; khóa này không phải merchant secret.
+Webhook ngân hàng `/api/payment/sepay-webhook` bắt buộc xác thực bằng API key riêng, tiền vào đúng tài khoản, mã đơn và đủ số tiền. Nó hỗ trợ cả đơn `sepay_pg` khi người dùng thanh toán QR trực tiếp. Nếu nhận payload IPN tại URL này, backend kiểm tra `X-Secret-Key` bằng merchant secret và xử lý như `/api/payment/sepay-ipn`.
+
+Nếu IPN bị chậm hoặc thất lạc, các endpoint kiểm tra đơn gọi SePay REST API bằng Basic Auth trên server, tìm đúng invoice rồi kiểm tra chi tiết đơn CAPTURED và giao dịch PAYMENT/APPROVED, VND và số tiền khớp. Chỉ sau đó mới cấp gói trong transaction database. Việc đối soát có cooldown 15 giây mỗi đơn trên từng instance; không giữ khóa database trong lúc gọi API. Tải lại tài khoản cũng đối soát đơn gateway chưa hoàn tất mới nhất, kể cả đơn hết thời gian chờ. Gói 1_month cấp 30 ngày, 1_year cấp 365 ngày, nối tiếp hạn Premium còn lại. Giá thanh toán lấy từ đơn đã áp dụng voucher.
 
 ## Kiểm tra
 

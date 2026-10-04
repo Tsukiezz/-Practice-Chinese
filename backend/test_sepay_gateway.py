@@ -10,11 +10,17 @@ from unittest.mock import patch
 from fastapi import HTTPException
 import database as storage
 from premium_service import create_premium_order, cleanup_expired_pending_orders, process_sepay_webhook
-from sepay_gateway import checkout_fields, process_ipn
+from sepay_gateway import checkout_fields, process_ipn, reconcile_order, _checks
+import httpx
 
 
 class GatewayTest(unittest.TestCase):
     def setUp(self):
+        _checks.clear()
+        self.api = patch('sepay_gateway.httpx.Client')
+        self.api_client = self.api.start().return_value.__enter__.return_value
+        self.api_client.get.side_effect = httpx.ConnectError('offline test')
+        self.addCleanup(self.api.stop)
         self.previous = storage.DB_PATH
         uri = 'file:payment-' + uuid.uuid4().hex + '?mode=memory&cache=shared'
         original_connect = sqlite3.connect
@@ -98,6 +104,86 @@ class GatewayTest(unittest.TestCase):
             with self.assertRaises(HTTPException) as raised:
                 process_sepay_webhook(c, {'content': self.order['order_code'], 'transferAmount': 49000})
         self.assertEqual(raised.exception.status_code, 401)
+
+    def test_bank_transfer_can_complete_gateway_order_once(self):
+        for plan, amount, days in [('1_month', 49000, 30), ('1_year', 490000, 365)]:
+            with self.subTest(plan=plan), storage.database() as c:
+                c.execute("UPDATE sepay_config SET api_key='bank-secret' WHERE id=1")
+                c.execute('UPDATE users SET premium_until=0, streak_freezes=0 WHERE id=?', (self.uid,))
+                order = create_premium_order(c, self.uid, plan)
+                payload = {'id': 'bank-' + plan, 'code': order['order_code'],
+                           'transferType': 'in', 'transferAmount': amount, 'accountNumber': '80001795444'}
+                before = int(time.time())
+                result = process_sepay_webhook(c, payload, auth_header='Apikey bank-secret')
+                self.assertTrue(result['success'])
+                self.assertAlmostEqual(result['premium_until'], before + days * 86400, delta=2)
+                process_sepay_webhook(c, payload, auth_header='Apikey bank-secret')
+                self.assertEqual(c.execute('SELECT premium_until FROM users WHERE id=?', (self.uid,)).fetchone()[0], result['premium_until'])
+
+    def mock_remote_order(self, detail):
+        self.api_client.get.side_effect = [
+            httpx.Response(200, json={'data': [dict(detail, order_id='remote-order')]}, request=httpx.Request('GET', 'https://pgapi.sepay.vn/v1/order')),
+            httpx.Response(200, json={'data': detail}, request=httpx.Request('GET', 'https://pgapi.sepay.vn/v1/order/detail/remote-order'))]
+
+    def test_reconcile_missed_ipn_and_repeat(self):
+        detail = dict(self.payload['order'], transactions=[self.payload['transaction']])
+        self.mock_remote_order(detail)
+        reconcile_order(self.order['order_code'], self.uid)
+        with storage.database() as c:
+            until = c.execute('SELECT premium_until FROM users WHERE id=?', (self.uid,)).fetchone()[0]
+            self.assertAlmostEqual(until, int(time.time()) + 30 * 86400, delta=2)
+        reconcile_order(self.order['order_code'], self.uid)
+        self.assertEqual(self.api_client.get.call_count, 2)
+        self.notify()
+        with storage.database() as c:
+            self.assertEqual(c.execute('SELECT premium_until FROM users WHERE id=?', (self.uid,)).fetchone()[0], until)
+
+    def test_reconcile_rejects_wrong_amount_and_owner(self):
+        reconcile_order(self.order['order_code'], self.uid + 999)
+        self.api_client.get.assert_not_called()
+        detail = dict(self.payload['order'], order_amount='1', transactions=[self.payload['transaction']])
+        self.mock_remote_order(detail)
+        reconcile_order(self.order['order_code'], self.uid)
+        with storage.database() as c:
+            self.assertEqual(c.execute('SELECT premium_until FROM users WHERE id=?', (self.uid,)).fetchone()[0], 0)
+
+    def test_reconcile_yearly_late_payment_extends_existing_membership(self):
+        base = int(time.time()) + 10 * 86400
+        with storage.database() as c:
+            order = create_premium_order(c, self.uid, '1_year')
+            c.execute('UPDATE users SET premium_until=? WHERE id=?', (base, self.uid))
+            c.execute("UPDATE premium_orders SET status='cancelled' WHERE order_code=?", (order['order_code'],))
+        transaction = dict(self.payload['transaction'], transaction_amount='490000')
+        detail = dict(self.payload['order'], order_invoice_number=order['order_code'],
+                      order_amount='490000.00', transactions=[transaction])
+        self.mock_remote_order(detail)
+        reconcile_order(order['order_code'], self.uid)
+        with storage.database() as c:
+            self.assertEqual(c.execute('SELECT premium_until FROM users WHERE id=?', (self.uid,)).fetchone()[0], base + 365 * 86400)
+
+    def test_bank_transfer_rejects_wrong_account_missing_direction_and_underpayment(self):
+        with storage.database() as c:
+            c.execute("UPDATE sepay_config SET api_key='bank-secret' WHERE id=1")
+            good = {'id': 'bank-test', 'code': self.order['order_code'], 'transferType': 'in',
+                    'transferAmount': 49000, 'accountNumber': '80001795444'}
+            for key, value in [('accountNumber', 'other-account'), ('transferType', ''), ('transferAmount', 100)]:
+                process_sepay_webhook(c, dict(good, **{key: value}), auth_header='Apikey bank-secret')
+            self.assertEqual(c.execute('SELECT premium_until FROM users WHERE id=?', (self.uid,)).fetchone()[0], 0)
+
+    def test_gateway_ipn_can_arrive_at_legacy_webhook_url(self):
+        from main import app
+        from fastapi.testclient import TestClient
+        with TestClient(app) as client:
+            self.assertEqual(client.post('/api/payment/sepay-webhook', json=self.payload).status_code, 401)
+            self.assertEqual(client.post('/api/payment/sepay-webhook', json=self.payload,
+                                        headers={'X-Secret-Key': 'test-only-secret'}).status_code, 200)
+
+    def test_provider_outage_does_not_grant_premium_and_is_throttled(self):
+        reconcile_order(self.order['order_code'], self.uid)
+        reconcile_order(self.order['order_code'], self.uid)
+        self.assertEqual(self.api_client.get.call_count, 1)
+        with storage.database() as c:
+            self.assertEqual(c.execute('SELECT premium_until FROM users WHERE id=?', (self.uid,)).fetchone()[0], 0)
 
     def test_checkout_route_and_browser_return_do_not_grant_premium(self):
         from fastapi import FastAPI

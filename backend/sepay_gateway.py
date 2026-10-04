@@ -7,11 +7,72 @@ import html
 import json
 import os
 import time
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
+import logging
+import threading
+import httpx
 
 from fastapi import HTTPException, Request
 from fastapi.responses import HTMLResponse
 from database import database
+
+_checks = {}
+_check_lock = threading.Lock()
+logger = logging.getLogger(__name__)
+
+
+def reconcile_recent_orders(user_id):
+    """Recover the most recent unpaid checkout when the learner returns later."""
+    with database() as conn:
+        row = conn.execute("SELECT order_code FROM premium_orders WHERE user_id=? AND payment_gateway='sepay_pg' AND status IN ('pending','cancelled') ORDER BY id DESC LIMIT 1", (user_id,)).fetchone()
+    if row:
+        reconcile_order(row['order_code'], user_id)
+
+
+def reconcile_order(code, user_id):
+    """Recover missed IPNs using authenticated SePay API data, never browser claims."""
+    with database() as conn:
+        row = conn.execute('SELECT * FROM premium_orders WHERE order_code=? AND user_id=?',
+                           (code, user_id)).fetchone()
+    if not row or row['status'] == 'completed' or row['payment_gateway'] != 'sepay_pg':
+        return
+    with _check_lock:
+        now = time.monotonic()
+        if now - _checks.get(code, -30) < 15:
+            return
+        if len(_checks) >= 2000:
+            _checks.clear()
+        _checks[code] = now
+    try:
+        merchant, secret, _ = settings()
+        with httpx.Client(auth=(merchant, secret), timeout=8, follow_redirects=False) as client:
+            response = client.get('https://pgapi.sepay.vn/v1/order',
+                                  params={'q': code, 'order_status': 'CAPTURED', 'per_page': 100})
+            response.raise_for_status()
+            orders = response.json().get('data', [])
+            for order in orders:
+                if order.get('order_invoice_number') != code or order.get('order_status') != 'CAPTURED':
+                    continue
+                remote_id = order.get('order_id')
+                if not remote_id:
+                    continue
+                response = client.get('https://pgapi.sepay.vn/v1/order/detail/' + quote(str(remote_id), safe=''))
+                response.raise_for_status()
+                detail = response.json()['data']
+                if detail.get('order_invoice_number') != code:
+                    continue
+                for transaction in detail.get('transactions', []):
+                    if transaction.get('transaction_status') != 'APPROVED' or transaction.get('transaction_type') != 'PAYMENT':
+                        continue
+                    # Reuse exact amount/currency checks and the atomic IPN completion path.
+                    with database() as conn:
+                        conn.execute('BEGIN IMMEDIATE')
+                        process_ipn(conn, {'notification_type': 'ORDER_PAID',
+                                          'order': detail, 'transaction': transaction}, secret)
+                    return
+    except (httpx.HTTPError, ValueError, KeyError, TypeError, AttributeError, HTTPException) as error:
+        # Polling stays usable during provider outages; retry after the cooldown.
+        logger.warning('SePay reconciliation failed for %s (%s)', code, type(error).__name__)
 
 
 def settings():
@@ -135,6 +196,7 @@ def register_gateway(app):
     def payment_status(code: str, user_id: int, expires: int, token: str):
         if expires < int(time.time()) or not hmac.compare_digest(token, link_signature(code, user_id, expires)):
             raise HTTPException(403, 'Phiên kiểm tra hết hạn. Hãy mở tài khoản để xem Premium.')
+        reconcile_order(code, user_id)
         with database() as conn:
             row = conn.execute("SELECT status FROM premium_orders WHERE order_code=? AND user_id=? AND payment_gateway='sepay_pg'", (code, user_id)).fetchone()
         if not row:

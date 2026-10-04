@@ -324,6 +324,7 @@ class _VipSubscribeSheetState extends State<_VipSubscribeSheet> {
             await Clipboard.setData(ClipboardData(text: orderData['payment_url'] as String));
             _showSnack('Đã sao chép link thanh toán. Mở link trong trình duyệt rồi trở lại ứng dụng.');
           }
+          _showPaymentQrDialog(orderData);
           return;
         }
         _showPaymentQrDialog(orderData);

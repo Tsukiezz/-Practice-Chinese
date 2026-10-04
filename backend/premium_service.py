@@ -5,6 +5,7 @@ import hmac
 import re
 import secrets
 import time
+from decimal import Decimal, InvalidOperation
 from typing import Any
 from fastapi import HTTPException
 
@@ -437,6 +438,8 @@ def process_sepay_webhook(
     raw_body: bytes = b""
 ) -> dict[str, Any]:
     """Process incoming bank transfer notification from SePay webhook and auto-activate HanziGo Premium."""
+    if not isinstance(payload, dict):
+        raise HTTPException(400, 'Invalid webhook payload.')
     cfg = get_sepay_config(conn)
     configured_key = (cfg.get("api_key") or "").strip()
     configured_merchant = (cfg.get("merchant_id") or "").strip()
@@ -468,7 +471,7 @@ def process_sepay_webhook(
             raise HTTPException(401, "SePay API key hoặc chữ ký không hợp lệ.")
 
     # ONLY process incoming money ('in') - Real money into bank account
-    transfer_type = str(payload.get("transferType", "in")).strip().lower()
+    transfer_type = str(payload.get("transferType", "")).strip().lower()
     if transfer_type != "in":
         return {
             "success": True,
@@ -479,7 +482,7 @@ def process_sepay_webhook(
     # Verify recipient bank account matches if present in payload
     incoming_acc = str(payload.get("accountNumber", "")).strip().replace(" ", "")
     cfg_acc = str(cfg.get("bank_account", "")).strip().replace(" ", "")
-    if incoming_acc and cfg_acc and incoming_acc != cfg_acc:
+    if not incoming_acc or not cfg_acc or incoming_acc != cfg_acc:
         return {
             "success": False,
             "message": f"Số tài khoản nhận ({incoming_acc}) không khớp với tài khoản hệ thống ({cfg_acc})."
@@ -487,9 +490,14 @@ def process_sepay_webhook(
 
     content = str(payload.get("content", ""))
     description = str(payload.get("description", ""))
-    search_text = f"{content} {description}"
-    transfer_amount = int(payload.get("transferAmount", 0) or 0)
-    sepay_tx_id = str(payload.get("id", ""))
+    search_text = f"{payload.get('code') or ''} {content} {description}"
+    try:
+        transfer_amount = Decimal(str(payload.get('transferAmount', 0)))
+        if not transfer_amount.is_finite() or transfer_amount <= 0 or transfer_amount != transfer_amount.to_integral_value():
+            raise ValueError()
+    except (InvalidOperation, ValueError):
+        raise HTTPException(400, 'Số tiền giao dịch không hợp lệ.') from None
+    sepay_tx_id = str(payload.get("id") or "").strip()
     sepay_ref = str(payload.get("referenceCode", ""))
 
     # Find pending or existing order matching order code in content
@@ -521,8 +529,8 @@ def process_sepay_webhook(
             "message": f"Không tìm thấy đơn hàng tương ứng trong nội dung chuyển khoản: '{content}'."
         }
 
-    if matched_order.get('payment_gateway') == 'sepay_pg':
-        raise HTTPException(400, 'Đơn cổng thanh toán cần IPN SePay, không dùng webhook ngân hàng.')
+    # An authenticated incoming bank transfer with the exact invoice/account is
+    # also valid evidence for a gateway order (e.g. its direct QR was paid).
     if not sepay_tx_id:
         raise HTTPException(400, 'Thiếu mã giao dịch.')
     duplicate = conn.execute("SELECT order_code FROM premium_orders WHERE sepay_transaction_id=? AND status='completed'", (sepay_tx_id,)).fetchone()

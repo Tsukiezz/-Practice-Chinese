@@ -350,7 +350,11 @@ def admin_login(body: Login):
 def student_session(user=Depends(current_user)):
     if user["role"] != "student":
         raise HTTPException(403, "Tài khoản quản trị viên vui lòng đăng nhập tại /admin.")
-    return public_user(user)
+    from sepay_gateway import reconcile_recent_orders
+    reconcile_recent_orders(user['id'])
+    with database() as conn:
+        refreshed = conn.execute('SELECT * FROM users WHERE id=?', (user['id'],)).fetchone()
+    return public_user(refreshed)
 
 
 @app.post("/api/auth/logout", status_code=204)
@@ -2196,6 +2200,8 @@ def get_premium_plans():
 @app.get("/api/premium/me")
 def get_my_premium_status(user=Depends(current_user)):
     """Return current user's HanziGo Premium membership details."""
+    from sepay_gateway import reconcile_recent_orders
+    reconcile_recent_orders(user['id'])
     now = int(time.time())
     with database() as conn:
         u = conn.execute("SELECT premium_until, streak_freezes FROM users WHERE id = ?", (user["id"],)).fetchone()
@@ -2230,6 +2236,8 @@ def create_order(body: CreatePremiumOrderRequest, user=Depends(current_user)):
 @app.get("/api/premium/orders/{order_code}/status")
 def check_order_status(order_code: str, user=Depends(current_user)):
     """Check status of a pending order (used for polling QR payment dialog). Auto-cancels if over 5 minutes."""
+    from sepay_gateway import reconcile_order
+    reconcile_order(order_code.strip(), user['id'])
     now = int(time.time())
     with database() as conn:
         row = conn.execute(
@@ -2297,6 +2305,9 @@ async def sepay_webhook(request: Request):
 
     with database() as conn:
         conn.execute("BEGIN IMMEDIATE")
+        if isinstance(payload, dict) and 'notification_type' in payload:
+            from sepay_gateway import process_ipn
+            return process_ipn(conn, payload, request.headers.get('x-secret-key'))
         result = process_sepay_webhook(
             conn,
             payload,
