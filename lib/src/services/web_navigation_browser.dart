@@ -53,4 +53,16 @@ void clearSavedReturnTab() {
   } catch (_) {}
 }
 
-bool openPayment(String url) { web.window.location.assign(url); return true; }
+bool openPayment(String url) {
+  final saved = web.window.localStorage.getItem('flutter.auth_token');
+  if (saved != null) {
+    try {
+      final token = jsonDecode(saved);
+      if (token is String && token.isNotEmpty) {
+        web.window.sessionStorage.setItem('hanzigo_account_token', token);
+      }
+    } catch (_) {}
+  }
+  web.window.location.assign(url);
+  return true;
+}

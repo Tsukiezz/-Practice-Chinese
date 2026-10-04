@@ -122,7 +122,6 @@ class GatewayTest(unittest.TestCase):
 
     def mock_remote_order(self, detail):
         self.api_client.get.side_effect = [
-            httpx.Response(200, json={'data': [dict(detail, order_id='remote-order')]}, request=httpx.Request('GET', 'https://pgapi.sepay.vn/v1/order')),
             httpx.Response(200, json={'data': detail}, request=httpx.Request('GET', 'https://pgapi.sepay.vn/v1/order/detail/remote-order'))]
 
     def test_reconcile_missed_ipn_and_repeat(self):
@@ -133,7 +132,8 @@ class GatewayTest(unittest.TestCase):
             until = c.execute('SELECT premium_until FROM users WHERE id=?', (self.uid,)).fetchone()[0]
             self.assertAlmostEqual(until, int(time.time()) + 30 * 86400, delta=2)
         reconcile_order(self.order['order_code'], self.uid)
-        self.assertEqual(self.api_client.get.call_count, 2)
+        self.assertEqual(self.api_client.get.call_count, 1)
+        self.assertTrue(self.api_client.get.call_args.args[0].endswith('/' + self.order['order_code']))
         self.notify()
         with storage.database() as c:
             self.assertEqual(c.execute('SELECT premium_until FROM users WHERE id=?', (self.uid,)).fetchone()[0], until)
@@ -146,6 +146,32 @@ class GatewayTest(unittest.TestCase):
         reconcile_order(self.order['order_code'], self.uid)
         with storage.database() as c:
             self.assertEqual(c.execute('SELECT premium_until FROM users WHERE id=?', (self.uid,)).fetchone()[0], 0)
+
+    def test_captured_bank_order_without_transactions_is_reconciled(self):
+        self.mock_remote_order(dict(self.payload['order'], transactions=[]))
+        reconcile_order(self.order['order_code'], self.uid)
+        with storage.database() as c:
+            row = c.execute('SELECT * FROM premium_orders WHERE order_code=?', (self.order['order_code'],)).fetchone()
+            self.assertEqual(row['status'], 'completed')
+            self.assertEqual(row['sepay_reference_code'], 'sepay-order')
+        self.notify()
+        with storage.database() as c:
+            self.assertEqual(c.execute('SELECT streak_freezes FROM users WHERE id=?', (self.uid,)).fetchone()[0], 3)
+
+    def test_api_evidence_must_match_invoice_currency_status_and_identity(self):
+        for key, value in [('order_invoice_number', 'HZG999999'), ('order_status', 'CANCELLED'),
+                           ('order_currency', 'USD'), ('order_amount', 'NaN'), ('id', '')]:
+            _checks.clear()
+            self.mock_remote_order(dict(self.payload['order'], **{key: value}))
+            reconcile_order(self.order['order_code'], self.uid)
+            with storage.database() as c:
+                self.assertEqual(c.execute('SELECT premium_until FROM users WHERE id=?', (self.uid,)).fetchone()[0], 0)
+
+    def test_polling_retries_after_five_seconds(self):
+        with patch('sepay_gateway.time.monotonic', side_effect=[100, 104, 105]):
+            for _ in range(3):
+                reconcile_order(self.order['order_code'], self.uid)
+        self.assertEqual(self.api_client.get.call_count, 2)
 
     def test_reconcile_yearly_late_payment_extends_existing_membership(self):
         base = int(time.time()) + 10 * 86400

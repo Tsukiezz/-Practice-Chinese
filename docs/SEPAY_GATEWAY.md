@@ -16,7 +16,13 @@ Flutter Web trên điện thoại/máy tính mở link checkout. Bản native hi
 
 Webhook ngân hàng `/api/payment/sepay-webhook` bắt buộc xác thực bằng API key riêng, tiền vào đúng tài khoản, mã đơn và đủ số tiền. Nó hỗ trợ cả đơn `sepay_pg` khi người dùng thanh toán QR trực tiếp. Nếu nhận payload IPN tại URL này, backend kiểm tra `X-Secret-Key` bằng merchant secret và xử lý như `/api/payment/sepay-ipn`.
 
-Nếu IPN bị chậm hoặc thất lạc, các endpoint kiểm tra đơn gọi SePay REST API bằng Basic Auth trên server, tìm đúng invoice rồi kiểm tra chi tiết đơn CAPTURED và giao dịch PAYMENT/APPROVED, VND và số tiền khớp. Chỉ sau đó mới cấp gói trong transaction database. Việc đối soát có cooldown 15 giây mỗi đơn trên từng instance; không giữ khóa database trong lúc gọi API. Tải lại tài khoản cũng đối soát đơn gateway chưa hoàn tất mới nhất, kể cả đơn hết thời gian chờ. Gói 1_month cấp 30 ngày, 1_year cấp 365 ngày, nối tiếp hạn Premium còn lại. Giá thanh toán lấy từ đơn đã áp dụng voucher.
+Nếu IPN bị chậm hoặc thất lạc, backend gọi `GET https://pgapi.sepay.vn/v1/order/detail/{order_invoice_number}` bằng Basic Auth. API live nhận invoice HZG, không phải `order_id` PAY. Đơn chuyển khoản có thể CAPTURED nhưng `transactions=[]`; chỉ phản hồi API server-to-server được xác thực, có đúng invoice, ID SePay, VND và số tiền đơn mới được dùng để cấp gói trong transaction database. IPN vẫn kiểm tra chữ ký/secret và giao dịch như trước; tham số trình duyệt `result=success` không cấp quyền.
+
+Trang trả về và hộp thanh toán kiểm tra mỗi 5 giây khi đang mở (có thể trễ khi mạng chậm/tab bị trình duyệt tạm dừng); backend giới hạn truy vấn mỗi 5 giây/đơn/instance. Khi đóng trang, webhook/IPN tiếp tục cấp gói khi SePay gửi thông báo; không có tiến trình Vercel chạy nền vô hạn. Không lọc ngân hàng gửi: tiền phải được SePay ghi nhận vào đúng tài khoản nhận và đúng đơn. Chuyển khoản không có mã đơn không thể xác định an toàn người mua chỉ từ số tiền.
+
+Tải lại tài khoản đối soát đơn gateway chưa hoàn tất mới nhất, kể cả đơn hết thời gian chờ. `/account` dùng được phiên Flutter; nếu phiên hết hạn, trang có liên kết đăng nhập lại. Gói 1_month cấp 30 ngày, 1_year cấp 365 ngày, nối tiếp hạn Premium còn lại; giá thanh toán lấy từ đơn đã áp dụng voucher.
+
+Khôi phục có kiểm chứng một đơn: `python backend/tools/reconcile_sepay_order.py HZGxxxxxx` để xem, thêm `--apply` để gọi API SePay và đối soát. Không tự cấp gói nếu API không xác nhận. Công cụ dùng cấu hình database production trong `.vercel/.env.production.local` và merchant credentials phía backend, không in secret.
 
 ## Kiểm tra
 

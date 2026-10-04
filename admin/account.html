@@ -8,6 +8,7 @@ body{background:#121b18;color:#e2ece7}section{background:#1b2823;border:1px soli
 </style><link rel="stylesheet" href="/admin/assets/learner-theme.css"></head><body><main>
 <a id="back" href="javascript:void(0)">← Trở về HanziGo</a><h1 id="title">Thông tin cá nhân</h1>
 <p id="message" role="status" aria-live="polite"></p>
+<p id="login-help" hidden><a href="/">Đăng nhập tài khoản đã mua tại HanziGo →</a><br><span class="hint">Nếu đã chuyển tiền, bạn không cần thanh toán lại.</span></p>
 <section id="premium-section" hidden style="background:linear-gradient(135deg,#1d332a,#153e35);color:#fff;border-radius:22px;padding:24px;border:1.5px solid #ffd700;box-shadow:0 8px 24px rgba(212,175,55,0.18)">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
     <div>
@@ -177,11 +178,14 @@ body{background:#121b18;color:#e2ece7}section{background:#1b2823;border:1px soli
 </main><script>
 'use strict';
 const $=id=>document.getElementById(id);
-const token=sessionStorage.getItem('hanzigo_account_token')||'';
+let token=sessionStorage.getItem('hanzigo_account_token')||'';
+// Flutter shared_preferences persists its auth token as a JSON string.
+if(!token){try{token=JSON.parse(localStorage.getItem('flutter.auth_token')||'null')||'';}catch(e){}}
 let avatar='';
 function message(text){$('message').textContent=text;}
 async function api(path,method='GET',body){
  const r=await fetch('/api'+path,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},...(body?{body:JSON.stringify(body)}:{})});
+ if(r.status===401){$('login-help').hidden=false;}
  if(!r.ok){const data=await r.json().catch(()=>({}));throw Error(typeof data.detail==='string'?data.detail:'Dữ liệu không hợp lệ. Hãy kiểm tra các trường và thử lại.');}
  return r.status===204?null:r.json();
 }
@@ -302,7 +306,7 @@ function showPaymentQR(order) {
         }, 2000);
       }
     } catch (_) {}
-  }, 2000);
+  }, 5000);
 }
 
 $('form-redeem-voucher').onsubmit = async (e) => {

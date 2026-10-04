@@ -117,6 +117,8 @@ def register_features(app, current_user, hash_password):
 
     @app.get("/api/account")
     def account(user=Depends(current_user)):
+        from sepay_gateway import reconcile_recent_orders
+        reconcile_recent_orders(user['id'])
         with database() as c:
             p=c.execute("SELECT * FROM profiles WHERE user_id=?",(user["id"],)).fetchone()
             u=c.execute("SELECT name,email,role,premium_until,streak_freezes FROM users WHERE id=?",(user["id"],)).fetchone()

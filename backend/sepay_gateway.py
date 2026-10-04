@@ -38,7 +38,7 @@ def reconcile_order(code, user_id):
         return
     with _check_lock:
         now = time.monotonic()
-        if now - _checks.get(code, -30) < 15:
+        if now - _checks.get(code, -30) < 5:
             return
         if len(_checks) >= 2000:
             _checks.clear()
@@ -46,31 +46,29 @@ def reconcile_order(code, user_id):
     try:
         merchant, secret, _ = settings()
         with httpx.Client(auth=(merchant, secret), timeout=8, follow_redirects=False) as client:
-            response = client.get('https://pgapi.sepay.vn/v1/order',
-                                  params={'q': code, 'order_status': 'CAPTURED', 'per_page': 100})
+            # The live API accepts the merchant invoice, not the PAY... order_id.
+            response = client.get('https://pgapi.sepay.vn/v1/order/detail/' + quote(code, safe=''))
             response.raise_for_status()
-            orders = response.json().get('data', [])
-            for order in orders:
-                if order.get('order_invoice_number') != code or order.get('order_status') != 'CAPTURED':
-                    continue
-                remote_id = order.get('order_id')
-                if not remote_id:
-                    continue
-                response = client.get('https://pgapi.sepay.vn/v1/order/detail/' + quote(str(remote_id), safe=''))
-                response.raise_for_status()
-                detail = response.json()['data']
-                if detail.get('order_invoice_number') != code:
-                    continue
-                for transaction in detail.get('transactions', []):
-                    if transaction.get('transaction_status') != 'APPROVED' or transaction.get('transaction_type') != 'PAYMENT':
-                        continue
-                    # Reuse exact amount/currency checks and the atomic IPN completion path.
-                    with database() as conn:
-                        conn.execute('BEGIN IMMEDIATE')
-                        process_ipn(conn, {'notification_type': 'ORDER_PAID',
-                                          'order': detail, 'transaction': transaction}, secret)
-                    return
-    except (httpx.HTTPError, ValueError, KeyError, TypeError, AttributeError, HTTPException) as error:
+            detail = response.json()['data']
+            # Bank-transfer orders can be CAPTURED with transactions=[].
+            # This evidence comes exclusively from the authenticated server API;
+            # browser returns and webhook payloads still require their own auth.
+            if detail.get('order_invoice_number') != code or detail.get('order_status') != 'CAPTURED':
+                return
+            amount = Decimal(str(detail.get('order_amount')))
+            if detail.get('order_currency') != 'VND' or not amount.is_finite() or amount != Decimal(row['amount']):
+                raise ValueError('Order amount/currency mismatch')
+            remote_id = detail.get('id')
+            if not isinstance(remote_id, str) or not 1 <= len(remote_id) <= 200:
+                raise ValueError('Missing provider order identity')
+            with database() as conn:
+                conn.execute('BEGIN IMMEDIATE')
+                used = conn.execute("SELECT order_code FROM premium_orders WHERE sepay_reference_code=? AND status='completed'", (remote_id,)).fetchone()
+                if used and used['order_code'] != code:
+                    raise ValueError('Provider order already used')
+                from premium_service import complete_premium_order
+                complete_premium_order(conn, code, 'pg-order:' + remote_id, remote_id)
+    except (httpx.HTTPError, ValueError, InvalidOperation, KeyError, TypeError, AttributeError, HTTPException) as error:
         # Polling stays usable during provider outages; retry after the cooldown.
         logger.warning('SePay reconciliation failed for %s (%s)', code, type(error).__name__)
 
@@ -232,16 +230,24 @@ def payment_watch_script(code):
     return '<script>const expectedCode=' + expected + ';' + r"""
 (() => {
  const title=document.getElementById('payment-title'), message=document.getElementById('payment-message');
- let endpoint;
+ let endpoint, authToken='';
+ try { authToken=sessionStorage.getItem('hanzigo_account_token')||JSON.parse(localStorage.getItem('flutter.auth_token')||'null')||''; } catch(e) {}
+ function useAccountSession(){
+   if(!authToken)return false;
+   endpoint=new URL('/api/premium/orders/'+encodeURIComponent(expectedCode)+'/status',location.origin);
+   return true;
+ }
  try {
    endpoint=new URL(sessionStorage.getItem('hanzigo_payment_status') || '', location.origin);
    if(endpoint.origin!==location.origin || endpoint.pathname!=='/api/payment/sepay-status' || endpoint.searchParams.get('code')!==expectedCode) throw Error();
- } catch(e) { message.textContent='Mở tài khoản để xem Premium. Không cần thanh toán lại nếu đã chuyển tiền.'; return; }
+ } catch(e) { if(!useAccountSession()){message.textContent='Vui lòng trở về HanziGo và đăng nhập tài khoản đã mua để kiểm tra Premium. Không chuyển tiền lại.'; return;} }
  let attempts=0;
  async function check() {
+   const started=Date.now();
    try {
-     const response=await fetch(endpoint.href,{cache:'no-store',signal:AbortSignal.timeout(10000)});
+     const response=await fetch(endpoint.href,{cache:'no-store',signal:AbortSignal.timeout(10000),headers:authToken?{Authorization:'Bearer '+authToken}:{}});
      if(response.status===403 || response.status===404) {
+       if(endpoint.pathname==='/api/payment/sepay-status' && useAccountSession()){setTimeout(check,5000);return;}
        message.textContent='Phiên theo dõi kết thúc. Mở tài khoản để kiểm tra Premium; không chuyển tiền lại.'; return;
      }
      if(!response.ok) throw Error();
@@ -253,7 +259,7 @@ def payment_watch_script(code):
      }
      message.textContent='Đang chờ SePay xác nhận. Trang tự cập nhật, bạn không cần thanh toán lại.';
    } catch(e) { message.textContent='Kết nối tạm gián đoạn. Hệ thống sẽ tự kiểm tra lại; đừng thanh toán thêm.'; }
-   if(++attempts<200) setTimeout(check,3000);
+   if(++attempts<360) setTimeout(check,Math.max(0,5000-(Date.now()-started)));
    else message.textContent='Chưa nhận xác nhận. Hãy kiểm tra tài khoản hoặc liên hệ hỗ trợ với mã đơn; không thanh toán lại.';
  }
  check();
