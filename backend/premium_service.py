@@ -171,11 +171,11 @@ def build_vietqr_url(bank_name: str, bank_account: str, amount: int, order_code:
     return f"https://qr.sepay.vn/img?acc={clean_acc}&bank={std_bank}&amount={amount}&des={order_code}&template=qronly"
 
 
-def cleanup_expired_pending_orders(conn, max_age_seconds: int = 1800) -> int:
+def cleanup_expired_pending_orders(conn, max_age_seconds: int = 600) -> int:
     """Mark old pending orders cancelled; keep records for late payment reconciliation."""
     cutoff = int(time.time()) - max_age_seconds
     deleted = conn.execute(
-        "UPDATE premium_orders SET status = 'cancelled' WHERE status = 'pending' AND created_at < ?",
+        "UPDATE premium_orders SET status = 'cancelled' WHERE status = 'pending' AND created_at <= ?",
         (cutoff,)
     ).rowcount
     return deleted
@@ -183,7 +183,7 @@ def cleanup_expired_pending_orders(conn, max_age_seconds: int = 1800) -> int:
 
 def create_premium_order(conn, user_id: int, plan_type: str, voucher_code: str | None = None) -> dict[str, Any]:
     """Create a new payment order for HanziGo Premium with optional voucher code."""
-    # Auto clean up past expired pending orders (> 5 minutes)
+    # Auto clean up past expired pending orders (>= 10 minutes)
     cleanup_expired_pending_orders(conn)
 
     if plan_type not in PLAN_PRICES:
@@ -264,7 +264,7 @@ def create_premium_order(conn, user_id: int, plan_type: str, voucher_code: str |
         "account_holder": cfg["account_holder"],
         "transfer_content": code,
         "qr_url": qr_url,
-        "expires_in": 1800,
+        "expires_in": 600,
         "created_at": now
     }
     if gateway_ready():

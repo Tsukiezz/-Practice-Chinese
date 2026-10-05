@@ -2253,7 +2253,7 @@ def create_order(body: CreatePremiumOrderRequest, user=Depends(current_user)):
 
 @app.get("/api/premium/orders/{order_code}/status")
 def check_order_status(order_code: str, user=Depends(current_user)):
-    """Check status of a pending order (used for polling QR payment dialog). Auto-cancels if over 5 minutes."""
+    """Verify payment first, then expire unpaid checkout after ten minutes."""
     from sepay_gateway import reconcile_order
     reconcile_order(order_code.strip(), user['id'])
     now = int(time.time())
@@ -2266,21 +2266,21 @@ def check_order_status(order_code: str, user=Depends(current_user)):
             raise HTTPException(404, "Không tìm thấy đơn hàng hoặc đơn đã hết thời gian thanh toán.")
         
         order = row_to_dict(row)
-        # Hủy dữ liệu đơn hàng nếu quá 5 phút (300 giây) chưa thanh toán
-        if order["status"] == "pending" and (now - order["created_at"]) > 1800:
-            conn.execute("UPDATE premium_orders SET status='cancelled' WHERE id = ?", (order["id"],))
+        # Preserve the order for authenticated late payment confirmation.
+        if order["status"] == "pending" and (now - order["created_at"]) >= 600:
+            conn.execute("UPDATE premium_orders SET status='cancelled' WHERE id = ? AND status='pending'", (order["id"],))
             return {
                 "order_code": order["order_code"],
                 "status": "expired",
                 "is_completed": False,
                 "is_expired": True,
-                "message": "Đã hết thời gian chờ 30 phút. Lịch sử đơn được giữ để đối chiếu nếu đã chuyển tiền."
+                "message": "Đã hết thời gian chờ 10 phút. Lịch sử đơn được giữ để đối chiếu nếu đã chuyển tiền."
             }
 
         u = conn.execute("SELECT premium_until FROM users WHERE id = ?", (user["id"],)).fetchone()
 
     is_completed = order["status"] == "completed"
-    seconds_left = max(0, 1800 - (now - order["created_at"])) if not is_completed else 0
+    seconds_left = max(0, 600 - (now - order["created_at"])) if order["status"] == "pending" else 0
 
     return {
         "order_code": order["order_code"],
@@ -2348,7 +2348,7 @@ def admin_premium_dashboard(user=Depends(admin_user)):
     """Return overview metrics for HanziGo Premium, SePay transactions, and Vouchers."""
     now = int(time.time())
     with database() as conn:
-        # Hủy dữ liệu các đơn chờ quá 5 phút
+        # Mark ten-minute expired orders; never delete payment history.
         cleanup_expired_pending_orders(conn)
         active_subscribers = conn.execute("SELECT COUNT(*) FROM users WHERE premium_until > ?", (now,)).fetchone()[0]
         total_orders = conn.execute("SELECT COUNT(*) FROM premium_orders").fetchone()[0]
@@ -2378,9 +2378,9 @@ def admin_premium_transactions(
     offset: int = Query(default=0, ge=0),
     user=Depends(admin_user)
 ):
-    """List bank transfer orders with user information and status. Expired pending orders (>5m) are auto-cleaned."""
+    """List orders; mark unpaid orders expired after ten minutes, retaining history."""
     with database() as conn:
-        # Hủy dữ liệu các đơn chờ quá 5 phút
+        # Mark ten-minute expired orders; never delete payment history.
         cleanup_expired_pending_orders(conn)
         query = """
             SELECT o.*, u.name AS user_name, u.email AS user_email

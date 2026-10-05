@@ -169,6 +169,8 @@ def register_gateway(app):
         if expires < int(time.time()) or not hmac.compare_digest(token, link_signature(code, user_id, expires)):
             raise HTTPException(403, 'Link thanh toán hết hạn hoặc không hợp lệ. Hãy tạo đơn mới.')
         with database() as conn:
+            from premium_service import cleanup_expired_pending_orders
+            cleanup_expired_pending_orders(conn)
             row = conn.execute('SELECT * FROM premium_orders WHERE order_code=? AND user_id=?', (code, user_id)).fetchone()
         if not row or row['payment_gateway'] != 'sepay_pg' or row['status'] != 'pending':
             raise HTTPException(409, 'Đơn không còn chờ thanh toán.')
@@ -188,7 +190,7 @@ def register_gateway(app):
 <div class="total"><dt>Tổng thanh toán</dt><dd>{amount} ₫</dd></div></dl>
 <form method="POST" action="https://pay.sepay.vn/v1/checkout/init">{inputs}<button class="button" type="submit">Tiếp tục thanh toán tại SePay →</button></form>
 <p class="note">Bạn sẽ chuyển đến SePay để thanh toán. Premium được kích hoạt sau khi HanziGo nhận xác nhận giao dịch.</p>
-<p class="note">Link có hiệu lực trong 30 phút kể từ khi tạo. Nếu đã chuyển tiền, hãy kiểm tra tài khoản trước khi tạo đơn mới.</p></section></div>{watch}''')
+<p class="note">Đơn chờ thanh toán có hiệu lực 10 phút kể từ khi tạo. Nếu đã chuyển tiền, hãy kiểm tra tài khoản trước khi tạo đơn mới.</p></section></div>{watch}''')
 
     @app.get('/api/payment/sepay-status')
     def payment_status(code: str, user_id: int, expires: int, token: str):
@@ -196,11 +198,13 @@ def register_gateway(app):
             raise HTTPException(403, 'Phiên kiểm tra hết hạn. Hãy mở tài khoản để xem Premium.')
         reconcile_order(code, user_id)
         with database() as conn:
+            from premium_service import cleanup_expired_pending_orders
+            cleanup_expired_pending_orders(conn)
             row = conn.execute("SELECT status FROM premium_orders WHERE order_code=? AND user_id=? AND payment_gateway='sepay_pg'", (code, user_id)).fetchone()
         if not row:
             raise HTTPException(404, 'Không tìm thấy đơn hàng.')
         from fastapi.responses import JSONResponse
-        return JSONResponse({'is_completed': row['status'] == 'completed'}, headers={'Cache-Control': 'no-store'})
+        return JSONResponse({'is_completed': row['status'] == 'completed', 'is_expired': row['status'] == 'cancelled'}, headers={'Cache-Control': 'no-store'})
 
     @app.post('/api/payment/sepay-ipn')
     async def ipn(request: Request):
@@ -257,7 +261,7 @@ def payment_watch_script(code):
        message.textContent='HanziGo đã nhận xác nhận từ SePay. Trở về ứng dụng để sử dụng Premium.';
        sessionStorage.removeItem('hanzigo_payment_status'); return;
      }
-     message.textContent='Đang chờ SePay xác nhận. Trang tự cập nhật, bạn không cần thanh toán lại.';
+     message.textContent=data.is_expired ? 'Đơn đã hết hạn chờ 10 phút. Nếu đã chuyển tiền, trang vẫn kiểm tra xác nhận SePay; không chuyển lại.' : 'Đang chờ SePay xác nhận. Trang tự cập nhật, bạn không cần thanh toán lại.';
    } catch(e) { message.textContent='Kết nối tạm gián đoạn. Hệ thống sẽ tự kiểm tra lại; đừng thanh toán thêm.'; }
    if(++attempts<360) setTimeout(check,Math.max(0,5000-(Date.now()-started)));
    else message.textContent='Chưa nhận xác nhận. Hãy kiểm tra tài khoản hoặc liên hệ hỗ trợ với mã đơn; không thanh toán lại.';

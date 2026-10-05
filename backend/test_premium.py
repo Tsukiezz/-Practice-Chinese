@@ -128,7 +128,7 @@ class TestPremiumSystem(unittest.TestCase):
         self.assertEqual(data["bank_account"], "80001795444")
         self.assertEqual(data["account_holder"], "NGUYEN VO VINH NGUYEN")
         self.assertEqual(data["transfer_content"], data["order_code"])
-        self.assertEqual(data["expires_in"], 1800)
+        self.assertEqual(data["expires_in"], 600)
 
     def test_one_year_order_qr_amount(self):
         res = self.client.post("/api/premium/orders", headers=self.student_headers, json={"plan_type": "1_year"})
@@ -382,15 +382,34 @@ class TestPremiumSystem(unittest.TestCase):
         self.assertFalse(revoke_data["user"]["is_premium"])
         self.assertEqual(revoke_data["user"]["premium_until"], 0)
 
-    def test_pending_order_expires_after_30_minutes_and_is_retained(self):
+    def test_expiry_boundary_preserves_paid_orders_and_history(self):
+        from unittest.mock import patch
+        from premium_service import cleanup_expired_pending_orders
+        codes = []
+        for _ in range(3):
+            res = self.client.post('/api/premium/orders', headers=self.student_headers, json={'plan_type': '1_month'})
+            self.assertEqual(res.status_code, 201)
+            codes.append(res.json()['order_code'])
+        now = int(time.time())
+        with database() as conn:
+            for code, age in zip(codes, (599, 600, 601)):
+                conn.execute('UPDATE premium_orders SET created_at=? WHERE order_code=?', (now-age, code))
+            conn.execute("UPDATE premium_orders SET status='completed' WHERE order_code=?", (codes[2],))
+            with patch('premium_service.time.time', return_value=now):
+                self.assertEqual(cleanup_expired_pending_orders(conn), 1)
+                self.assertEqual(cleanup_expired_pending_orders(conn), 0)
+            states = [conn.execute('SELECT status FROM premium_orders WHERE order_code=?', (code,)).fetchone()['status'] for code in codes]
+        self.assertEqual(states, ['pending', 'cancelled', 'completed'])
+
+    def test_pending_order_expires_after_10_minutes_and_is_retained(self):
         # Create an order
         res = self.client.post("/api/premium/orders", headers=self.student_headers, json={"plan_type": "1_month"})
         self.assertEqual(res.status_code, 201)
         code = res.json()["order_code"]
 
-        # Backdate order created_at to 305 seconds ago (over 5 minutes)
+        # Backdate order created_at to 605 seconds ago (over 10 minutes)
         with database() as conn:
-            conn.execute("UPDATE premium_orders SET created_at = ? WHERE order_code = ?", (int(time.time()) - 1805, code))
+            conn.execute("UPDATE premium_orders SET created_at = ? WHERE order_code = ?", (int(time.time()) - 605, code))
 
         # Check order status -> should report expired
         status_res = self.client.get(f"/api/premium/orders/{code}/status", headers=self.student_headers)
@@ -399,7 +418,7 @@ class TestPremiumSystem(unittest.TestCase):
         self.assertTrue(status_data["is_expired"])
         self.assertEqual(status_data["status"], "expired")
 
-        # Verify order was deleted from premium_orders table
+        # Verify cancelled order was retained from premium_orders table
         with database() as conn:
             row = conn.execute("SELECT * FROM premium_orders WHERE order_code = ?", (code,)).fetchone()
             self.assertIsNotNone(row)

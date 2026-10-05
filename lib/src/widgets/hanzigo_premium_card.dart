@@ -709,7 +709,7 @@ class _PaymentQrDialog extends StatefulWidget {
 class _PaymentQrDialogState extends State<_PaymentQrDialog> {
   Timer? _pollingTimer;
   Timer? _countdownTimer;
-  int _secondsRemaining = 1800;
+  int _secondsRemaining = 600;
   bool _isCompleted = false;
   bool _isExpired = false;
 
