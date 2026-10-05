@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import '../services/student_service.dart';
 import '../services/auth_service.dart';
+import '../services/benefits_service.dart';
 import 'results_screen.dart';
 import 'custom_exam_history_screen.dart';
 import 'dashboard_screen.dart';
@@ -469,12 +470,17 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
   @override
   void initState() {
     super.initState();
-    _future = widget.service?.fetchMyDashboard();
+    _future = _loadDashboard();
     _avatar = widget.service?.fetchAvatar();
   }
 
   void _retry() => setState(() {
-    _future = widget.service?.fetchMyDashboard();
+    _future = _loadDashboard();
+  });
+
+  Future<StudentDashboard>? _loadDashboard() => widget.service?.fetchMyDashboard().then((dashboard) async {
+    await BenefitsService.instance.refresh();
+    return dashboard;
   });
 
   @override
@@ -492,7 +498,11 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
             try { image = MemoryImage(base64Decode(avatar.split(',').last)); }
             on FormatException { image = null; }
           }
-          return CircleAvatar(
+          return ListenableBuilder(listenable: BenefitsService.instance, builder: (context, _) => Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(shape: BoxShape.circle,
+            border: BenefitsService.instance.isPremium ? Border.all(color: const Color(0xFFD4AF37), width: 4) : null),
+          child: CircleAvatar(
           radius: 46,
           backgroundColor: isDark ? const Color(0xFF382320) : const Color(0xFFFFE6DA),
           backgroundImage: image,
@@ -504,7 +514,13 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
               fontWeight: FontWeight.w800,
             ),
           ),
-        ); }),
+        ))); }),
+        ListenableBuilder(listenable: BenefitsService.instance, builder: (context, _) =>
+          BenefitsService.instance.isPremium ? const Chip(
+            avatar: Icon(Icons.workspace_premium, color: Color(0xFF8B6900)),
+            label: Text('HanziGo Premium'), backgroundColor: Color(0xFFFFEAA0),
+            labelStyle: TextStyle(color: Color(0xFF634A00), fontWeight: FontWeight.bold),
+          ) : const SizedBox.shrink()),
         const SizedBox(height: 12),
         Text(
           widget.name,

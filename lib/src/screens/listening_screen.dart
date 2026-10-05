@@ -82,14 +82,14 @@ class _ListeningScreenState extends State<ListeningScreen> {
               key: const Key('hsk-filter'),
               padding: const EdgeInsets.symmetric(horizontal: 20),
               scrollDirection: Axis.horizontal,
-              itemCount: 6,
+              itemCount: 9,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final hsk = index + 1;
                 final isDark = Theme.of(context).brightness == Brightness.dark;
                 return ChoiceChip(
                   key: Key('hsk-$hsk'),
-                  label: Text('HSK $hsk'),
+                  label: Text('HSK $hsk${hsk > 6 ? ' · Premium' : ''}'),
                   selected: _selectedHsk == hsk,
                   onSelected: (_) => _selectHsk(hsk),
                   selectedColor: isDark ? const Color(0xFF382320) : const Color(0xFFFFE7DC),

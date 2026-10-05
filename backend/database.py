@@ -304,6 +304,8 @@ def init_db():
             conn.execute('ALTER TABLE ai_config ADD COLUMN chat_strict_mode INTEGER NOT NULL DEFAULT 1')
         conn.execute("INSERT OR IGNORE INTO ai_config(id,model,system_prompt,temperature,max_tokens) VALUES(1,?,?,0.2,1000)",
                      ("gemini-3.5-flash", "Bạn là giáo viên tiếng Trung. Trả điểm 0–100 và nhận xét bằng tiếng Việt."))
+        from premium_benefits import init_benefits
+        init_benefits(conn)
 
 
 def init_listening_exams(conn):

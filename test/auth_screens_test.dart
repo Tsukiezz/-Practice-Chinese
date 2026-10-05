@@ -19,6 +19,10 @@ void main() {
     var requests = 0;
     var succeeded = false;
     final auth = await AuthService.load(MockClient((request) async {
+      if (request.url.path == '/api/me/benefits') {
+        expect(request.headers['Authorization'], 'Bearer registered');
+        return http.Response('{"premium_until":0,"brush":"default","palette":"dark","streak_freezes":0}', 200);
+      }
       requests++;
       if (request.url.path == '/api/auth/register-request') {
         return http.Response.bytes(

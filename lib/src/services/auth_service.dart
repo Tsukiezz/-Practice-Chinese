@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import 'benefits_service.dart';
 
 class AuthUser {
   const AuthUser({
@@ -24,7 +25,7 @@ class AuthUser {
   final int streakFreezes;
 
   bool get isAdmin => role == 'admin';
-  bool get isVip => isPremium || (premiumUntil > (DateTime.now().millisecondsSinceEpoch ~/ 1000));
+  bool get isVip => premiumUntil > (DateTime.now().millisecondsSinceEpoch ~/ 1000);
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -109,9 +110,12 @@ class AuthService {
       await _prefs.setString(_userKey, jsonEncode(user.toJson()));
       await recordActivity();
     }
+    final baseUrl = _memoryBaseUrl ?? _prefs.getString(_apiBaseUrlKey);
+    if (baseUrl != null) await BenefitsService.instance.connect(baseUrl, token, httpClient);
   }
 
   Future<void> clearSession() async {
+    BenefitsService.instance.clear();
     _memoryToken = null;
     _memoryUser = null;
     await _prefs.remove(_tokenKey);
@@ -315,6 +319,7 @@ class AuthService {
   }
 
   Future<void> refreshUser(String baseUrl) async {
+    _memoryBaseUrl = baseUrl;
     final response = await httpClient.get(Uri.parse('$baseUrl/auth/student-session'),
         headers: {'Authorization': 'Bearer $token'});
     if (response.statusCode != 200) {

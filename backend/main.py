@@ -95,6 +95,9 @@ async def lifespan(app):
                 ensure_default_admin(conn)
     from support_chat import init_chat
     init_chat()
+    from premium_benefits import init_benefits
+    with database() as conn:
+        init_benefits(conn)
     yield
 
 
@@ -123,7 +126,14 @@ def public_user(row):
     keys = row.keys() if hasattr(row, "keys") else row
     p_until = row["premium_until"] if "premium_until" in keys else 0
     is_prem = bool(p_until and p_until > now)
-    freezes = row["streak_freezes"] if "streak_freezes" in keys else 0
+    freezes = 0
+    if is_prem:
+        from datetime import datetime
+        from premium_benefits import LOCAL_TZ
+        month = datetime.fromtimestamp(now, LOCAL_TZ).strftime('%Y-%m')
+        with database() as conn:
+            used = conn.execute('SELECT COUNT(*) FROM streak_protection WHERE user_id=? AND day LIKE ?', (row['id'], month + '%')).fetchone()[0]
+        freezes = max(0, 3 - used)
     res = {key: row[key] for key in ("id", "name", "email", "role", "is_active", "created_at", "version")}
     res["premium_until"] = p_until
     res["is_premium"] = is_prem
@@ -857,7 +867,10 @@ def admin_exams(hsk: int | None = Query(default=None, ge=1, le=6), user=Depends(
 
 
 @app.get("/api/exams")
-def learner_exams(hsk: int | None = Query(default=None, ge=1, le=6), user=Depends(current_user)):
+def learner_exams(hsk: int | None = Query(default=None, ge=1, le=9), user=Depends(current_user)):
+    if hsk and hsk > 6:
+        from advanced_hsk import public_exams
+        return public_exams(hsk, user)
     with database() as conn:
         rows = conn.execute("SELECT * FROM exams WHERE status='published'" + (" AND hsk=?" if hsk else "") + " ORDER BY hsk,id", (hsk,) if hsk else ()).fetchall()
         # Ensure comprehensive exams exist if not yet seeded
@@ -1254,6 +1267,9 @@ def _submit_extended_exam(exam_id, exam, questions, body, user, grader):
 
 @app.post("/api/exams/{exam_id}/submit", status_code=201)
 def submit(exam_id: int, body: Submission, user=Depends(current_user), grader=Depends(get_exam_ai_grader)):
+    if exam_id < 0:
+        from advanced_hsk import submit as submit_advanced
+        return submit_advanced(exam_id, body, user)
     with database() as conn:
         exam = require_row(conn, "exams", exam_id)
         if exam["status"] != "published":
@@ -1781,12 +1797,13 @@ def my_dashboard(user=Depends(current_user)):
         total_needs_review = classic_needs_review + reading_under_80 + exam_under_80
 
         activity_days = [row[0] for row in conn.execute(
-            """SELECT DISTINCT date(created_at,'unixepoch','localtime') day FROM results WHERE user_id=?
-               UNION SELECT DISTINCT date(last_looked_at,'unixepoch','localtime') FROM dictionary_history WHERE user_id=?
-               UNION SELECT DISTINCT date(created_at,'unixepoch','localtime') FROM student_reading_history WHERE user_id=?
-               UNION SELECT DISTINCT date(created_at,'unixepoch','localtime') FROM student_ai_exams WHERE user_id=?
+            """SELECT DISTINCT date(created_at,'unixepoch','+7 hours') day FROM results WHERE user_id=?
+               UNION SELECT DISTINCT date(last_looked_at,'unixepoch','+7 hours') FROM dictionary_history WHERE user_id=?
+               UNION SELECT DISTINCT date(created_at,'unixepoch','+7 hours') FROM student_reading_history WHERE user_id=?
+               UNION SELECT DISTINCT date(submitted_at,'unixepoch','+7 hours') FROM student_ai_exams WHERE user_id=? AND submitted_at IS NOT NULL
+               UNION SELECT day FROM learner_activity_days WHERE user_id=?
                ORDER BY day DESC""",
-            (user["id"], user["id"], user["id"], user["id"]),
+            (user["id"], user["id"], user["id"], user["id"], user["id"]),
         )]
         attempts = {row[0] for row in conn.execute(
             "SELECT result_id FROM review_attempts WHERE user_id=?", (user["id"],))}
@@ -1822,13 +1839,10 @@ def my_dashboard(user=Depends(current_user)):
     skill_scores["reading"].extend(reading_scores)
     skill_scores["exam"].extend(exam_scores)
 
-    today = time.strftime("%Y-%m-%d", time.localtime())
-    streak = 0
-    cursor = int(time.mktime(time.strptime(today, "%Y-%m-%d")))
-    days = set(activity_days)
-    while time.strftime("%Y-%m-%d", time.localtime(cursor)) in days:
-        streak += 1
-        cursor -= 86400
+    from premium_benefits import protected_streak
+    with database() as conn:
+        conn.execute('BEGIN IMMEDIATE')
+        streak = protected_streak(conn, user, activity_days)
     averages = {key: round(sum(values) / len(values), 1) if values else 0
                 for key, values in skill_scores.items()}
     written_attempts = skill_scores["writing"] + skill_scores["handwriting"]
@@ -2058,6 +2072,8 @@ from usecase_features import register_features
 register_features(app, current_user, hash_password)
 from lesson_catalog import register_lessons
 register_lessons(app, current_user)
+from premium_benefits import register_benefits
+register_benefits(app, current_user)
 from ai_exam import register_ai_exam_routes
 register_ai_exam_routes(app, current_user)
 from ai_reading import register_reading_routes
@@ -2204,7 +2220,9 @@ def get_my_premium_status(user=Depends(current_user)):
     reconcile_recent_orders(user['id'])
     now = int(time.time())
     with database() as conn:
-        u = conn.execute("SELECT premium_until, streak_freezes FROM users WHERE id = ?", (user["id"],)).fetchone()
+        u = conn.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()
+        from premium_benefits import benefits
+        benefit_state = benefits(conn, dict(u))
         orders = conn.execute(
             """SELECT id, order_code, plan_type, amount, status, created_at, completed_at
                FROM premium_orders WHERE user_id = ? ORDER BY id DESC LIMIT 5""",
@@ -2219,7 +2237,7 @@ def get_my_premium_status(user=Depends(current_user)):
         "is_premium": is_premium,
         "premium_until": p_until,
         "days_remaining": days_left,
-        "streak_freezes": u["streak_freezes"] if u else 0,
+        "streak_freezes": benefit_state['streak_freezes'],
         "recent_orders": [row_to_dict(o) for o in orders]
     }
 

@@ -3,6 +3,7 @@ import json
 import random
 import time
 from pathlib import Path
+from typing import Literal
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -43,18 +44,38 @@ def init_ai_exam_tables(conn):
             created_at INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_student_ai_exams_user ON student_ai_exams(user_id, status);
+        CREATE TABLE IF NOT EXISTS ai_exam_daily_usage (
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            day_start INTEGER NOT NULL, used INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY(user_id,day_start)
+        );
     """)
 
 
 class GenerateAIExamRequest(BaseModel):
     question_count: int = Field(default=40, ge=1, le=50)
-    content_type: str = Field(default="random")  # 'random', 'reading', 'listening', 'writing', 'vocabulary'
-    hsk_level: int | None = Field(default=None, ge=1, le=6)
+    content_type: Literal['random', 'reading', 'listening', 'writing', 'vocabulary'] = 'random'
+    hsk_level: int | None = Field(default=None, ge=1, le=9)
     topic: str | None = Field(default=None, max_length=50)
 
 
 class SubmitAIExamRequest(BaseModel):
     answers: dict[str, str] = Field(default_factory=dict)
+
+
+def check_daily_quota(conn, user, now, consume=False):
+    # Vietnam day; presets do not count; deleting an exam never restores quota.
+    start = ((now + 7 * 3600) // 86400) * 86400 - 7 * 3600
+    conn.execute('''INSERT OR IGNORE INTO ai_exam_daily_usage(user_id,day_start,used)
+        SELECT ?,?,COUNT(*) FROM student_ai_exams
+        WHERE user_id=? AND created_at>=? AND created_at<? AND content_type!='standard_hsk' ''',
+        (user['id'], start, user['id'], start, start + 86400))
+    used = conn.execute('SELECT used FROM ai_exam_daily_usage WHERE user_id=? AND day_start=?', (user['id'], start)).fetchone()[0]
+    from premium_benefits import premium
+    if not premium(user, now) and user.get('role') != 'admin' and used >= 3:
+        raise HTTPException(403, 'Bạn đã dùng hết 3 đề AI hôm nay (giờ Việt Nam). Premium tạo đề không giới hạn.')
+    if consume:
+        conn.execute('UPDATE ai_exam_daily_usage SET used=used+1 WHERE user_id=? AND day_start=?', (user['id'], start))
 
 
 def ensure_hsk_standard_exams(conn, user_id: int):
@@ -565,6 +586,9 @@ def register_ai_exam_routes(app, current_user):
 
     @app.post("/api/me/ai-exams/generate", status_code=201)
     def generate_exam(body: GenerateAIExamRequest, user=Depends(current_user)):
+        if body.hsk_level and body.hsk_level > 6:
+            from advanced_hsk import require_advanced
+            require_advanced(user)
         topics_map = load_topics()
         topic_name = topics_map.get(body.topic, body.topic) if body.topic else None
 
@@ -589,20 +613,8 @@ def register_ai_exam_routes(app, current_user):
         duration_minutes = body.question_count * 1
 
         now = int(time.time())
-        is_premium = bool((user.get("premium_until") or 0) > now or user.get("role") == "admin")
-        if not is_premium:
-            day_start = now - (now % 86400)
-            with database() as conn:
-                daily_count_row = conn.execute(
-                    "SELECT COUNT(*) FROM student_ai_exams WHERE user_id = ? AND created_at >= ?",
-                    (user["id"], day_start)
-                ).fetchone()
-                if daily_count_row and daily_count_row[0] >= 3:
-                    raise HTTPException(
-                        403,
-                        "Bạn đã sử dụng hết giới hạn 3 đề thi AI miễn phí hôm nay. "
-                        "Nâng cấp lên HanziGo Premium để tạo đề thi AI không giới hạn!"
-                    )
+        with database() as conn:
+            check_daily_quota(conn, user, now)
 
         # Attempt Gemini generation first
         questions = generate_questions_with_gemini(
@@ -611,6 +623,8 @@ def register_ai_exam_routes(app, current_user):
 
         # Fallback to local 5,000-word HSK corpus if Gemini is not configured/fails
         if not questions or len(questions) != body.question_count:
+            if body.hsk_level and body.hsk_level > 6:
+                raise HTTPException(503, 'AI chưa tạo được đề nâng cao. Hãy thử lại hoặc dùng bộ Kiểm tra HSK 7–9 có sẵn; chưa trừ lượt.')
             with database() as conn:
                 questions = generate_questions_from_db(
                     conn, body.question_count, body.content_type, body.hsk_level, body.topic
@@ -618,6 +632,11 @@ def register_ai_exam_routes(app, current_user):
 
         now = int(time.time())
         with database() as conn:
+            conn.execute('BEGIN IMMEDIATE')
+            fresh = dict(conn.execute('SELECT * FROM users WHERE id=?', (user['id'],)).fetchone())
+            if body.hsk_level and body.hsk_level > 6:
+                require_advanced(fresh)
+            check_daily_quota(conn, fresh, now, consume=True)
             exam_id = conn.execute(
                 """INSERT INTO student_ai_exams (
                     user_id, title, content_type, hsk_level, topic,
@@ -706,6 +725,9 @@ def register_ai_exam_routes(app, current_user):
             raise HTTPException(404, "Không tìm thấy đề thi hoặc bạn không có quyền truy cập.")
 
         exam = dict(row)
+        if (exam.get('hsk_level') or 0) > 6 and exam['status'] != 'completed':
+            from advanced_hsk import require_advanced
+            require_advanced(user)
         exam["questions"] = json.loads(exam.pop("questions_json"))
         exam["duration_seconds"] = exam["duration_minutes"] * 60
         if exam["user_answers_json"]:
@@ -731,6 +753,9 @@ def register_ai_exam_routes(app, current_user):
             raise HTTPException(404, "Không tìm thấy đề thi.")
 
         exam = dict(row)
+        if (exam.get('hsk_level') or 0) > 6:
+            from advanced_hsk import require_advanced
+            require_advanced(user)
         if exam["status"] == "completed":
             raise HTTPException(400, "Đề thi này đã được nộp trước đó.")
 

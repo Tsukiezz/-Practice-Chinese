@@ -22,7 +22,7 @@ PLAN_PRICES = {
         "name": "HanziGo Premium · 1 Năm (Tiết kiệm 2 tháng)",
         "price": 490000,
         "duration_days": 365,
-        "freeze_grants": 12,
+        "freeze_grants": 3,
         "description": "490.000 VNĐ / năm (Chỉ ~40.800đ/tháng)"
     }
 }
@@ -43,22 +43,22 @@ COMPARISON_FEATURES = [
     },
     {
         "category": "Kho học liệu & Từ vựng",
-        "feature": "Lộ trình HSK (HSK 1 đến HSK 6/9)",
+        "feature": "Lộ trình HSK 1–9 & Giao tiếp",
         "free": "Chỉ HSK 1 – 6",
-        "premium": "Trọn bộ HSK 1 – 9 & Giao tiếp (làm thêm HSK 7-9)",
+        "premium": "HSK 1–6 + bài luyện nâng cao HSK 7–9 & Giao tiếp",
         "highlight": True
     },
     {
         "category": "Giao diện",
         "feature": "Tùy chọn giao diện màu sắc",
-        "free": "Không có",
+        "free": "Màu mặc định, sáng / tối",
         "premium": "Tất cả màu"
     },
     {
         "category": "Đặc quyền tài khoản",
         "feature": "Đóng băng chuỗi ngày học (Streak Freeze)",
         "free": "Mất chuỗi nếu quên học",
-        "premium": "Tặng 3 lượt bảo lưu / tháng"
+        "premium": "3 lượt / tháng lịch, tự động, không cộng dồn"
     },
     {
         "category": "Huy hiệu & Vinh danh",

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../services/ai_exam_service.dart';
+import '../services/reading_exam_service.dart';
+import 'practice_screen.dart';
 import '../services/pronunciation_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
@@ -482,6 +484,21 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
             ],
           ),
           const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final level in [7, 8, 9])
+                FilledButton.tonalIcon(
+                  icon: const Icon(Icons.workspace_premium),
+                  label: Text('Kiểm tra HSK $level · Premium'),
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => PracticeScreen(
+                    repository: ReadingExamService(baseUrl: widget.service.baseUrl,
+                      tokenProvider: widget.service.tokenProvider, comprehensive: true),
+                    initialHsk: level, title: 'Kiểm tra nâng cao', skillLabel: 'TỔNG HỢP',
+                  ))),
+                ),
+            ]),
+          ),
           LayoutBuilder(
             builder: (context, constraints) {
               final isWide = constraints.maxWidth > 520;
@@ -745,11 +762,11 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                             selected: _selectedHsk == null,
                             onSelected: (_) => setState(() => _selectedHsk = null),
                           ),
-                          ...List.generate(6, (i) {
+                          ...List.generate(9, (i) {
                             final hsk = i + 1;
                             final selected = _selectedHsk == hsk;
                             return ChoiceChip(
-                              label: Text('HSK $hsk'),
+                              label: Text('HSK $hsk${hsk > 6 ? ' · Premium' : ''}'),
                               selected: selected,
                               onSelected: (_) => setState(() => _selectedHsk = hsk),
                             );

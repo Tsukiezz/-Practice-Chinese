@@ -361,7 +361,8 @@ class TestPremiumSystem(unittest.TestCase):
         self.assertTrue(grant_data["success"])
         self.assertTrue(grant_data["user"]["is_premium"])
         self.assertGreater(grant_data["user"]["premium_until"], int(time.time()))
-        self.assertEqual(grant_data["user"]["streak_freezes"], 2)
+        # Public entitlements use the monthly policy, not the legacy grant balance.
+        self.assertEqual(grant_data["user"]["streak_freezes"], 3)
 
         # 2. Check public user via /api/admin/users
         users_res = self.client.get(f"/api/admin/users?search=student_prem@test.com", headers=self.admin_headers)

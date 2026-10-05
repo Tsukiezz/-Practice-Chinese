@@ -157,7 +157,7 @@ class _LessonStudyScreenState extends State<LessonStudyScreen> {
                             padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
                             children: [
                               Text(
-                                'HSK ${lesson['hsk']} · Bài ${lesson['order']}/8 · ${lesson['minutes']} phút',
+                                '${lesson['hsk'] == 0 ? 'Giao tiếp' : 'HSK ${lesson['hsk']}'} · Bài ${lesson['order']} · ${lesson['minutes']} phút',
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.primary,
                                   fontWeight: FontWeight.w700,

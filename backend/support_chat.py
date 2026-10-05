@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, R
 from pydantic import BaseModel, Field
 
 from database import audit, database, row_to_dict
+from product_knowledge import product_knowledge, local_product_answer
 from services import ai_settings, _post_gemini, _decode_gemini_candidate
 
 router = APIRouter(prefix='/api')
@@ -138,7 +139,7 @@ def is_on_topic_chinese_or_hanzigo(content: str) -> bool:
 
     # Positive category 2: HanziGo app features / usage
     app_keywords = (
-        r'\b(?:hanzigo|ung dung|app|'
+        r'\b(?:hanzigo|ung dung|app|premium|prenium|sepay|voucher|bao luu|streak|but long|but muc|thu phap|huy hieu|thanh toan|chuyen khoan|goi nam|goi thang|'
         r'bai hoc|kho tu vung|flashcard|luyen viet|viet chu|luyen doc|bai doc|luyen nghe|bai nghe|phat am|'
         r'de thi|tao de|kiem tra|thi thu|cham diem|cham thi|ket qua thi|'
         r'che do toi|dark mode|giao dien|giao dien toi|mau toi|mau sang|'
@@ -190,13 +191,17 @@ def local_hanzigo_tutor(history: list[dict]) -> tuple[str, bool]:
     norm = ''.join(ch for ch in unicodedata.normalize('NFD', latest.lower())
                    if unicodedata.category(ch) != 'Mn').replace('đ', 'd')
 
+    if re.search(r'\b(?:premium|prenium|sepay|voucher|bao luu|streak|but long|but muc|thu phap|huy hieu|mau giao dien|thanh toan|chuyen khoan|hsk\s*[789])\b', norm):
+        needs_admin = bool(re.search(r'\b(?:chuyen tien|chuyen khoan|thanh toan)\b', norm) and re.search(r'\b(?:loi|chua|khong nhan)\b', norm))
+        return local_product_answer(norm) + ('\nMình đã chuyển yêu cầu cho Admin kiểm tra; bạn không cần chuyển tiền lần nữa.' if needs_admin else ''), needs_admin
+
     # HanziGo App Features
     if re.search(r'\b(?:de thi|tao de|kiem tra|ai exam|hsk chuan|40 cau|50 cau)\b', norm):
         return (
             "Trên HanziGo, bạn có thể tạo và làm đề thi AI tại mục **Kiểm tra**:\n\n"
             "1. **Tùy chọn số câu hỏi**: Nhập chữ số tùy ý từ 1 đến 50 câu (hoặc chọn các nút nhanh: 5, 10, 15, 20, 30, 40, 50 câu).\n"
             "2. **Kỹ năng kiểm tra**: Bạn có thể chọn kiểm tra theo Đọc hiểu, Nghe hiểu (có âm thanh phát âm), Viết & Ngữ pháp, Từ vựng hoặc Tổng hợp Ngẫu nhiên.\n"
-            "3. **Tùy chọn HSK & Chủ đề**: Có thể lọc đề thi theo cấp độ HSK 1 - 6 và các chủ đề học tập (Giao tiếp, Trường học, Ẩm thực, Du lịch, Mua sắm...).\n"
+            "3. **Tùy chọn HSK & Chủ đề**: Miễn phí HSK 1–6 và 3 đề AI/ngày; Premium thêm HSK 7–9 và không giới hạn số đề. Có các chủ đề Giao tiếp, Trường học, Ẩm thực, Du lịch, Mua sắm...\n"
             "4. **Thời gian**: Hệ thống quy định 1 phút / 1 câu. Sau khi nộp bài, AI sẽ tự động chấm điểm và chữa bài chi tiết từng câu!",
             False
         )
@@ -395,7 +400,7 @@ def generate_reply(history):
     if not settings.get('api_key') or settings['api_key'] == 'unconfigured':
         return local_hanzigo_tutor(history)
 
-    prompt = custom_prompt
+    prompt = custom_prompt + '\n\n' + product_knowledge()
     if '"chinese_topic": boolean' not in prompt:
         prompt += '''\n\nQUY TẮC BẮT BUỘC VỀ ĐỊNH DẠNG (JSON):
 Trả về định dạng JSON:

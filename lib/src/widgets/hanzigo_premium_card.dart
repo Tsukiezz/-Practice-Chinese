@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
+import '../services/benefits_service.dart';
 import '../services/web_navigation.dart' as navigation;
 
 class HanziGoPremiumCard extends StatelessWidget {
@@ -38,7 +39,12 @@ class HanziGoPremiumCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: BenefitsService.instance,
+    builder: (context, _) => _buildCard(context),
+  );
+
+  Widget _buildCard(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -130,8 +136,8 @@ class HanziGoPremiumCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         _isVip
-                            ? 'Hạn dùng: ${_formatDate(user!.premiumUntil)} (còn $_daysRemaining ngày) · 🛡️ ${user?.streakFreezes ?? 0} lượt Streak Freeze'
-                            : 'Chỉ từ 49.000đ/tháng · Mở khóa không giới hạn AI tạo đề, cọ viết, trọn bộ HSK 1–9 & huy hiệu mạ vàng',
+                            ? 'Hạn dùng: ${_formatDate(user!.premiumUntil)} (còn $_daysRemaining ngày) · 🛡️ ${BenefitsService.instance.freezes}/3 lượt bảo lưu tháng này'
+                            : 'Chỉ từ 49.000đ/tháng · AI tạo đề không giới hạn, cọ viết, bài luyện HSK 7–9, giao tiếp & huy hiệu vàng',
                         style: TextStyle(
                           fontSize: 12.5,
                           height: 1.4,
@@ -467,9 +473,9 @@ class _VipSubscribeSheetState extends State<_VipSubscribeSheet> {
                   ),
                   _buildTableRow('AI tạo đề thi', '❌ 3 đề / ngày', '🌟 Không giới hạn'),
                   _buildTableRow('Tùy biến đầu cọ', '❌ Cọ mặc định', '🌟 Mở khóa toàn bộ'),
-                  _buildTableRow('Lộ trình HSK 1-9 & Giao tiếp', '❌ Chỉ HSK 1–6', '🌟 Trọn bộ HSK 1–9'),
-                  _buildTableRow('Giao diện màu sắc', '❌ Không có', '🌟 Tất cả màu'),
-                  _buildTableRow('Streak Freeze (Bảo lưu chuỗi)', '❌ Mất chuỗi', '🌟 Tặng 3 lượt / tháng'),
+                  _buildTableRow('Lộ trình HSK 1-9 & Giao tiếp', 'HSK 1–6', 'HSK 1–6 + bài luyện HSK 7–9 & Giao tiếp'),
+                  _buildTableRow('Giao diện màu sắc', 'Mặc định sáng / tối', '🌟 Tất cả màu'),
+                  _buildTableRow('Streak Freeze (Bảo lưu chuỗi)', 'Mất chuỗi nếu bỏ ngày', '3 lượt / tháng lịch, không cộng dồn'),
                   _buildTableRow('Huy hiệu & Khung đại diện', '❌ Thường', '🌟 Mạ vàng VIP'),
                 ],
               ),

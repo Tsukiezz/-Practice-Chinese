@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../services/benefits_service.dart';
 
 class _ImmediatePanGestureRecognizer extends PanGestureRecognizer {
   @override
@@ -159,7 +160,31 @@ class HanziDrawingCanvas extends StatelessWidget {
   final double maxWidth;
 
   @override
-  Widget build(BuildContext context) => Center(
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: BenefitsService.instance,
+    builder: (context, _) => Column(mainAxisSize: MainAxisSize.min, children: [
+      if (enabled) Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Wrap(spacing: 6, runSpacing: 4, children: [
+          for (final entry in const {'default': 'Mặc định', 'brush': 'Bút lông', 'ink': 'Bút mực', 'calligraphy': 'Thư pháp'}.entries)
+            ChoiceChip(
+              label: Text('${entry.value}${entry.key != 'default' && !BenefitsService.instance.isPremium ? ' 🔒' : ''}'),
+              selected: BenefitsService.instance.brush == entry.key,
+              onSelected: (_) async {
+                try {
+                  await BenefitsService.instance.select(brush: entry.key);
+                } catch (e) {
+                  if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+                }
+              },
+            ),
+        ]),
+      ),
+      _canvas(context),
+    ]),
+  );
+
+  Widget _canvas(BuildContext context) => Center(
     child: ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
       child: AspectRatio(
@@ -214,6 +239,7 @@ class HanziDrawingCanvas extends StatelessWidget {
                 builder: (_, __) => CustomPaint(
                   foregroundPainter: _HanziPainter(
                     controller._strokes,
+                    brush: BenefitsService.instance.brush,
                     wrongStrokes: wrongStrokes,
                     guideStrokes: guideStrokes,
                     visibleGuideStrokeCount: visibleGuideStrokeCount,
@@ -247,6 +273,7 @@ class HanziDrawingCanvas extends StatelessWidget {
 class _HanziPainter extends CustomPainter {
   const _HanziPainter(
     this.strokes, {
+    this.brush = 'default',
     this.wrongStrokes = const {},
     this.guideStrokes,
     this.visibleGuideStrokeCount,
@@ -255,6 +282,7 @@ class _HanziPainter extends CustomPainter {
   });
 
   final List<List<Offset>> strokes;
+  final String brush;
   final Set<int> wrongStrokes;
   final List<List<Offset>>? guideStrokes;
   final int? visibleGuideStrokeCount;
@@ -368,7 +396,7 @@ class _HanziPainter extends CustomPainter {
 
     // 3. User's drawn strokes
     final ink = Paint()
-      ..strokeWidth = 7
+      ..strokeWidth = brush == 'ink' ? 3 : 7
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..style = PaintingStyle.stroke;
@@ -398,7 +426,20 @@ class _HanziPainter extends CustomPainter {
           point.dy / 1024 * size.height,
         );
       }
-      canvas.drawPath(path, ink);
+      if (brush == 'brush' || brush == 'calligraphy') {
+        for (var i = 1; i < stroke.length; i++) {
+          final from = Offset(stroke[i - 1].dx / 1024 * size.width, stroke[i - 1].dy / 1024 * size.height);
+          final to = Offset(stroke[i].dx / 1024 * size.width, stroke[i].dy / 1024 * size.height);
+          final t = i / stroke.length;
+          ink.strokeWidth = brush == 'brush'
+              ? 3 + 9 * (1 - (2 * t - 1).abs())
+              : 4 + 7 * ((to.dx - from.dx).abs() / ((to - from).distance + .1)).clamp(0.0, 1.0);
+          ink.strokeCap = brush == 'calligraphy' ? StrokeCap.square : StrokeCap.round;
+          canvas.drawLine(from, to, ink);
+        }
+      } else {
+        canvas.drawPath(path, ink);
+      }
     }
   }
 

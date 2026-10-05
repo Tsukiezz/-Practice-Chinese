@@ -34,7 +34,7 @@ class LessonCatalogTest(unittest.TestCase):
         self.temp.cleanup()
 
     def test_original_content_is_complete_and_levelled(self):
-        lessons = curriculum()['lessons']
+        lessons = [l for l in curriculum()['lessons'] if 1 <= l['hsk'] <= 6]
         self.assertEqual(len({l['id'] for l in lessons}), 48)
         self.assertEqual(len({l['title'] for l in lessons}), 48)
         for level in range(1, 7):
@@ -55,7 +55,7 @@ class LessonCatalogTest(unittest.TestCase):
                            sum(len(l['reading']['hanzi']) for l in lessons if l['hsk'] == 1) * 3)
 
     def test_public_catalog_filters_and_hides_answers(self):
-        self.assertEqual(self.client.get('/api/lessons').json()['total'], 48)
+        self.assertEqual(self.client.get('/api/lessons').json()['total'], 55)
         for level in range(1, 7):
             rows = self.client.get('/api/lessons', params={'hsk': level}).json()['items']
             self.assertEqual(len(rows), 8)
@@ -66,7 +66,7 @@ class LessonCatalogTest(unittest.TestCase):
             self.assertNotIn('answer', q)
             self.assertNotIn('explanation', q)
         self.assertEqual(self.client.get('/api/lessons/unknown').status_code, 404)
-        self.assertEqual(self.client.get('/api/lessons?hsk=7').status_code, 422)
+        self.assertEqual(self.client.get('/api/lessons?hsk=7').json()['total'], 2)
 
     def test_checkpoints_are_private_and_cannot_forge_completion(self):
         self.assertEqual(self.client.get('/api/me/lessons').status_code, 401)

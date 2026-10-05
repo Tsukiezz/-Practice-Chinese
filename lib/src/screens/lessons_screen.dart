@@ -122,7 +122,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
     }
     final all = (_course!['items'] as List).cast<Map<String, dynamic>>();
     final inLevel =
-        all.where((l) => _level == 0 || l['hsk'] == _level).toList();
+        all.where((l) => _level == 0 || (_level == 10 ? l['hsk'] == 0 : l['hsk'] == _level)).toList();
     final completed = inLevel.where((l) => _stage(l) == 4).length;
     final query = _normalize(_search.text.trim());
     final visible = inLevel.where((l) {
@@ -142,7 +142,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
     final info = _level == 0
         ? null
         : (_course!['levels'] as List).cast<Map<String, dynamic>>().firstWhere(
-              (l) => l['hsk'] == _level,
+              (l) => l['hsk'] == (_level == 10 ? 0 : _level),
             );
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primary = Theme.of(context).colorScheme.primary;
@@ -214,7 +214,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
                                 ),
                               ],
                               Text(
-                                'HỌC MỖI NGÀY · HSK 1–6',
+                                'HỌC MỖI NGÀY · HSK 1–9',
                                 style: TextStyle(
                                   color: primary,
                                   fontSize: 12,
@@ -244,12 +244,12 @@ class _LessonsScreenState extends State<LessonsScreen> {
                               scrollDirection: Axis.horizontal,
                               child: Row(
                                 children: List.generate(
-                                  7,
+                                  11,
                                   (i) => Padding(
                                     padding: const EdgeInsets.only(right: 8),
                                     child: ChoiceChip(
                                       key: ValueKey('hsk-filter-$i'),
-                                      label: Text(i == 0 ? 'Tất cả' : 'HSK $i'),
+                                      label: Text(i == 0 ? 'Tất cả' : i == 10 ? 'Giao tiếp · Premium' : 'HSK $i${i > 6 ? ' · Premium' : ''}'),
                                       selected: _level == i,
                                       onSelected: (_) =>
                                           setState(() => _level = i),
@@ -275,7 +275,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
                                   Text(
                                     info == null
                                         ? 'Lộ trình của bạn'
-                                        : 'HSK $_level · ${info['title']}',
+                                        : '${_level == 10 ? 'Premium' : 'HSK $_level'} · ${info['title']}',
                                     style: TextStyle(
                                       fontSize: 19,
                                       fontWeight: FontWeight.w800,
@@ -520,7 +520,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      'HSK ${lesson['hsk']} · ${lesson['order']}/8',
+                      '${lesson['hsk'] == 0 ? 'Giao tiếp' : 'HSK ${lesson['hsk']}'} · Bài ${lesson['order']}${lesson['premium_only'] == true ? ' · Premium' : ''}',
                       style: TextStyle(
                         color: primary,
                         fontWeight: FontWeight.w700,

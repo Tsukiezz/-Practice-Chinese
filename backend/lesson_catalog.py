@@ -5,16 +5,26 @@ from pathlib import Path
 import time
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Query
+from fastapi import Depends, HTTPException, Query, Header
 from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 from database import database, row_to_dict
 from vocabulary_catalog import normalize
+from premium_benefits import record_learning
 
 
 @lru_cache(maxsize=1)
 def curriculum():
-    return json.loads(Path(__file__).with_name('data').joinpath('lessons.json').read_text(encoding='utf-8'))
+    from advanced_hsk import lessons, NOTICE
+    data = json.loads(Path(__file__).with_name('data').joinpath('lessons.json').read_text(encoding='utf-8'))
+    data['lessons'].extend(lessons())
+    data['levels'].extend({'hsk': level, 'title': 'Premium · Luyện nâng cao',
+                           'description': NOTICE, 'prerequisite': 'Đã học HSK 6; luyện đọc và nghe phân tích lập luận.'}
+                          for level in (7, 8, 9))
+    data['levels'].append({'hsk': 0, 'title': 'Giao tiếp thực tế', 'description': 'Luyện thương lượng lịch sự qua hội thoại công việc.',
+                           'prerequisite': 'Hiểu câu hỏi và điều kiện cơ bản; dành cho Premium.'})
+    data['description'] += ' Có bài luyện nâng cao HSK 7–9 cho Premium.'
+    return data
 
 
 def find_lesson(lesson_id):
@@ -67,7 +77,7 @@ def grade(lesson, body):
 
 def register_lessons(app, current_user):
     @app.get('/api/lessons')
-    def list_lessons(hsk: int | None = Query(None, ge=1, le=6), search: str = Query('', max_length=120)):
+    def list_lessons(hsk: int | None = Query(None, ge=1, le=9), search: str = Query('', max_length=120)):
         data = curriculum()
         query = normalize(search.strip())
         items = []
@@ -78,13 +88,17 @@ def register_lessons(app, current_user):
                                          *(w['hanzi'] for w in lesson['vocabulary'])]))
             if query and query not in haystack:
                 continue
-            items.append({k: lesson[k] for k in ('id', 'hsk', 'order', 'title', 'minutes', 'review', 'objective')})
+            items.append({**{k: lesson[k] for k in ('id', 'hsk', 'order', 'title', 'minutes', 'review', 'objective')},
+                          'premium_only': lesson.get('premium_only', False)})
         return {'items': items, 'total': len(items), 'levels': data['levels'], 'edition': data['edition'],
                 'description': data['description'], 'course_total': len(data['lessons'])}
 
     @app.get('/api/lessons/{lesson_id}')
-    def detail(lesson_id: str):
+    def detail(lesson_id: str, authorization: str | None = Header(default=None)):
         lesson = find_lesson(lesson_id)
+        if lesson.get('premium_only'):
+            from advanced_hsk import require_advanced
+            require_advanced(current_user(authorization))
         return {**lesson, 'questions': [{k: v for k, v in q.items() if k not in ('answer', 'explanation')}
                                        for q in lesson['questions']]}
 
@@ -97,8 +111,12 @@ def register_lessons(app, current_user):
 
     @app.put('/api/me/lessons/{lesson_id}/progress')
     def checkpoint(lesson_id: str, body: LessonStage, user=Depends(current_user)):
-        find_lesson(lesson_id)
+        lesson = find_lesson(lesson_id)
+        if lesson.get('premium_only'):
+            from advanced_hsk import require_advanced
+            require_advanced(user)
         with database() as conn:
+            record_learning(conn, user['id'])
             conn.execute('''INSERT INTO lesson_progress(user_id,lesson_id,stage,updated_at) VALUES(?,?,?,?)
                 ON CONFLICT(user_id,lesson_id) DO UPDATE SET
                 stage=MAX(stage,excluded.stage),updated_at=excluded.updated_at''',
@@ -108,9 +126,14 @@ def register_lessons(app, current_user):
 
     @app.post('/api/me/lessons/{lesson_id}/submit')
     def submit(lesson_id: str, body: LessonAnswers, user=Depends(current_user)):
-        result = grade(find_lesson(lesson_id), body)
+        lesson = find_lesson(lesson_id)
+        if lesson.get('premium_only'):
+            from advanced_hsk import require_advanced
+            require_advanced(user)
+        result = grade(lesson, body)
         now = int(time.time())
         with database() as conn:
+            record_learning(conn, user['id'])
             conn.execute('''INSERT INTO lesson_progress
                 (user_id,lesson_id,stage,best_score,attempts,completed_at,updated_at) VALUES(?,?,?,?,1,?,?)
                 ON CONFLICT(user_id,lesson_id) DO UPDATE SET

@@ -76,7 +76,8 @@ void main() {
     }
     await tester.tap(find.byKey(const Key('palette-pastelRed')));
     await tester.pumpAndSettle();
-    expect(ThemeManager.palette.value, InterfacePalette.pastelRed);
+    // A guest can view the palette catalog, but cannot activate paid colors.
+    expect(ThemeManager.palette.value, InterfacePalette.dark);
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.text('Màu giao diện'), findsOneWidget);

@@ -451,7 +451,7 @@ class StudentService {
     final response = await _request(
       'GET',
       Uri.parse('$baseUrl/lessons/${Uri.encodeComponent(id)}'),
-      requiresAuth: false,
+      requiresAuth: id.startsWith('hsk7-') || id.startsWith('hsk8-') || id.startsWith('hsk9-') || id.startsWith('communication-'),
     );
     return jsonDecode(response.body) as Map<String, dynamic>;
   }

@@ -23,12 +23,14 @@ class PracticeScreen extends StatefulWidget {
     this.eyebrow = 'Bài luyện · Kỹ năng đọc',
     this.skillLabel = 'ĐỌC',
     this.onBack,
+    this.initialHsk = 1,
   });
 
   final ReadingExamRepository repository;
   final int? draftOwner;
   final String title, eyebrow, skillLabel;
   final VoidCallback? onBack;
+  final int initialHsk;
 
   @override
   State<PracticeScreen> createState() => _PracticeScreenState();
@@ -56,6 +58,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedHsk = widget.initialHsk;
     _loadExams();
   }
 
@@ -171,14 +174,14 @@ class _PracticeScreenState extends State<PracticeScreen> {
               key: const Key('hsk-filter'),
               padding: const EdgeInsets.symmetric(horizontal: 20),
               scrollDirection: Axis.horizontal,
-              itemCount: 6,
+              itemCount: 9,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final hsk = index + 1;
                 final isDark = Theme.of(context).brightness == Brightness.dark;
                 return ChoiceChip(
                   key: Key('hsk-$hsk'),
-                  label: Text('HSK $hsk'),
+                  label: Text('HSK $hsk${hsk > 6 ? ' · Premium' : ''}'),
                   selected: _selectedHsk == hsk,
                   onSelected: (_) => _selectHsk(hsk),
                   selectedColor: isDark ? const Color(0xFF382320) : const Color(0xFFFFE7DC),
@@ -297,7 +300,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Đề thi Tổng hợp HSK $_selectedHsk (40 câu)',
+                              _selectedHsk > 6 ? 'Kiểm tra HSK $_selectedHsk · Premium' : 'Đề thi Tổng hợp HSK $_selectedHsk (40 câu)',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w800,
@@ -306,7 +309,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Mô phỏng thi thực tế: Nghe · Đọc · Cấu trúc & Viết',
+                              _selectedHsk > 6 ? 'Bài luyện HanziGo · Nghe và Đọc · Không phải đề chính thức' : 'Mô phỏng thi thực tế: Nghe · Đọc · Cấu trúc & Viết',
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.85),
                                 fontSize: 12,
@@ -322,8 +325,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
                     spacing: 8,
                     runSpacing: 6,
                     children: [
-                      _buildHeaderChip('⏱️ 40 phút'),
-                      _buildHeaderChip('🎯 40 câu / 100 điểm'),
+                      _buildHeaderChip(_selectedHsk > 6 ? '⏱️ 20 phút' : '⏱️ 40 phút'),
+                      _buildHeaderChip(_selectedHsk > 6 ? '🎯 8 câu / 100 điểm' : '🎯 40 câu / 100 điểm'),
                       _buildHeaderChip('🤖 AI Chấm điểm & Sửa lỗi'),
                     ],
                   ),
@@ -337,7 +340,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                 Expanded(
                   child: Text(
                     widget.title == 'Test Tổng hợp'
-                        ? 'Đề thi Tổng hợp HSK $_selectedHsk chuẩn khảo thí'
+                        ? (_selectedHsk > 6 ? 'Kiểm tra nâng cao HSK $_selectedHsk' : 'Đề thi Tổng hợp HSK $_selectedHsk chuẩn khảo thí')
                         : 'Đề thi ${widget.title} do Admin phát hành',
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                   ),
