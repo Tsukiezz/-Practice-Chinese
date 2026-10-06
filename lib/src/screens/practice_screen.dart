@@ -254,7 +254,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                     ),
                     onPressed: () {
                       if (kIsWeb) {
-                        openReading('');
+                        openReading('', hsk: _selectedHsk);
                       }
                     },
                     child: const Text('Bắt đầu'),
@@ -391,7 +391,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
             ? 'Hãy bấm "Luyện đọc phát âm AI" ở trên để thu âm qua micro và nhận AI chấm điểm trực tiếp theo từ vựng và chủ đề.'
             : 'Đề cần được Admin phát hành trước khi học viên làm bài.',
         actionLabel: widget.title == 'Test Đọc' && kIsWeb ? 'Mở Luyện Đọc AI' : null,
-        onAction: widget.title == 'Test Đọc' && kIsWeb ? () => openReading('') : null,
+        onAction: widget.title == 'Test Đọc' && kIsWeb ? () => openReading('', hsk: _selectedHsk) : null,
       );
     }
     return RefreshIndicator(

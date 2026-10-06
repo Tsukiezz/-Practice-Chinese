@@ -62,6 +62,33 @@ class PremiumBenefitsTest(unittest.TestCase):
                 self.assertEqual(self.client.post(f'/api/exams/{-(level*100+99)}/submit', headers=self.headers, json={'version': 1, 'answers': {'x': 'x'}}).status_code, 403)
             self.assertEqual(self.client.get('/api/lessons/communication-01', headers=self.headers).status_code, 403)
 
+    def test_advanced_pronunciation_uses_same_catalog_shape_and_premium_gate(self):
+        from ai_reading import init_reading_tables
+        from vocabulary_catalog import init_catalog
+        with database() as conn:
+            init_reading_tables(conn)
+            init_catalog(conn)
+        for level in (7, 8, 9):
+            url = f'/api/reading/vocabulary?hsk={level}'
+            self.assertEqual(self.client.get(url).status_code, 401)
+            self.user(0)
+            self.assertEqual(self.client.get(url, headers=self.headers).status_code, 403)
+            self.paid()
+            response = self.client.get(url, headers=self.headers)
+            self.assertEqual(response.status_code, 200)
+            data = response.json()
+            self.assertEqual(data['total'], 8)
+            for word in data['items']:
+                self.assertEqual(word['hsk'], level)
+                self.assertTrue(word['hanzi'] and word['pinyin'] and word['meaning'])
+                self.assertIsNone(word['id'])
+            page = self.client.get(url+'&offset=1&limit=1', headers=self.headers).json()
+            self.assertEqual(page['items'], data['items'][1:2])
+            self.assertEqual(self.client.get(url+'&search=no-such-word', headers=self.headers).json()['items'], [])
+            self.user(int(time.time()) - 1)
+            self.assertEqual(self.client.get(url, headers=self.headers).status_code, 403)
+        self.assertEqual(self.client.get('/api/reading/vocabulary?hsk=1').status_code, 200)
+
     def test_guest_cannot_get_advanced_detail(self):
         self.assertEqual(self.client.get('/api/lessons/hsk7-01').status_code, 401)
         self.assertEqual(self.client.get('/api/exams?hsk=7').status_code, 401)

@@ -429,6 +429,9 @@
               <button class="chip" onclick="setHsk(4)">HSK 4</button>
               <button class="chip" onclick="setHsk(5)">HSK 5</button>
               <button class="chip" onclick="setHsk(6)">HSK 6</button>
+              <button class="chip" onclick="setHsk(7)">HSK 7 · Premium</button>
+              <button class="chip" onclick="setHsk(8)">HSK 8 · Premium</button>
+              <button class="chip" onclick="setHsk(9)">HSK 9 · Premium</button>
             </div>
           </div>
 
@@ -557,9 +560,12 @@
                 localStorage.getItem('token') ||
                 localStorage.getItem('auth_token') ||
                 localStorage.getItem('hanzigo_token') || '';
+    try { token = token || JSON.parse(localStorage.getItem('flutter.auth_token') || 'null') || ''; } catch (_) {}
+    let vocabularyRequest = 0;
     let words = [];
     let currentIndex = 0;
-    let selectedHsk = null;
+    const initialHsk = Number(new URLSearchParams(location.search).get('hsk'));
+    let selectedHsk = initialHsk >= 1 && initialHsk <= 9 ? initialHsk : null;
     let selectedTopic = '';
     let searchQuery = '';
     let isRecording = false;
@@ -616,18 +622,30 @@
     }
 
     async function loadVocabulary() {
+      const request = ++vocabularyRequest;
+      words = [];
+      renderCurrentWord();
+      document.querySelectorAll('#hskChips .chip').forEach((chip, index) => chip.classList.toggle('active', index === (selectedHsk || 0)));
+      const topicSelect = document.getElementById('topicSelect');
+      topicSelect.disabled = selectedHsk > 6;
+      topicSelect.options[0].textContent = selectedHsk > 6 ? 'Từ và câu HSK nâng cao' : 'Tất cả 22 chủ đề';
+      if (selectedHsk > 6) { selectedTopic = ''; topicSelect.value = ''; }
       let url = `/api/reading/vocabulary?limit=100`;
       if (selectedHsk) url += `&hsk=${selectedHsk}`;
       if (selectedTopic) url += `&topic=${encodeURIComponent(selectedTopic)}`;
       if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
 
       try {
-        const res = await fetch(url);
+        const res = await fetch(url, {headers: token ? {'Authorization': 'Bearer ' + token} : {}});
+        if (request !== vocabularyRequest) return;
         if (res.ok) {
           const data = await res.json();
+          if (request !== vocabularyRequest) return;
           words = data.items || [];
           currentIndex = 0;
           renderCurrentWord();
+        } else {
+          document.getElementById('wordMeaning').textContent = res.status === 401 ? 'Vui lòng đăng nhập để học HSK 7–9.' : res.status === 403 ? 'Luyện đọc HSK 7–9 dành cho HanziGo Premium.' : 'Không tải được nội dung. Hãy chọn lại cấp độ để thử lại.';
         }
       } catch (e) {
         console.error('Error loading vocabulary:', e);

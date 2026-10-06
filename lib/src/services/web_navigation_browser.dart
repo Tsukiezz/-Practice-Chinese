@@ -32,9 +32,9 @@ void openExam(String token) {
   web.window.location.assign('/exam');
 }
 
-void openReading(String token) {
-  web.window.sessionStorage.setItem('hanzigo_account_token', token);
-  web.window.location.assign('/reading');
+void openReading(String token, {int? hsk}) {
+  if (token.isNotEmpty) web.window.sessionStorage.setItem('hanzigo_account_token', token);
+  web.window.location.assign(hsk == null ? '/reading' : '/reading?hsk=$hsk');
 }
 
 int? getSavedReturnTab() {

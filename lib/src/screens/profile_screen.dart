@@ -19,7 +19,7 @@ import '../services/custom_exam_service.dart';
 import '../services/reading_exam_service.dart';
 import 'practice_screen.dart';
 import '../widgets/hanzigo_premium_card.dart';
-import '../widgets/streak_card.dart';
+import '../widgets/learning_status.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({
@@ -588,7 +588,13 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
                   if (dashboard.streakDetails.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      child: SizedBox(width: 720, child: StreakCard(details: dashboard.streakDetails, onRefresh: _retry)),
+                      child: SizedBox(width: 720, child: Card(child: ListTile(
+                        leading: const Icon(Icons.local_fire_department, color: Colors.deepOrange),
+                        title: const Text('Chuỗi ngày học & bảo lưu'),
+                        subtitle: Text('${dashboard.streak} ngày liên tiếp · Xem lịch và lượt bảo lưu'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => openStreakDetails(context, widget.service!),
+                      ))),
                     ),
                   // Ôn tập Nghe, Đọc và Kiểm tra dưới 80 điểm
                   Padding(

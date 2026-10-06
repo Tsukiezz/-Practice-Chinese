@@ -4,7 +4,7 @@ void setChatTheme(Map<String, String> colors) {}
 void openAccount(String token, {int? returnTab}) {}
 void openRecovery() {}
 void openExam(String token) {}
-void openReading(String token) {}
+void openReading(String token, {int? hsk}) {}
 int? getSavedReturnTab() => null;
 void clearSavedReturnTab() {}
 

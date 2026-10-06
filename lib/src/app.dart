@@ -19,6 +19,7 @@ import 'services/listening_exam_service.dart';
 import 'services/custom_exam_service.dart';
 import 'services/ai_exam_service.dart';
 import 'theme/app_theme.dart';
+import 'widgets/learning_status.dart';
 
 class HanziGoApp extends StatefulWidget {
   const HanziGoApp({
@@ -420,6 +421,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                         ),
                       ),
                       const SizedBox(width: 8),
+                      if (_authenticated)
+                        HeaderStreak(key: ValueKey(_authService.currentUser?.id), service: _studentService, refreshKey: _index),
                       ValueListenableBuilder<ThemeMode>(
                         valueListenable: ThemeManager.themeMode,
                         builder: (context, mode, _) {
@@ -455,7 +458,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                 ),
                                 const SizedBox(width: 6),
                                 ConstrainedBox(
-                                  constraints: const BoxConstraints(maxWidth: 120),
+                                  constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width < 480 ? 60 : 120),
                                   child: Text(
                                     _authService.currentUser!.name,
                                     overflow: TextOverflow.ellipsis,

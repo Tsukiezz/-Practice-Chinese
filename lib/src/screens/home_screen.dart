@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../widgets/hanzigo_premium_card.dart';
+import '../widgets/learning_status.dart';
 
 
 class HomeScreen extends StatelessWidget {
@@ -54,16 +55,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        userName.trim().isEmpty
-                            ? 'Xin chào bạn!'
-                            : 'Xin chào, ${userName.trim()}',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
+                      VietnamGreeting(name: userName),
                     ],
                   ),
                 ),

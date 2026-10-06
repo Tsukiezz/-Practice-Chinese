@@ -73,6 +73,18 @@ def main():
                         if name == 'premium':
                             assert len(response.json()) == 5
                     assert not errors, errors
+                    page.goto(base+'/reading?hsk=7')
+                    if name == 'premium':
+                        expect(page.locator('#wordHskBadge')).to_have_text('HSK 7')
+                        expect(page.locator('#wordHanzi')).not_to_have_text('--')
+                        for level in (8, 9):
+                            page.get_by_role('button', name=f'HSK {level} · Premium', exact=True).click()
+                            expect(page.locator('#wordHskBadge')).to_have_text(f'HSK {level}')
+                            expect(page.locator('#wordHanzi')).not_to_have_text('--')
+                    else:
+                        expect(page.locator('#wordMeaning')).to_contain_text('Premium')
+                        expect(page.locator('#wordHanzi')).to_have_text('--')
+                    page.screenshot(path=str(output/f'reading-advanced-{name}.png'), full_page=True)
                     context.close()
                 # Render the actual Flutter build with an authenticated paid account.
                 web_dir = Path(os.environ.get('WEB_APP_DIR', ''))

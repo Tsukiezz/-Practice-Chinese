@@ -531,12 +531,34 @@ def register_reading_routes(app, current_user):
 
     @app.get("/api/reading/vocabulary")
     def list_vocabulary(
-        hsk: int | None = Query(default=None, ge=1, le=6),
+        hsk: int | None = Query(default=None, ge=1, le=9),
         topic: str | None = Query(default=None),
         limit: int = Query(default=30, ge=1, le=100),
         offset: int = Query(default=0, ge=0),
         search: str | None = Query(default=None),
+        authorization: Annotated[str | None, Header()] = None,
     ):
+        if hsk and hsk > 6:
+            from premium_benefits import premium
+            from advanced_hsk import lessons
+            user = get_optional_user(authorization)
+            if not user:
+                raise HTTPException(401, 'Vui lòng đăng nhập để học HSK 7–9.')
+            if not premium(user):
+                raise HTTPException(403, 'Luyện đọc HSK 7–9 dành cho HanziGo Premium.')
+            words = []
+            for lesson in lessons():
+                if lesson['hsk'] != hsk:
+                    continue
+                for entry in [*lesson['vocabulary'], lesson['grammar']['example']]:
+                    words.append({**entry, 'id': None, 'hsk': hsk, 'topics': [], 'topic_keys': []})
+            if search:
+                query = search.strip().casefold()
+                words = [word for word in words if any(query in word[key].casefold() for key in ('hanzi', 'pinyin', 'meaning'))]
+            if topic:
+                words = []
+            return {'total': len(words), 'items': words[offset:offset+limit], 'hsk': hsk,
+                    'topic': topic, 'limit': limit, 'offset': offset}
         with database() as conn:
             words, total = get_vocabulary_for_reading(
                 conn, hsk=hsk, topic=topic, limit=limit, offset=offset, search=search
