@@ -8,7 +8,7 @@ def local_product_answer(normalized):
     groups = [
         (r'sepay|thanh toan|chuyen khoan', ('- Thanh toán:', '- Nếu chuyển tiền', '- Trợ lý')),
         (r'hsk\s*[789]', ('- Bài học:', '- Nghe và Đọc:', '- Kiểm tra:')),
-        (r'bao luu|streak', ('- Streak Freeze:',)),
+        (r'bao luu|streak|chuoi ngay', ('- Chuỗi ngày học:', '- Streak Freeze:')),
         (r'but long|but muc|thu phap', ('- Bút:',)),
         (r'mau giao dien|mau sac', ('- Màu:',)),
     ]
@@ -29,6 +29,7 @@ def product_knowledge():
 - Kiểm tra: có nút Kiểm tra HSK 7/8/9 · Premium, bộ luyện 8 câu Nghe + Đọc, 20 phút, tự chấm và lưu kết quả. AI tạo đề cho phép chọn HSK 7–9 khi Premium còn hạn; nếu AI lỗi sẽ báo thử lại, không thay bằng câu HSK thấp hơn.
 - Bút: ngay trên khung luyện viết có Mặc định / Bút lông / Bút mực / Thư pháp. Ba kiểu sau cần Premium; lựa chọn lưu theo tài khoản.
 - Màu: Cá nhân → Màu giao diện, Premium chọn toàn bộ bảng màu. Tài khoản miễn phí vẫn có sáng/tối mặc định. Hết hạn Premium trở về cọ và màu mặc định; huy hiệu vàng cũng hết hiệu lực.
+- Chuỗi ngày học: trong Cá nhân có chuỗi hiện tại, kỷ lục, tổng ngày đã học, mốc tiếp theo và lịch 28 ngày theo UTC+7. Lịch phân biệt đã học, bảo lưu và chưa học. Mở Cá nhân không tính là học; kết quả luyện tập, tiến độ bài học, đọc và tra từ mới ghi nhận hoạt động. Ngày bảo lưu giữ chuỗi nhưng không tăng tổng ngày thực học. Nút cập nhật tải lại dữ liệu từ máy chủ; trợ lý không được tự ghi nhận ngày học.
 - Streak Freeze: tự bảo lưu ngày bỏ lỡ cho chuỗi học đang có, tối đa 3 ngày mỗi tháng lịch UTC+7, không cộng dồn. Xử lý khi tải thống kê học tập; không tạo ngày học giả và không phục hồi khoảng trống trước khi bật quyền bảo lưu. Gói năm cũng nhận hạn mức 3/tháng, không phải 12 lượt một lần.
 - Thanh toán: SePay xác nhận ở máy chủ bằng giao dịch/đơn hợp lệ rồi mới cấp đúng gói của đơn (có thể có voucher). Trang chờ kiểm tra mỗi 5 giây khi còn mở; webhook có thể xử lý khi đã đóng trang. Chu kỳ 5 giây không phải cam kết tiền được ngân hàng xác nhận trong 5 giây.
 - Nếu chuyển tiền nhưng chưa có Premium: không yêu cầu thanh toán lại; kiểm tra đúng tài khoản đăng nhập, mã đơn, nội dung chuyển khoản, rồi chuyển Admin kiểm tra. Không yêu cầu mật khẩu, OTP hoặc khóa API. Không cấp gói chỉ từ ảnh biên lai hoặc tham số result=success.

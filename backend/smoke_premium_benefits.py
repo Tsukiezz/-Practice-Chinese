@@ -97,12 +97,21 @@ def main():
                         data['expires_at'] = now+3600
                         page.evaluate('(user) => localStorage.setItem("flutter.auth_user",JSON.stringify(JSON.stringify(user)))', data)
                         errors = []
+                        dashboards = []
+                        page.on('response', lambda response: dashboards.append(response) if '/api/me/dashboard' in response.url else None)
                         page.on('pageerror', lambda e: errors.append(str(e)))
                         page.goto(base)
                         page.wait_for_selector('flutter-view', timeout=30000)
                         page.evaluate("document.querySelector('flt-semantics-placeholder')?.click()")
                         page.wait_for_timeout(3000)
                         page.screenshot(path=str(output/f'premium-flutter-{width}.png'), full_page=True)
+                        # CanvasKit may not expose semantics in headless Edge.
+                        # The inspected bottom navigation has seven equal tabs.
+                        page.mouse.click(width * 6.5 / 7, height - 30)
+                        page.wait_for_timeout(2000)
+                        assert dashboards and dashboards[-1].status == 200
+                        assert len(dashboards[-1].json()['streak_details']['calendar']) == 28
+                        page.screenshot(path=str(output/f'streak-profile-{width}.png'), full_page=True)
                         assert not errors, errors
                         context.close()
                 browser.close()

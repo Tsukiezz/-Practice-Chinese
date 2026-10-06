@@ -761,6 +761,12 @@ def record_dictionary_lookup(word_id: int, body: DictionaryLookup, user=Depends(
     now = int(time.time())
     with database() as conn:
         require_row(conn, "vocabulary", word_id)
+        # Keep the previous study day before the per-word lookup timestamp changes.
+        conn.execute("""INSERT OR IGNORE INTO learner_activity_days(user_id,day)
+                        SELECT user_id,date(last_looked_at,'unixepoch','+7 hours')
+                        FROM dictionary_history WHERE user_id=? AND word_id=?""", (user['id'], word_id))
+        conn.execute("INSERT OR IGNORE INTO learner_activity_days(user_id,day) VALUES(?,date(?,'unixepoch','+7 hours'))",
+                     (user['id'], now))
         conn.execute(
             """INSERT INTO dictionary_history(user_id,word_id,query,last_looked_at)
                VALUES(?,?,?,?)
@@ -1839,10 +1845,11 @@ def my_dashboard(user=Depends(current_user)):
     skill_scores["reading"].extend(reading_scores)
     skill_scores["exam"].extend(exam_scores)
 
-    from premium_benefits import protected_streak
+    from premium_benefits import streak_details
     with database() as conn:
         conn.execute('BEGIN IMMEDIATE')
-        streak = protected_streak(conn, user, activity_days)
+        streak_info = streak_details(conn, user, activity_days)
+        streak = streak_info['current']
     averages = {key: round(sum(values) / len(values), 1) if values else 0
                 for key, values in skill_scores.items()}
     written_attempts = skill_scores["writing"] + skill_scores["handwriting"]
@@ -1856,6 +1863,7 @@ def my_dashboard(user=Depends(current_user)):
         "needs_review": total_needs_review,
         "vocabulary_count": vocabulary_count,
         "streak": streak,
+        "streak_details": streak_info,
         "skill_scores": averages,
         "progress_percent": overall_avg,
         "under_80_breakdown": {

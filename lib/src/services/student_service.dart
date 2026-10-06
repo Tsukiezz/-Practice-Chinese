@@ -102,6 +102,7 @@ class StudentDashboard {
     required this.progressPercent,
     required this.skillScores,
     this.under80Breakdown = const {},
+    this.streakDetails = const {},
   });
 
   final int results;
@@ -112,6 +113,7 @@ class StudentDashboard {
   final double progressPercent;
   final Map<String, double> skillScores;
   final Map<String, int> under80Breakdown;
+  final Map<String, dynamic> streakDetails;
 
   factory StudentDashboard.fromJson(Map<String, dynamic> json) {
     final breakdown = <String, int>{};
@@ -131,6 +133,7 @@ class StudentDashboard {
         (key, value) => MapEntry(key, (value as num).toDouble()),
       ),
       under80Breakdown: breakdown,
+      streakDetails: Map<String, dynamic>.from(json['streak_details'] as Map? ?? {}),
     );
   }
 }

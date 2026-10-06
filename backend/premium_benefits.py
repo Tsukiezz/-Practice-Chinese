@@ -95,6 +95,34 @@ def protected_streak(conn, user, activity_days, now=None):
     return streak
 
 
+def streak_details(conn, user, activity_days, now=None):
+    """Personal calendar; freeze days sustain a chain but never count as learning."""
+    now = int(time.time()) if now is None else now
+    today = datetime.fromtimestamp(now, LOCAL_TZ).date()
+    days = {d for d in activity_days if d and d <= today.isoformat()}
+    current = protected_streak(conn, user, days, now)
+    protected = {r[0] for r in conn.execute(
+        'SELECT day FROM streak_protection WHERE user_id=?', (user['id'],)) if r[0] <= today.isoformat()}
+    longest = run = 0
+    previous = None
+    for key in sorted(days | protected):
+        day = datetime.fromisoformat(key).date()
+        run = run + 1 if previous and day == previous + timedelta(days=1) else 1
+        longest = max(longest, run)
+        previous = day
+    state = benefits(conn, user, now)
+    calendar = []
+    for offset in range(27, -1, -1):
+        key = (today - timedelta(days=offset)).isoformat()
+        calendar.append({'date': key, 'status': 'learned' if key in days else 'protected' if key in protected else 'empty'})
+    return {'current': current, 'longest': longest, 'total_learning_days': len(days),
+            'today': today.isoformat(), 'timezone': 'Asia/Ho_Chi_Minh',
+            'learned_today': today.isoformat() in days, 'calendar': calendar,
+            'is_premium': state['is_premium'], 'freezes_remaining': state['streak_freezes'],
+            'freeze_month': state['freeze_month'],
+            'next_milestone': next((n for n in (3, 7, 14, 30, 60, 100, 180, 365) if n > current), (current // 365 + 1) * 365)}
+
+
 def record_learning(conn, user_id):
     conn.execute('INSERT OR IGNORE INTO learner_activity_days(user_id,day) VALUES(?,?)',
                  (user_id, datetime.now(LOCAL_TZ).date().isoformat()))

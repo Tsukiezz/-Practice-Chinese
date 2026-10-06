@@ -15,7 +15,7 @@ from main import app
 from ai_exam import check_daily_quota, init_ai_exam_tables
 from lesson_catalog import init_lessons
 from advanced_hsk import exams, lessons
-from premium_benefits import LOCAL_TZ, benefits, protected_streak
+from premium_benefits import LOCAL_TZ, benefits, protected_streak, streak_details
 from support_chat import generate_reply, is_on_topic_chinese_or_hanzigo
 
 
@@ -143,6 +143,53 @@ class PremiumBenefitsTest(unittest.TestCase):
             november = int(datetime(2026, 11, 1, tzinfo=LOCAL_TZ).timestamp())
             self.assertEqual(benefits(conn, user, november)['streak_freezes'], 3)
 
+    def test_dictionary_repeated_word_keeps_previous_day_and_dashboard_is_private(self):
+        from ai_reading import init_reading_tables
+        with database() as conn:
+            init_reading_tables(conn)
+            word = conn.execute("INSERT INTO vocabulary(hanzi,pinyin,meaning,hsk,example,audio_url,strokes_json) VALUES('学','xue','learn',1,'','','[]')").lastrowid
+        now = int(time.time())
+        for timestamp in (now - 86400, now, now):
+            with patch('main.time.time', return_value=timestamp):
+                response = self.client.post(f'/api/me/dictionary-history/{word}', headers=self.headers, json={'query': '学'})
+                self.assertEqual(response.status_code, 201)
+        response = self.client.get('/api/me/dashboard', headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        details = response.json()['streak_details']
+        self.assertEqual(details['total_learning_days'], 2)
+        self.assertEqual(details['current'], 2)
+        self.assertTrue(details['learned_today'])
+        self.assertEqual(self.client.get('/api/me/dashboard').status_code, 401)
+
+    def test_personal_streak_calendar_and_milestone(self):
+        now = int(datetime(2026, 10, 5, 0, 5, tzinfo=LOCAL_TZ).timestamp())
+        with database() as conn:
+            details = streak_details(conn, self.user(), ['2026-10-02', '2026-10-03', '2026-10-04', '2026-10-04'], now)
+            self.assertEqual(details['current'], 3)
+            self.assertEqual(details['longest'], 3)
+            self.assertEqual(details['total_learning_days'], 3)
+            self.assertEqual(details['next_milestone'], 7)
+            self.assertFalse(details['learned_today'])
+            self.assertEqual(len(details['calendar']), 28)
+            self.assertEqual(details['calendar'][-1], {'date': '2026-10-05', 'status': 'empty'})
+            self.assertEqual(details['calendar'][-2]['status'], 'learned')
+            self.assertEqual(conn.execute('SELECT COUNT(*) FROM learner_activity_days WHERE user_id=?', (self.uid,)).fetchone()[0], 0)
+
+    def test_personal_streak_empty_and_frozen_days_are_not_learning(self):
+        now = int(datetime(2026, 10, 5, 12, tzinfo=LOCAL_TZ).timestamp())
+        user = self.user()
+        with database() as conn:
+            empty = streak_details(conn, user, [], now)
+            self.assertEqual(empty['current'], 0)
+            self.assertEqual(empty['longest'], 0)
+            conn.execute('INSERT INTO streak_protection(user_id,day) VALUES(?,?)', (self.uid, '2026-10-04'))
+            details = streak_details(conn, user, ['2026-10-03', '2026-10-05'], now)
+            self.assertEqual(details['current'], 3)
+            self.assertEqual(details['longest'], 3)
+            self.assertEqual(details['total_learning_days'], 2)
+            self.assertTrue(details['learned_today'])
+            self.assertEqual(details['calendar'][-2]['status'], 'protected')
+
     def test_free_streak_yesterday_is_not_lost_before_today_ends(self):
         now = int(datetime(2026, 10, 5, 12, tzinfo=LOCAL_TZ).timestamp())
         with database() as conn:
@@ -181,7 +228,7 @@ class PremiumBenefitsTest(unittest.TestCase):
             fallback.assert_not_called()
 
     def test_assistant_accepts_features_and_receives_release_knowledge(self):
-        for question in ('Premium có bao nhiêu lượt bảo lưu?', 'SePay chưa nhận tiền', 'Bút lông mở thế nào?', 'HSK 9 có bài nghe không?'):
+        for question in ('Chuỗi ngày học xem ở đâu?', 'Premium có bao nhiêu lượt bảo lưu?', 'SePay chưa nhận tiền', 'Bút lông mở thế nào?', 'HSK 9 có bài nghe không?'):
             self.assertTrue(is_on_topic_chinese_or_hanzigo(question))
         with patch('support_chat.ai_settings', return_value={'api_key': 'unconfigured'}):
             answer, admin = generate_reply([{'role': 'user', 'content': 'Premium có HSK 9 không?'}])

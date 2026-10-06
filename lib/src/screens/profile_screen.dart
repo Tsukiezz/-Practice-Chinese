@@ -19,6 +19,7 @@ import '../services/custom_exam_service.dart';
 import '../services/reading_exam_service.dart';
 import 'practice_screen.dart';
 import '../widgets/hanzigo_premium_card.dart';
+import '../widgets/streak_card.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({
@@ -584,6 +585,11 @@ class _ProfileOverviewState extends State<_ProfileOverview> {
                     ),
                   ),
 
+                  if (dashboard.streakDetails.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: SizedBox(width: 720, child: StreakCard(details: dashboard.streakDetails, onRefresh: _retry)),
+                    ),
                   // Ôn tập Nghe, Đọc và Kiểm tra dưới 80 điểm
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
