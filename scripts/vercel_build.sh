@@ -41,3 +41,10 @@ except Exception as e:
 fi
 
 cp -R build/web/. public/
+
+# Ensure all logo paths exist and are accessible everywhere
+mkdir -p public/assets/images public/assets/assets/images
+cp -f assets/images/logo.png public/logo.png
+cp -f assets/images/logo.png public/assets/images/logo.png
+cp -f assets/images/logo.png public/assets/assets/images/logo.png
+

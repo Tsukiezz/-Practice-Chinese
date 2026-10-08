@@ -1,3 +1,4 @@
+import '../widgets/brand_logo.dart';
 import 'appearance_screen.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
@@ -411,6 +412,31 @@ class ProfileScreen extends StatelessWidget {
             title: 'Trình độ hiện tại',
             value: 'HSK 2',
           ),
+          const SizedBox(height: 24),
+          Center(
+            child: Column(
+              children: [
+                const BrandLogo(size: 48),
+                const SizedBox(height: 8),
+                Text(
+                  'HanziGo · Hán Ngữ Xanh',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                Text(
+                  'Ứng dụng học tiếng Trung thông minh',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
         ],
       ),
     ),

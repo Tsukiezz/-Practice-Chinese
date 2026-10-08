@@ -21,6 +21,7 @@ import 'services/listening_exam_service.dart';
 import 'services/custom_exam_service.dart';
 import 'services/ai_exam_service.dart';
 import 'theme/app_theme.dart';
+import 'widgets/brand_logo.dart';
 import 'widgets/learning_status.dart';
 
 class HanziGoApp extends StatefulWidget {
@@ -326,7 +327,32 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        backgroundColor: AppTheme.cream,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const BrandLogo(size: 80),
+              const SizedBox(height: 16),
+              Text(
+                'HanziGo · Hán Ngữ Xanh',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.primaryEmerald,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(strokeWidth: 3),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     if (!_authenticated) {
@@ -388,37 +414,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                   child: Row(
                     children: [
-                      Image.asset(
-                        'assets/images/logo.png',
-                        width: 38,
-                        height: 38,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: AppTheme.bannerColor(context),
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.bannerColor(context).withValues(alpha: 0.25),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Center(
-                            child: Text(
-                              '汉',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 19,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+                      const BrandLogo(size: 38),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(

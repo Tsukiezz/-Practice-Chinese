@@ -25,16 +25,84 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="hanzi_go">
+  <meta name="apple-mobile-web-app-title" content="HanziGo">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <!-- Favicon -->
+  <!-- Favicon & Social -->
   <link rel="icon" type="image/png" href="favicon.png"/>
+  <meta property="og:image" content="/logo.png">
 
-  <title>hanzi_go</title>
+  <title>HanziGo · Học Tiếng Trung</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    #hanzigo_splash {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #f5f7f4;
+      z-index: 999999;
+      transition: opacity 0.35s ease-out;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #hanzigo_splash img {
+      width: 104px;
+      height: 104px;
+      border-radius: 50%;
+      box-shadow: 0 10px 30px rgba(21, 62, 53, 0.22);
+      margin-bottom: 18px;
+    }
+    #hanzigo_splash .title {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      color: #1e5e2e;
+      letter-spacing: 0.3px;
+      margin-bottom: 6px;
+    }
+    #hanzigo_splash .subtitle {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      color: #557064;
+      margin-bottom: 24px;
+      font-weight: 500;
+    }
+    #hanzigo_splash .spinner {
+      width: 34px;
+      height: 34px;
+      border: 3px solid #d3e7d5;
+      border-top-color: #1e5e2e;
+      border-radius: 50%;
+      animation: hzg-spin 0.8s linear infinite;
+    }
+    @keyframes hzg-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 <body>
+  <div id="hanzigo_splash">
+    <img src="logo.png" alt="HanziGo">
+    <div class="title">HanziGo · Hán Ngữ Xanh</div>
+    <div class="subtitle">Học tiếng Trung theo cách đơn giản và hiệu quả</div>
+    <div class="spinner"></div>
+  </div>
+  <script>
+    function dismissSplash() {
+      var s = document.getElementById('hanzigo_splash');
+      if (s) {
+        s.style.opacity = '0';
+        s.style.pointerEvents = 'none';
+        setTimeout(function() { if (s && s.parentNode) s.parentNode.removeChild(s); }, 350);
+      }
+    }
+    window.addEventListener('flutter-first-frame', dismissSplash);
+    setTimeout(dismissSplash, 6000);
+  </script>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader

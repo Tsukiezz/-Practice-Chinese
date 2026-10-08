@@ -137,9 +137,7 @@ def _render_html_template(email: str, code: str, purpose_label: str) -> str:
           <!-- Header -->
           <tr>
             <td style="background-color: #1B4D3E; padding: 28px 24px; text-align: center;">
-              <div style="display: inline-block; background: rgba(255,255,255,0.15); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px;">
-                <span style="font-size: 26px; color: #ffffff; font-weight: bold;">汉</span>
-              </div>
+              <img src="https://hanzigo-chinese-learning.vercel.app/logo.png" width="68" height="68" style="border-radius:50%;margin-bottom:12px;display:inline-block;box-shadow:0 6px 18px rgba(0,0,0,0.25);" alt="HanziGo">
               <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;">HanziGo · Hán Ngữ Xanh</h1>
               <p style="margin: 6px 0 0; color: #E2C391; font-size: 13px; font-weight: 500;">Học tiếng Trung theo cách đơn giản và hiệu quả</p>
             </td>

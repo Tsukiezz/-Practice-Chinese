@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../widgets/brand_logo.dart';
 import '../widgets/hanzigo_premium_card.dart';
 import '../widgets/learning_status.dart';
 
@@ -41,6 +42,8 @@ class HomeScreen extends StatelessWidget {
           children: [
             Row(
               children: [
+                const BrandLogo(size: 48),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

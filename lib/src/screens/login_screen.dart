@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/brand_logo.dart';
 import '../widgets/google_sign_in_sheet.dart';
 import 'forgot_password_screen.dart';
 import 'guest_dictionary_screen.dart';
@@ -161,38 +162,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 10),
-                  Center(
-                    child: Image.asset(
-                      'assets/images/logo.png',
-                      width: 84,
-                      height: 84,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 68,
-                        height: 68,
-                        decoration: BoxDecoration(
-                          color: primary,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: primary.withValues(alpha: .25),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Center(
-                          child: Text(
-                            '汉',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 34,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                  const Center(
+                    child: BrandLogo(size: 88),
                   ),
                   const SizedBox(height: 18),
                   const Text(
