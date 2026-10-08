@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -298,6 +299,27 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     _tabHistory.clear();
     if (!mounted) return;
     setState(() => _authenticated = false);
+  }
+
+  Widget _buildHeaderAvatar(AuthUser user) {
+    if (user.avatar.isNotEmpty && user.avatar.startsWith('data:image/')) {
+      try {
+        final commaIndex = user.avatar.indexOf(',');
+        if (commaIndex != -1) {
+          final bytes = base64Decode(user.avatar.substring(commaIndex + 1));
+          return CircleAvatar(
+            radius: 12,
+            backgroundImage: MemoryImage(bytes),
+            backgroundColor: Colors.transparent,
+          );
+        }
+      } catch (_) {}
+    }
+    return Icon(
+      Icons.person_rounded,
+      size: 16,
+      color: Theme.of(context).colorScheme.primary,
+    );
   }
 
   @override
