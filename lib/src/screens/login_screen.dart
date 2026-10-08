@@ -257,6 +257,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     autofillHints: const [AutofillHints.email],
                     maxLength: 120,
                     keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                     decoration: inputDecoration(
                       hint: 'Nhập email',
                       icon: Icons.person_outline_rounded,
@@ -277,6 +279,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     autofillHints: const [AutofillHints.password],
                     maxLength: 128,
                     obscureText: obscurePassword,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) {
+                      if (!_submitting) _submit();
+                    },
                     decoration: inputDecoration(
                       hint: 'Nhập mật khẩu',
                       icon: Icons.lock_outline_rounded,

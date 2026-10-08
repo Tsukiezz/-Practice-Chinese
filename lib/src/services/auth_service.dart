@@ -13,6 +13,7 @@ class AuthUser {
     this.premiumUntil = 0,
     this.isPremium = false,
     this.streakFreezes = 0,
+    this.avatar = '',
   });
 
   final int id;
@@ -23,6 +24,7 @@ class AuthUser {
   final int premiumUntil;
   final bool isPremium;
   final int streakFreezes;
+  final String avatar;
 
   bool get isAdmin => role == 'admin';
   bool get isVip => premiumUntil > (DateTime.now().millisecondsSinceEpoch ~/ 1000);
@@ -39,6 +41,7 @@ class AuthUser {
       premiumUntil: pUntil,
       isPremium: (json['is_premium'] as bool?) ?? (pUntil > now),
       streakFreezes: json['streak_freezes'] as int? ?? 0,
+      avatar: json['avatar'] as String? ?? '',
     );
   }
 
@@ -51,6 +54,7 @@ class AuthUser {
         'premium_until': premiumUntil,
         'is_premium': isPremium,
         'streak_freezes': streakFreezes,
+        'avatar': avatar,
       };
 }
 

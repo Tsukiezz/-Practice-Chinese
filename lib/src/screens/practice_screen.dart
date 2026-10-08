@@ -72,6 +72,19 @@ class _PracticeScreenState extends State<PracticeScreen> {
     super.dispose();
   }
 
+  Future<void> _launchAiReading() async {
+    String tokenStr = '';
+    final repo = widget.repository;
+    if (repo is ReadingExamService) {
+      try {
+        tokenStr = await repo.tokenProvider() ?? '';
+      } catch (_) {}
+    }
+    if (kIsWeb) {
+      openReading(tokenStr, hsk: _selectedHsk);
+    }
+  }
+
   void _startTimer(int durationMinutes) {
     _examTimer?.cancel();
     _remainingSeconds = (durationMinutes > 0 ? durationMinutes : 40) * 60;
@@ -252,11 +265,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                     ),
-                    onPressed: () {
-                      if (kIsWeb) {
-                        openReading('', hsk: _selectedHsk);
-                      }
-                    },
+                    onPressed: _launchAiReading,
                     child: const Text('Bắt đầu'),
                   ),
                 ],
@@ -391,7 +400,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
             ? 'Hãy bấm "Luyện đọc phát âm AI" ở trên để thu âm qua micro và nhận AI chấm điểm trực tiếp theo từ vựng và chủ đề.'
             : 'Đề cần được Admin phát hành trước khi học viên làm bài.',
         actionLabel: widget.title == 'Test Đọc' && kIsWeb ? 'Mở Luyện Đọc AI' : null,
-        onAction: widget.title == 'Test Đọc' && kIsWeb ? () => openReading('', hsk: _selectedHsk) : null,
+        onAction: widget.title == 'Test Đọc' && kIsWeb ? _launchAiReading : null,
       );
     }
     return RefreshIndicator(
@@ -401,10 +410,54 @@ class _PracticeScreenState extends State<PracticeScreen> {
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
         itemCount: _exams.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) => _ExamCard(
-          exam: _exams[index],
-          onTap: () => _startExam(_exams[index]),
-        ),
+        itemBuilder: (context, index) {
+          final examCard = _ExamCard(
+            exam: _exams[index],
+            onTap: () => _startExam(_exams[index]),
+          );
+          if (widget.title == 'Test Đọc' && index == 0) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Card(
+                  elevation: 0,
+                  color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.35),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4)),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.record_voice_over_rounded, color: Colors.white, size: 22),
+                    ),
+                    title: Text(
+                      'Mở Luyện Đọc Phát Âm AI (HSK $_selectedHsk)',
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                    ),
+                    subtitle: Text(
+                      'Thu âm luyện đọc từ vựng, mẫu câu và đoạn văn HSK $_selectedHsk qua AI',
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    ),
+                    trailing: FilledButton.tonal(
+                      onPressed: _launchAiReading,
+                      child: const Text('Mở Luyện Đọc AI'),
+                    ),
+                    onTap: _launchAiReading,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                examCard,
+              ],
+            );
+          }
+          return examCard;
+        },
       ),
     );
   }

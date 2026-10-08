@@ -134,10 +134,19 @@ def public_user(row):
         with database() as conn:
             used = conn.execute('SELECT COUNT(*) FROM streak_protection WHERE user_id=? AND day LIKE ?', (row['id'], month + '%')).fetchone()[0]
         freezes = max(0, 3 - used)
+    avatar = ""
+    try:
+        with database() as conn:
+            p_row = conn.execute('SELECT avatar FROM profiles WHERE user_id=?', (row['id'],)).fetchone()
+            if p_row and p_row[0]:
+                avatar = p_row[0]
+    except Exception:
+        avatar = ""
     res = {key: row[key] for key in ("id", "name", "email", "role", "is_active", "created_at", "version")}
     res["premium_until"] = p_until
     res["is_premium"] = is_prem
     res["streak_freezes"] = freezes
+    res["avatar"] = avatar
     return res
 
 

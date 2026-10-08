@@ -303,6 +303,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       controller: nameController,
                       maxLength: 60,
                       textCapitalization: TextCapitalization.words,
+                      textInputAction: TextInputAction.next,
+                      onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                       decoration: inputDecoration(
                         hint: 'Nhập họ và tên',
                         icon: Icons.person_outline_rounded,
@@ -323,6 +325,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       autofillHints: const [AutofillHints.email],
                       maxLength: 120,
                       keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                       decoration: inputDecoration(
                         hint: 'Nhập địa chỉ email thật',
                         icon: Icons.alternate_email_rounded,
@@ -343,6 +347,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       autofillHints: const [AutofillHints.password],
                       maxLength: 128,
                       obscureText: obscurePassword,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) {
+                        if (!_submitting) _submitRegistration();
+                      },
                       decoration: inputDecoration(
                         hint: 'Tạo mật khẩu (ít nhất 8 ký tự)',
                         icon: Icons.lock_outline_rounded,

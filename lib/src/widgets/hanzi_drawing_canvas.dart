@@ -159,27 +159,123 @@ class HanziDrawingCanvas extends StatelessWidget {
   final Key? canvasKey;
   final double maxWidth;
 
+  static final ValueNotifier<Color> selectedInkColor = ValueNotifier<Color>(const Color(0xFF24332E));
+
+  static const Map<String, String> _brushStyles = {
+    'default': 'Tiêu chuẩn',
+    'brush': 'Bút lông',
+    'ink': 'Bút máy',
+    'calligraphy': 'Thư pháp',
+    'pencil': 'Bút chì',
+    'marker': 'Bút dạ',
+    'feather': 'Lông vũ',
+  };
+
+  static const List<Map<String, dynamic>> _inkColors = [
+    {'id': 'ink', 'name': 'Mực đen', 'color': Color(0xFF24332E)},
+    {'id': 'vermilion', 'name': 'Chu sa đỏ', 'color': Color(0xFFC62828)},
+    {'id': 'jade', 'name': 'Xanh ngọc', 'color': Color(0xFF163F35)},
+    {'id': 'sapphire', 'name': 'Lam ngọc', 'color': Color(0xFF1565C0)},
+    {'id': 'gold', 'name': 'Hoàng kim', 'color': Color(0xFFD4AF37)},
+    {'id': 'purple', 'name': 'Tím Tử Cấm', 'color': Color(0xFF6A1B9A)},
+    {'id': 'pastelGreen', 'name': 'Xanh Pastel', 'color': Color(0xFF4E8752)},
+    {'id': 'blossom', 'name': 'Hồng đào', 'color': Color(0xFFD81B60)},
+  ];
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: BenefitsService.instance,
+    listenable: Listenable.merge([BenefitsService.instance, selectedInkColor]),
     builder: (context, _) => Column(mainAxisSize: MainAxisSize.min, children: [
-      if (enabled) Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Wrap(spacing: 6, runSpacing: 4, children: [
-          for (final entry in const {'default': 'Mặc định', 'brush': 'Bút lông', 'ink': 'Bút mực', 'calligraphy': 'Thư pháp'}.entries)
-            ChoiceChip(
-              label: Text('${entry.value}${entry.key != 'default' && !BenefitsService.instance.isPremium ? ' 🔒' : ''}'),
-              selected: BenefitsService.instance.brush == entry.key,
-              onSelected: (_) async {
-                try {
-                  await BenefitsService.instance.select(brush: entry.key);
-                } catch (e) {
-                  if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
-                }
-              },
+      if (enabled) ...[
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final entry in _brushStyles.entries)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: ChoiceChip(
+                      avatar: entry.key != 'default' && !BenefitsService.instance.isPremium
+                          ? const Icon(Icons.lock_outline, size: 14)
+                          : null,
+                      label: Text(entry.value),
+                      selected: BenefitsService.instance.brush == entry.key,
+                      onSelected: (_) async {
+                        try {
+                          await BenefitsService.instance.select(brush: entry.key);
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+                          }
+                        }
+                      },
+                    ),
+                  ),
+              ],
             ),
-        ]),
-      ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final item in _inkColors)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Tooltip(
+                      message: '${item['name']}${item['id'] != 'ink' && !BenefitsService.instance.isPremium ? ' (Premium)' : ''}',
+                      child: InkWell(
+                        onTap: () {
+                          if (item['id'] != 'ink' && !BenefitsService.instance.isPremium) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Bảng màu mực viết tay phong phú dành cho thành viên HanziGo Premium.'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                            return;
+                          }
+                          selectedInkColor.value = item['color'] as Color;
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: item['color'] as Color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: selectedInkColor.value == item['color']
+                                  ? const Color(0xFFD4AF37)
+                                  : Colors.white.withValues(alpha: 0.8),
+                              width: selectedInkColor.value == item['color'] ? 3.0 : 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: (item['color'] as Color).withValues(alpha: 0.35),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: item['id'] != 'ink' && !BenefitsService.instance.isPremium
+                              ? const Icon(Icons.lock, size: 12, color: Colors.white70)
+                              : selectedInkColor.value == item['color']
+                                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                                  : null,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
       _canvas(context),
     ]),
   );
@@ -240,6 +336,7 @@ class HanziDrawingCanvas extends StatelessWidget {
                   foregroundPainter: _HanziPainter(
                     controller._strokes,
                     brush: BenefitsService.instance.brush,
+                    inkColor: selectedInkColor.value,
                     wrongStrokes: wrongStrokes,
                     guideStrokes: guideStrokes,
                     visibleGuideStrokeCount: visibleGuideStrokeCount,
@@ -274,6 +371,7 @@ class _HanziPainter extends CustomPainter {
   const _HanziPainter(
     this.strokes, {
     this.brush = 'default',
+    this.inkColor = const Color(0xFF24332E),
     this.wrongStrokes = const {},
     this.guideStrokes,
     this.visibleGuideStrokeCount,
@@ -283,6 +381,7 @@ class _HanziPainter extends CustomPainter {
 
   final List<List<Offset>> strokes;
   final String brush;
+  final Color inkColor;
   final Set<int> wrongStrokes;
   final List<List<Offset>>? guideStrokes;
   final int? visibleGuideStrokeCount;
@@ -396,22 +495,22 @@ class _HanziPainter extends CustomPainter {
 
     // 3. User's drawn strokes
     final ink = Paint()
-      ..strokeWidth = brush == 'ink' ? 3 : 7
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..style = PaintingStyle.stroke;
+
     for (var index = 0; index < strokes.length; index++) {
       final stroke = strokes[index];
       if (stroke.isEmpty) continue;
       ink.color = wrongStrokes.contains(index + 1)
           ? AppTheme.red
-          : AppTheme.ink;
+          : inkColor;
       if (stroke.length == 1) {
         final pt = Offset(
           stroke.first.dx / 1024 * size.width,
           stroke.first.dy / 1024 * size.height,
         );
-        canvas.drawCircle(pt, 4.0, ink..style = PaintingStyle.fill);
+        canvas.drawCircle(pt, brush == 'marker' ? 5.5 : (brush == 'pencil' || brush == 'ink' ? 2.5 : 4.0), ink..style = PaintingStyle.fill);
         ink.style = PaintingStyle.stroke;
         continue;
       }
@@ -426,18 +525,47 @@ class _HanziPainter extends CustomPainter {
           point.dy / 1024 * size.height,
         );
       }
-      if (brush == 'brush' || brush == 'calligraphy') {
+      if (brush == 'brush') {
         for (var i = 1; i < stroke.length; i++) {
           final from = Offset(stroke[i - 1].dx / 1024 * size.width, stroke[i - 1].dy / 1024 * size.height);
           final to = Offset(stroke[i].dx / 1024 * size.width, stroke[i].dy / 1024 * size.height);
           final t = i / stroke.length;
-          ink.strokeWidth = brush == 'brush'
-              ? 3 + 9 * (1 - (2 * t - 1).abs())
-              : 4 + 7 * ((to.dx - from.dx).abs() / ((to - from).distance + .1)).clamp(0.0, 1.0);
-          ink.strokeCap = brush == 'calligraphy' ? StrokeCap.square : StrokeCap.round;
+          ink.strokeWidth = 3 + 9 * (1 - (2 * t - 1).abs());
+          ink.strokeCap = StrokeCap.round;
           canvas.drawLine(from, to, ink);
         }
+      } else if (brush == 'calligraphy') {
+        for (var i = 1; i < stroke.length; i++) {
+          final from = Offset(stroke[i - 1].dx / 1024 * size.width, stroke[i - 1].dy / 1024 * size.height);
+          final to = Offset(stroke[i].dx / 1024 * size.width, stroke[i].dy / 1024 * size.height);
+          ink.strokeWidth = 4 + 7 * ((to.dx - from.dx).abs() / ((to - from).distance + .1)).clamp(0.0, 1.0);
+          ink.strokeCap = StrokeCap.square;
+          canvas.drawLine(from, to, ink);
+        }
+      } else if (brush == 'feather') {
+        for (var i = 1; i < stroke.length; i++) {
+          final from = Offset(stroke[i - 1].dx / 1024 * size.width, stroke[i - 1].dy / 1024 * size.height);
+          final to = Offset(stroke[i].dx / 1024 * size.width, stroke[i].dy / 1024 * size.height);
+          final t = i / stroke.length;
+          ink.strokeWidth = 1.8 + 5.5 * (1 - t);
+          ink.strokeCap = StrokeCap.round;
+          canvas.drawLine(from, to, ink);
+        }
+      } else if (brush == 'pencil') {
+        ink.strokeWidth = 2.8;
+        ink.strokeCap = StrokeCap.round;
+        canvas.drawPath(path, ink);
+      } else if (brush == 'marker') {
+        ink.strokeWidth = 10.5;
+        ink.strokeCap = StrokeCap.square;
+        canvas.drawPath(path, ink);
+      } else if (brush == 'ink') {
+        ink.strokeWidth = 3.5;
+        ink.strokeCap = StrokeCap.round;
+        canvas.drawPath(path, ink);
       } else {
+        ink.strokeWidth = 6.5;
+        ink.strokeCap = StrokeCap.round;
         canvas.drawPath(path, ink);
       }
     }

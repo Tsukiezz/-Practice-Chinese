@@ -130,8 +130,8 @@ def record_learning(conn, user_id):
 
 class Preferences(BaseModel):
     model_config = ConfigDict(extra='forbid')
-    brush: Literal['default', 'brush', 'ink', 'calligraphy'] = 'default'
-    palette: Literal['dark', 'purple', 'red', 'blue', 'yellow', 'orange', 'pink', 'pastelRed'] = 'dark'
+    brush: Literal['default', 'brush', 'ink', 'calligraphy', 'pencil', 'marker', 'feather'] = 'default'
+    palette: Literal['dark', 'purple', 'red', 'blue', 'yellow', 'orange', 'pink', 'pastelRed', 'pastelGreen'] = 'dark'
 
 
 def register_benefits(app, current_user):

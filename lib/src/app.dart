@@ -451,11 +451,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
-                                  Icons.person_rounded,
-                                  size: 16,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
+                                _buildHeaderAvatar(_authService.currentUser!),
                                 const SizedBox(width: 6),
                                 ConstrainedBox(
                                   constraints: BoxConstraints(maxWidth: MediaQuery.sizeOf(context).width < 480 ? 60 : 120),
