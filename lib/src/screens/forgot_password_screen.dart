@@ -266,6 +266,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       controller: emailController,
                       keyboardType: TextInputType.emailAddress,
                       maxLength: 120,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) {
+                        if (!_submitting) _requestCode();
+                      },
                       decoration: inputDecoration(
                         hint: 'Nhập email đã đăng ký',
                         icon: Icons.email_outlined,

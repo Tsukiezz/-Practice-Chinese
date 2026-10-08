@@ -347,10 +347,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       autofillHints: const [AutofillHints.password],
                       maxLength: 128,
                       obscureText: obscurePassword,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) {
-                        if (!_submitting) _submitRegistration();
-                      },
+                      textInputAction: TextInputAction.next,
+                      onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                       decoration: inputDecoration(
                         hint: 'Tạo mật khẩu (ít nhất 8 ký tự)',
                         icon: Icons.lock_outline_rounded,
@@ -381,6 +379,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       controller: confirmPasswordController,
                       maxLength: 128,
                       obscureText: obscureConfirmPassword,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) {
+                        if (!_submitting) _requestVerification();
+                      },
                       decoration: inputDecoration(
                         hint: 'Nhập lại mật khẩu',
                         icon: Icons.lock_reset_outlined,
@@ -505,6 +507,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       keyboardType: TextInputType.number,
                       maxLength: 8,
                       textAlign: TextAlign.center,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) {
+                        if (!_submitting) _verifyAndComplete();
+                      },
                       style: const TextStyle(
                         fontSize: 24,
                         letterSpacing: 8,
