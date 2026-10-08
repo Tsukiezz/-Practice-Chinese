@@ -32,7 +32,7 @@ from models import (AIConfig, AdminCreateUser, AdminResetPassword, DictionaryLoo
                     HandwritingGradeResponse,
                     HandwritingRetryItem,
                     HandwritingRecognition, HandwritingRecognitionResponse,
-                    HandwritingSubmission, Login, Override, Register,
+                    HandwritingSubmission, Login, GoogleLogin, Override, Register,
                     RegisterRequest, RegisterVerify,
                     Submission, UserUpdate, Word, WordUpdate, WritingSubmission,
                     CreatePremiumOrderRequest, RedeemVoucherRequest,
@@ -363,6 +363,65 @@ def login(body: Login):
 @app.post("/api/auth/admin-login")
 def admin_login(body: Login):
     return login_for_role(body, "admin")
+
+
+@app.get("/api/auth/google-config")
+def google_config():
+    client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+    return {
+        "client_id": client_id,
+        "is_configured": bool(client_id),
+    }
+
+
+@app.post("/api/auth/google-login")
+def google_login(body: GoogleLogin):
+    email = body.email.lower()
+    chosen_name = body.name.strip()
+    now = int(time.time())
+
+    with database() as conn:
+        row = conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+        if row:
+            user = row_to_dict(row)
+            if not user["is_active"]:
+                raise HTTPException(403, "Tài khoản đã bị khóa")
+            if user["role"] == "admin":
+                raise HTTPException(403, "Tài khoản quản trị viên vui lòng đăng nhập tại /admin bằng mật khẩu.")
+            # Riêng đăng nhập Google: cho khách chọn/cập nhật tên hiển thị của mình
+            conn.execute(
+                "UPDATE users SET name = ?, version = version + 1 WHERE id = ?",
+                (chosen_name, user["id"])
+            )
+            if body.avatar:
+                conn.execute(
+                    """INSERT INTO profiles(user_id, phone, birth_date, avatar, daily_goal, weekly_goal)
+                       VALUES(?, '', '', ?, 1, 5)
+                       ON CONFLICT(user_id) DO UPDATE SET avatar = CASE WHEN profiles.avatar = '' THEN excluded.avatar ELSE profiles.avatar END""",
+                    (user["id"], body.avatar)
+                )
+            updated_user = require_row(conn, "users", user["id"])
+            conn.commit()
+            return session(conn, updated_user)
+        else:
+            # Tạo tài khoản học viên mới với tên hiển thị khách đã chọn
+            salt = secrets.token_hex(16)
+            password_hash = hash_password(secrets.token_urlsafe(32), salt)
+            uid = conn.execute(
+                """INSERT INTO users(name, email, password_hash, salt, role, is_active, created_at)
+                   VALUES(?, ?, ?, ?, 'student', 1, ?)""",
+                (chosen_name, email, password_hash, salt, now)
+            ).lastrowid
+            if body.avatar:
+                conn.execute(
+                    """INSERT INTO profiles(user_id, phone, birth_date, avatar, daily_goal, weekly_goal)
+                       VALUES(?, '', '', ?, 1, 5)
+                       ON CONFLICT(user_id) DO UPDATE SET avatar = excluded.avatar""",
+                    (uid, body.avatar)
+                )
+            new_user = require_row(conn, "users", uid)
+            conn.commit()
+            return session(conn, new_user)
 
 
 @app.get("/api/auth/student-session")

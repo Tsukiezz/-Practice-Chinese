@@ -149,6 +149,29 @@ class AuthService {
         true);
   }
 
+  Future<AuthUser> loginWithGoogle({
+    required String baseUrl,
+    required String email,
+    required String name,
+    String? idToken,
+    String? googleId,
+    String? avatar,
+    bool remember = true,
+  }) async {
+    return _authenticate(
+      baseUrl,
+      'google-login',
+      {
+        'email': email.trim().toLowerCase(),
+        'name': name.trim(),
+        if (idToken != null) 'id_token': idToken,
+        if (googleId != null) 'google_id': googleId,
+        if (avatar != null && avatar.isNotEmpty) 'avatar': avatar,
+      },
+      remember,
+    );
+  }
+
   Future<String> requestRegister({
     required String baseUrl,
     required String name,

@@ -36,6 +36,35 @@ class Register(Login):
         return value.lower()
 
 
+class GoogleLogin(Body):
+    email: str = Field(min_length=3, max_length=120)
+    name: str = Field(min_length=1, max_length=100)
+    id_token: str | None = Field(default=None, max_length=4096)
+    google_id: str | None = Field(default=None, max_length=256)
+    avatar: str | None = Field(default="", max_length=1024)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value):
+        return value.strip().lower() if isinstance(value, str) else value
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def normalize_name(cls, value):
+        val = value.strip() if isinstance(value, str) else ""
+        if not val:
+            raise ValueError("Vui lòng nhập tên hiển thị của bạn")
+        return val
+
+    @field_validator("email")
+    @classmethod
+    def valid_email(cls, value):
+        import re
+        if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value):
+            raise ValueError("Email không hợp lệ")
+        return value.lower()
+
+
 class UserUpdate(Body):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     email: str | None = Field(default=None, min_length=3, max_length=120)

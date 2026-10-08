@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/google_sign_in_sheet.dart';
 import 'guest_dictionary_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -84,6 +86,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return InputDecoration(
       counterText: '',
       hintText: hint,
+      hintStyle: TextStyle(color: outline.withValues(alpha: .6), fontSize: 14),
       prefixIcon: Icon(icon, color: primary),
       suffixIcon: suffix,
       filled: true,
@@ -185,8 +188,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: background,
+    // Luôn áp dụng màu bình thường (Light Theme) không áp dụng dark mode cho giao diện đăng ký
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
+        backgroundColor: background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -302,6 +308,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       enabled: !_submitting,
                       controller: nameController,
                       maxLength: 60,
+                      style: const TextStyle(color: textColor, fontSize: 15, fontWeight: FontWeight.w500),
+                      cursorColor: primary,
                       textCapitalization: TextCapitalization.words,
                       textInputAction: TextInputAction.next,
                       onSubmitted: (_) => FocusScope.of(context).nextFocus(),
@@ -325,6 +333,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       autofillHints: const [AutofillHints.email],
                       maxLength: 120,
                       keyboardType: TextInputType.emailAddress,
+                      style: const TextStyle(color: textColor, fontSize: 15, fontWeight: FontWeight.w500),
+                      cursorColor: primary,
                       textInputAction: TextInputAction.next,
                       onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                       decoration: inputDecoration(
@@ -347,6 +357,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       autofillHints: const [AutofillHints.password],
                       maxLength: 128,
                       obscureText: obscurePassword,
+                      style: const TextStyle(color: textColor, fontSize: 15, fontWeight: FontWeight.w500),
+                      cursorColor: primary,
                       textInputAction: TextInputAction.next,
                       onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                       decoration: inputDecoration(
@@ -379,6 +391,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       controller: confirmPasswordController,
                       maxLength: 128,
                       obscureText: obscureConfirmPassword,
+                      style: const TextStyle(color: textColor, fontSize: 15, fontWeight: FontWeight.w500),
+                      cursorColor: primary,
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) {
                         if (!_submitting) _requestVerification();
@@ -461,6 +475,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(child: Divider(color: outline.withValues(alpha: .3))),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'HOẶC',
+                            style: TextStyle(
+                              color: outline.withValues(alpha: .8),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        Expanded(child: Divider(color: outline.withValues(alpha: .3))),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    GoogleSignInButton(
+                      baseUrl: widget.baseUrl,
+                      authService: widget.authService,
+                      onSuccess: () => Navigator.pop(context, true),
+                      label: 'Đăng ký nhanh với Google',
+                    ),
                   ] else ...[
                     Container(
                       padding: const EdgeInsets.all(14),
@@ -517,6 +556,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         fontWeight: FontWeight.w800,
                         color: primary,
                       ),
+                      cursorColor: primary,
                       decoration: inputDecoration(
                         hint: '6 chữ số',
                         icon: Icons.lock_clock_outlined,
@@ -669,6 +709,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }

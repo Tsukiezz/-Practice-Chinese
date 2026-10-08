@@ -69,3 +69,6 @@ configs_backup/
 .local-backups/
 .pytest_cache/
 .env*
+scratch/
+latest_build_log.txt
+

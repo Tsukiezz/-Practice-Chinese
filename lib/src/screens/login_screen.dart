@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/google_sign_in_sheet.dart';
 import 'forgot_password_screen.dart';
 import 'guest_dictionary_screen.dart';
 import 'register_screen.dart';
@@ -145,8 +147,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: background,
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
+        backgroundColor: background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -257,6 +261,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     autofillHints: const [AutofillHints.email],
                     maxLength: 120,
                     keyboardType: TextInputType.emailAddress,
+                    style: const TextStyle(color: textColor, fontSize: 15, fontWeight: FontWeight.w500),
+                    cursorColor: primary,
                     textInputAction: TextInputAction.next,
                     onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                     decoration: inputDecoration(
@@ -279,6 +285,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     autofillHints: const [AutofillHints.password],
                     maxLength: 128,
                     obscureText: obscurePassword,
+                    style: const TextStyle(color: textColor, fontSize: 15, fontWeight: FontWeight.w500),
+                    cursorColor: primary,
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) {
                       if (!_submitting) _submit();
@@ -362,6 +370,31 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: outline.withValues(alpha: .3))),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'HOẶC',
+                          style: TextStyle(
+                            color: outline.withValues(alpha: .8),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Expanded(child: Divider(color: outline.withValues(alpha: .3))),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  GoogleSignInButton(
+                    baseUrl: widget.baseUrl,
+                    authService: widget.authService,
+                    onSuccess: widget.onLoginSuccess,
+                    label: 'Đăng nhập với Google',
+                  ),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     child: OutlinedButton.icon(
@@ -427,6 +460,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }

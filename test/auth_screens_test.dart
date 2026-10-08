@@ -139,4 +139,70 @@ void main() {
     expect(activeAuth.isSessionExpiredDueToInactivity, isFalse);
     expect(activeAuth.isAuthenticated, isTrue);
   });
+
+  testWidgets('RegisterScreen renders Google Sign-In button and forces Light Theme',
+      (tester) async {
+    tester.view.physicalSize = const Size(400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({});
+
+    final auth = await AuthService.load(MockClient((request) async {
+      if (request.url.path == '/api/auth/google-login') {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['name'], 'Minh Thu Tu Chon');
+        expect(body['email'], 'student@gmail.com');
+        return http.Response(
+          jsonEncode({
+            'token': 'google_jwt_test',
+            'user': {
+              'id': 99,
+              'name': body['name'],
+              'email': body['email'],
+              'role': 'student',
+            }
+          }),
+          200,
+        );
+      }
+      return http.Response('{}', 200);
+    }));
+
+    await tester.pumpWidget(MaterialApp(
+      theme: ThemeData.dark(),
+      home: LoginScreen(
+        baseUrl: 'http://test/api',
+        authService: auth,
+        onLoginSuccess: () {},
+      ),
+    ));
+
+    await tester.tap(find.text('Đăng ký mới'));
+    await tester.pumpAndSettle();
+
+    final googleBtn = find.text('Đăng ký nhanh với Google');
+    expect(googleBtn, findsOneWidget);
+
+    await tester.tap(googleBtn);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Đăng nhập với Google'), findsOneWidget);
+    expect(find.text('Bạn có thể tự do đặt tên cho mình!'), findsOneWidget);
+    expect(find.text('Tên hiển thị của bạn (*)'), findsOneWidget);
+
+    final dialogInputs = find.byType(TextField);
+    await tester.enterText(dialogInputs.at(dialogInputs.evaluate().length - 2), 'student@gmail.com');
+    await tester.enterText(dialogInputs.at(dialogInputs.evaluate().length - 1), 'Minh Thu Tu Chon');
+    await tester.pumpAndSettle();
+
+    final confirmLoginBtn = find.text('Xác nhận & Vào học');
+    expect(confirmLoginBtn, findsOneWidget);
+    await tester.tap(confirmLoginBtn);
+    await tester.pumpAndSettle();
+
+    expect(auth.isAuthenticated, isTrue);
+    expect(auth.currentUser?.name, 'Minh Thu Tu Chon');
+  });
 }
+
