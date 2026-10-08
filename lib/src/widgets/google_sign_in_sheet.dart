@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 
 import '../services/auth_service.dart';
 import '../services/google_auth_service.dart';
@@ -109,9 +109,9 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
         final enteredClientId = await showDialog<String>(
           context: context,
           barrierDismissible: true,
-          builder: (ctx) => const Theme(
+          builder: (ctx) => Theme(
             data: AppTheme.light,
-            child: _GoogleClientIdDialog(),
+            child: const _GoogleClientIdDialog(),
           ),
         );
 

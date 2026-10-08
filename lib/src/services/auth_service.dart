@@ -151,13 +151,14 @@ class AuthService {
 
   Future<Map<String, dynamic>> fetchGoogleConfig(String baseUrl) async {
     try {
-      final res = await _client.get(Uri.parse('$baseUrl/auth/google-config'));
+      final res = await httpClient.get(Uri.parse('$baseUrl/auth/google-config'));
       if (res.statusCode == 200) {
         return jsonDecode(res.body) as Map<String, dynamic>;
       }
     } catch (_) {}
     return {'client_id': '', 'is_configured': false};
   }
+
 
   Future<AuthUser> loginWithGoogle({
     required String baseUrl,
