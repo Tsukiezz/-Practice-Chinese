@@ -25,6 +25,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/fonts/OFL.txt
+    - assets/images/logo.png
   fonts:
     - family: HanziGoHSK
       fonts:
