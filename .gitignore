@@ -72,3 +72,4 @@ configs_backup/
 scratch/
 latest_build_log.txt
 
+.env*

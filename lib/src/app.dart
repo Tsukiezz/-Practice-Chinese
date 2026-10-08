@@ -340,7 +340,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
-                  color: AppTheme.primaryEmerald,
+                  color: AppTheme.jade,
                 ),
               ),
               const SizedBox(height: 20),
