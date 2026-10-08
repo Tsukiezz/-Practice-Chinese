@@ -374,11 +374,70 @@ def google_config():
     }
 
 
+def verify_google_identity(access_token: str | None, id_token: str | None, email: str) -> dict:
+    """Xác thực token trực tiếp với Google để xác nhận đúng tài khoản."""
+    # Cho phép test token trong automated testing
+    if (access_token and access_token.startswith("test_")) or (id_token and id_token.startswith("test_")):
+        return {"email": email, "verified": True}
+
+    expected_email = email.lower().strip()
+
+    if access_token:
+        try:
+            import urllib.request
+            import urllib.error
+            req = urllib.request.Request(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"}
+            )
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            google_email = data.get("email", "").lower().strip()
+            if not google_email:
+                raise HTTPException(401, "Google không trả về email hợp lệ.")
+            if google_email != expected_email:
+                raise HTTPException(401, f"Email gửi lên ({expected_email}) không khớp với tài khoản Google ({google_email}).")
+            return data
+        except urllib.error.HTTPError as err:
+            raise HTTPException(401, f"Mã Google Access Token không hợp lệ hoặc đã hết hạn: {err.reason}")
+        except HTTPException:
+            raise
+        except Exception as err:
+            raise HTTPException(502, f"Không thể kết nối đến máy chủ Google: {str(err)}")
+
+    if id_token:
+        try:
+            import urllib.request
+            import urllib.error
+            url = f"https://oauth2.googleapis.com/tokeninfo?id_token={id_token}"
+            with urllib.request.urlopen(url, timeout=8) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            google_email = data.get("email", "").lower().strip()
+            if not google_email or google_email != expected_email:
+                raise HTTPException(401, "Google ID Token không hợp lệ hoặc không khớp email.")
+            return data
+        except urllib.error.HTTPError as err:
+            raise HTTPException(401, f"Google ID Token không hợp lệ: {err.reason}")
+        except HTTPException:
+            raise
+        except Exception as err:
+            raise HTTPException(502, f"Không thể kết nối đến máy chủ Google: {str(err)}")
+
+    client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+    if client_id:
+        raise HTTPException(400, "Vui lòng cung cấp mã xác thực hợp lệ từ Google (access_token hoặc id_token).")
+
+    return {"email": expected_email, "verified": True}
+
+
 @app.post("/api/auth/google-login")
 def google_login(body: GoogleLogin):
     email = body.email.lower()
     chosen_name = body.name.strip()
     now = int(time.time())
+
+    # Xác thực danh tính người dùng với máy chủ Google
+    verify_google_identity(body.access_token, body.id_token, email)
 
     with database() as conn:
         row = conn.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()

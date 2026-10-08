@@ -40,6 +40,7 @@ class GoogleLogin(Body):
     email: str = Field(min_length=3, max_length=120)
     name: str = Field(min_length=1, max_length=100)
     id_token: str | None = Field(default=None, max_length=4096)
+    access_token: str | None = Field(default=None, max_length=4096)
     google_id: str | None = Field(default=None, max_length=256)
     avatar: str | None = Field(default="", max_length=1024)
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/auth_service.dart';
+import '../services/google_auth_service.dart';
 import '../theme/app_theme.dart';
 
 /// Official 4-color Google 'G' Logo
@@ -30,21 +31,9 @@ class _GoogleLogoPainter extends CustomPainter {
     final center = Offset(w / 2, h / 2);
     final radius = w / 2;
 
-    // Paints for Google 4 brand colors
     final bluePaint = Paint()
       ..color = const Color(0xFF4285F4)
       ..style = PaintingStyle.fill;
-    final redPaint = Paint()
-      ..color = const Color(0xFFEA4335)
-      ..style = PaintingStyle.fill;
-    final yellowPaint = Paint()
-      ..color = const Color(0xFFFBBC05)
-      ..style = PaintingStyle.fill;
-    final greenPaint = Paint()
-      ..color = const Color(0xFF34A853)
-      ..style = PaintingStyle.fill;
-
-    // Draw stylized multi-colored Google 'G'
     final strokeWidth = w * 0.22;
     final ringPaint = Paint()
       ..style = PaintingStyle.stroke
@@ -81,8 +70,8 @@ class _GoogleLogoPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// Nút bấm Đăng nhập bằng Google tiêu chuẩn
-class GoogleSignInButton extends StatelessWidget {
+/// Nút bấm Đăng nhập bằng Google tiêu chuẩn kết nối trực tiếp với tài khoản Google
+class GoogleSignInButton extends StatefulWidget {
   const GoogleSignInButton({
     super.key,
     required this.baseUrl,
@@ -96,23 +85,94 @@ class GoogleSignInButton extends StatelessWidget {
   final VoidCallback onSuccess;
   final String label;
 
+  @override
+  State<GoogleSignInButton> createState() => _GoogleSignInButtonState();
+}
+
+class _GoogleSignInButtonState extends State<GoogleSignInButton> {
+  bool _connecting = false;
   static const primary = Color(0xFF1B4D3E);
   static const outline = Color(0xFF707974);
 
-  Future<void> _handleTap(BuildContext context) async {
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: true,
-      builder: (dialogCtx) => Theme(
-        data: AppTheme.light,
-        child: GoogleSignInDialog(
-          baseUrl: baseUrl,
-          authService: authService,
+  Future<void> _handleTap() async {
+    if (_connecting) return;
+    setState(() => _connecting = true);
+
+    try {
+      final auth = widget.authService ?? await AuthService.load(http.Client());
+      final config = await auth.fetchGoogleConfig(widget.baseUrl);
+      String clientId = (config['client_id'] ?? '').toString().trim();
+
+      // Nếu chưa có Google Client ID, mở hộp thoại hướng dẫn / nhập nhanh Client ID
+      if (clientId.isEmpty) {
+        if (!mounted) return;
+        final enteredClientId = await showDialog<String>(
+          context: context,
+          barrierDismissible: true,
+          builder: (ctx) => const Theme(
+            data: AppTheme.light,
+            child: _GoogleClientIdDialog(),
+          ),
+        );
+
+        if (enteredClientId == null || enteredClientId.trim().isEmpty) {
+          setState(() => _connecting = false);
+          return;
+        }
+        clientId = enteredClientId.trim();
+      }
+
+      // Kích hoạt popup đăng nhập thực tế của Google (accounts.google.com)
+      final googleResult = await triggerGoogleWebSignIn(clientId);
+
+      if (!mounted) return;
+
+      if (!googleResult.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(googleResult.error ?? 'Đăng nhập Google đã bị hủy.'),
+            backgroundColor: const Color(0xFF991B1B),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        setState(() => _connecting = false);
+        return;
+      }
+
+      // Khi Google đã xác nhận danh tính thành công:
+      // Mở hộp thoại cho khách tự do chọn tên hiển thị của mình
+      final completed = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => Theme(
+          data: AppTheme.light,
+          child: GoogleNameSelectionDialog(
+            baseUrl: widget.baseUrl,
+            authService: widget.authService,
+            googleEmail: googleResult.email,
+            suggestedName: googleResult.name,
+            avatar: googleResult.avatar,
+            accessToken: googleResult.accessToken,
+            googleId: googleResult.googleId,
+          ),
         ),
-      ),
-    );
-    if (result == true) {
-      onSuccess();
+      );
+
+      if (completed == true) {
+        widget.onSuccess();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi kết nối Google: $e'),
+            backgroundColor: const Color(0xFF991B1B),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _connecting = false);
     }
   }
 
@@ -121,7 +181,7 @@ class GoogleSignInButton extends StatelessWidget {
     return SizedBox(
       height: 52,
       child: OutlinedButton(
-        onPressed: () => _handleTap(context),
+        onPressed: _connecting ? null : _handleTap,
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF1F1F1F),
@@ -132,89 +192,193 @@ class GoogleSignInButton extends StatelessWidget {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const GoogleLogo(size: 22),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1F1F1F),
+        child: _connecting
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  valueColor: AlwaysStoppedAnimation<Color>(primary),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const GoogleLogo(size: 22),
+                  const SizedBox(width: 12),
+                  Text(
+                    widget.label,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1F1F1F),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+      ),
+    );
+  }
+}
+
+/// Hộp thoại cấu hình Google Client ID nếu môi trường chưa cài đặt
+class _GoogleClientIdDialog extends StatefulWidget {
+  const _GoogleClientIdDialog();
+
+  @override
+  State<_GoogleClientIdDialog> createState() => _GoogleClientIdDialogState();
+}
+
+class _GoogleClientIdDialogState extends State<_GoogleClientIdDialog> {
+  final _ctrl = TextEditingController();
+  static const primary = Color(0xFF1B4D3E);
+  static const textColor = Color(0xFF191C1B);
+  static const outline = Color(0xFF707974);
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Padding(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const GoogleLogo(size: 24),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Kết nối Google OAuth 2.0',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: textColor),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded, color: outline),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: .4)),
+                ),
+                child: const Text(
+                  'Hệ thống chưa tìm thấy biến GOOGLE_CLIENT_ID trên máy chủ. Bạn có thể nhập Google Client ID tại đây để kết nối với Google ngay lập tức:',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF92400E), height: 1.4),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Google Client ID (Web Application)',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: textColor),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: _ctrl,
+                style: const TextStyle(fontSize: 13.5, color: textColor),
+                decoration: InputDecoration(
+                  hintText: 'xxxxxx.apps.googleusercontent.com',
+                  hintStyle: TextStyle(color: outline.withValues(alpha: .6), fontSize: 13),
+                  filled: true,
+                  fillColor: const Color(0xFFF9FAF8),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Hủy'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: primary, foregroundColor: Colors.white),
+                      onPressed: () {
+                        if (_ctrl.text.trim().isNotEmpty) {
+                          Navigator.pop(context, _ctrl.text.trim());
+                        }
+                      },
+                      child: const Text('Mở popup Google'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Hộp thoại hoàn tất đăng nhập Google cho phép khách hàng tự do chọn tên hiển thị của mình
-class GoogleSignInDialog extends StatefulWidget {
-  const GoogleSignInDialog({
+/// Hộp thoại SAU KHI GOOGLE ĐÃ XÁC THỰC DANH TÍNH:
+/// Cho phép khách hàng tự do chọn/đổi tên hiển thị của mình trên HanziGo
+class GoogleNameSelectionDialog extends StatefulWidget {
+  const GoogleNameSelectionDialog({
     super.key,
     required this.baseUrl,
     this.authService,
-    this.initialEmail,
-    this.initialName,
+    required this.googleEmail,
+    required this.suggestedName,
+    this.avatar,
+    this.accessToken,
+    this.googleId,
   });
 
   final String baseUrl;
   final AuthService? authService;
-  final String? initialEmail;
-  final String? initialName;
+  final String googleEmail;
+  final String suggestedName;
+  final String? avatar;
+  final String? accessToken;
+  final String? googleId;
 
   @override
-  State<GoogleSignInDialog> createState() => _GoogleSignInDialogState();
+  State<GoogleNameSelectionDialog> createState() => _GoogleNameSelectionDialogState();
 }
 
-class _GoogleSignInDialogState extends State<GoogleSignInDialog> {
-  late final TextEditingController _emailController;
+class _GoogleNameSelectionDialogState extends State<GoogleNameSelectionDialog> {
   late final TextEditingController _nameController;
   final _client = http.Client();
-
   bool _submitting = false;
   String? _error;
   bool _remember = true;
 
   static const primary = Color(0xFF1B4D3E);
-  static const secondary = Color(0xFFE2C391);
   static const textColor = Color(0xFF191C1B);
   static const outline = Color(0xFF707974);
 
   @override
   void initState() {
     super.initState();
-    _emailController = TextEditingController(text: widget.initialEmail ?? '');
-    _nameController = TextEditingController(text: widget.initialName ?? '');
-
-    _emailController.addListener(_onEmailChanged);
-  }
-
-  void _onEmailChanged() {
-    // Nếu người dùng chưa gõ tên, tự động gợi ý tên từ email để người dùng tiện chỉnh sửa
-    if (_nameController.text.trim().isEmpty) {
-      final email = _emailController.text.trim();
-      if (email.contains('@')) {
-        final prefix = email.split('@').first;
-        final formatted = prefix.replaceAll(RegExp(r'[._]'), ' ').trim();
-        if (formatted.isNotEmpty) {
-          final words = formatted.split(' ').map((w) => w.isNotEmpty ? '${w[0].toUpperCase()}${w.substring(1)}' : '').join(' ');
-          setState(() {
-            _nameController.text = words;
-          });
-        }
-      }
-    }
+    // Tự động điền tên nhận được từ Google nhưng cho khách toàn quyền chỉnh sửa
+    _nameController = TextEditingController(text: widget.suggestedName);
   }
 
   @override
   void dispose() {
-    _emailController.removeListener(_onEmailChanged);
-    _emailController.dispose();
     _nameController.dispose();
     _client.close();
     super.dispose();
@@ -223,15 +387,8 @@ class _GoogleSignInDialogState extends State<GoogleSignInDialog> {
   Future<void> _submit() async {
     if (_submitting) return;
 
-    final email = _emailController.text.trim();
-    final name = _nameController.text.trim();
-
-    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
-      setState(() => _error = 'Vui lòng nhập địa chỉ email Google hợp lệ.');
-      return;
-    }
-
-    if (name.isEmpty) {
+    final chosenName = _nameController.text.trim();
+    if (chosenName.isEmpty) {
       setState(() => _error = 'Vui lòng nhập tên bạn muốn hiển thị trên ứng dụng.');
       return;
     }
@@ -245,8 +402,11 @@ class _GoogleSignInDialogState extends State<GoogleSignInDialog> {
       final auth = widget.authService ?? await AuthService.load(_client);
       final user = await auth.loginWithGoogle(
         baseUrl: widget.baseUrl,
-        email: email,
-        name: name,
+        email: widget.googleEmail,
+        name: chosenName,
+        accessToken: widget.accessToken,
+        avatar: widget.avatar,
+        googleId: widget.googleId,
         remember: _remember,
       );
 
@@ -284,7 +444,7 @@ class _GoogleSignInDialogState extends State<GoogleSignInDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header với logo Google
+              // Header với logo Google và xác nhận tài khoản
               Row(
                 children: [
                   Container(
@@ -306,24 +466,25 @@ class _GoogleSignInDialogState extends State<GoogleSignInDialog> {
                     child: const GoogleLogo(size: 24),
                   ),
                   const SizedBox(width: 14),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Đăng nhập với Google',
+                        const Text(
+                          'Google đã xác nhận danh tính',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 17,
                             fontWeight: FontWeight.w800,
                             color: textColor,
                           ),
                         ),
-                        SizedBox(height: 2),
+                        const SizedBox(height: 2),
                         Text(
-                          'Kết nối tài khoản Google nhanh chóng & an toàn',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: outline,
+                          widget.googleEmail,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: primary,
                           ),
                         ),
                       ],
@@ -335,11 +496,11 @@ class _GoogleSignInDialogState extends State<GoogleSignInDialog> {
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 16),
 
-              // Banner thông báo đặc quyền tự chọn tên
+              // Banner xác nhận từ Google và quyền tự chọn tên
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: const Color(0xFFE9F3ED),
                   borderRadius: BorderRadius.circular(14),
@@ -348,25 +509,25 @@ class _GoogleSignInDialogState extends State<GoogleSignInDialog> {
                 child: const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.badge_outlined, color: primary, size: 22),
+                    Icon(Icons.verified_user_rounded, color: primary, size: 22),
                     SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Bạn có thể tự do đặt tên cho mình!',
+                            'Bạn được tự do chọn tên của mình!',
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 13.5,
                               fontWeight: FontWeight.w700,
                               color: primary,
                             ),
                           ),
-                          SizedBox(height: 2),
+                          SizedBox(height: 3),
                           Text(
-                            'Tên này sẽ hiển thị trên bảng xếp hạng, chứng chỉ bài thi và hồ sơ học tập của bạn.',
+                            'Bên Google đã xác nhận quyền đăng nhập. Hãy chọn tên bạn muốn hiển thị trên chứng chỉ bài thi, bảng xếp hạng và hồ sơ học tập.',
                             style: TextStyle(
-                              fontSize: 11.5,
+                              fontSize: 12,
                               color: primary,
                               height: 1.35,
                             ),
@@ -379,45 +540,7 @@ class _GoogleSignInDialogState extends State<GoogleSignInDialog> {
               ),
               const SizedBox(height: 20),
 
-              // Input Email Google
-              const Text(
-                'Email Google của bạn (*)',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: textColor,
-                ),
-              ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _emailController,
-                enabled: !_submitting,
-                keyboardType: TextInputType.emailAddress,
-                style: const TextStyle(color: textColor, fontSize: 14.5),
-                decoration: InputDecoration(
-                  hintText: 'vidu@gmail.com',
-                  hintStyle: TextStyle(color: outline.withValues(alpha: .6), fontSize: 14),
-                  prefixIcon: const Icon(Icons.alternate_email_rounded, color: primary, size: 20),
-                  filled: true,
-                  fillColor: const Color(0xFFF9FAF8),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: outline.withValues(alpha: .3)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: outline.withValues(alpha: .3)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: primary, width: 1.5),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Input Tên hiển thị (Khách tự chọn tên của mình)
+              // Trường nhập tên hiển thị tự chọn
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -429,12 +552,19 @@ class _GoogleSignInDialogState extends State<GoogleSignInDialog> {
                       color: textColor,
                     ),
                   ),
-                  Text(
-                    'Khách tự chọn tên',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: primary.withValues(alpha: .85),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: primary.withValues(alpha: .08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Khách tự chọn tên',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: primary,
+                      ),
                     ),
                   ),
                 ],
@@ -448,9 +578,9 @@ class _GoogleSignInDialogState extends State<GoogleSignInDialog> {
                 style: const TextStyle(color: textColor, fontSize: 15, fontWeight: FontWeight.w600),
                 decoration: InputDecoration(
                   counterText: '',
-                  hintText: 'Nhập tên bạn muốn dùng (VD: Minh Thư, Alex...)',
+                  hintText: 'Nhập tên hiển thị bạn muốn...',
                   hintStyle: TextStyle(color: outline.withValues(alpha: .6), fontSize: 14),
-                  prefixIcon: const Icon(Icons.person_outline_rounded, color: primary, size: 20),
+                  prefixIcon: const Icon(Icons.badge_outlined, color: primary, size: 20),
                   filled: true,
                   fillColor: const Color(0xFFF9FAF8),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
@@ -485,7 +615,7 @@ class _GoogleSignInDialogState extends State<GoogleSignInDialog> {
               ),
               const SizedBox(height: 14),
 
-              // Checkbox Ghi nhớ
+              // Ghi nhớ đăng nhập
               CheckboxListTile(
                 value: _remember,
                 activeColor: primary,

@@ -6,6 +6,7 @@ import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hanzi_go/src/screens/login_screen.dart';
 import 'package:hanzi_go/src/services/auth_service.dart';
+import 'package:hanzi_go/src/widgets/google_sign_in_sheet.dart';
 
 void main() {
   testWidgets(
@@ -184,25 +185,34 @@ void main() {
     final googleBtn = find.text('Đăng ký nhanh với Google');
     expect(googleBtn, findsOneWidget);
 
-    await tester.tap(googleBtn);
+    // Kiểm tra trực tiếp GoogleNameSelectionDialog (sau khi Google xác nhận danh tính)
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: GoogleNameSelectionDialog(
+          baseUrl: 'http://test/api',
+          authService: auth,
+          googleEmail: 'student@gmail.com',
+          suggestedName: 'Nguyen Van A',
+        ),
+      ),
+    ));
     await tester.pumpAndSettle();
 
-    expect(find.text('Đăng nhập với Google'), findsOneWidget);
-    expect(find.text('Bạn có thể tự do đặt tên cho mình!'), findsOneWidget);
-    expect(find.text('Tên hiển thị của bạn (*)'), findsOneWidget);
+    expect(find.text('Google đã xác nhận danh tính'), findsOneWidget);
+    expect(find.text('Bạn được tự do chọn tên của mình!'), findsOneWidget);
+    expect(find.text('student@gmail.com'), findsOneWidget);
 
-    final dialogInputs = find.byType(TextField);
-    await tester.enterText(dialogInputs.at(dialogInputs.evaluate().length - 2), 'student@gmail.com');
-    await tester.enterText(dialogInputs.at(dialogInputs.evaluate().length - 1), 'Minh Thu Tu Chon');
+    final nameField = find.byType(TextField);
+    expect(nameField, findsOneWidget);
+    await tester.enterText(nameField, 'Minh Thu Tu Chon');
     await tester.pumpAndSettle();
 
-    final confirmLoginBtn = find.text('Xác nhận & Vào học');
-    expect(confirmLoginBtn, findsOneWidget);
-    await tester.tap(confirmLoginBtn);
+    final confirmBtn = find.text('Xác nhận & Vào học');
+    expect(confirmBtn, findsOneWidget);
+    await tester.tap(confirmBtn);
     await tester.pumpAndSettle();
 
     expect(auth.isAuthenticated, isTrue);
     expect(auth.currentUser?.name, 'Minh Thu Tu Chon');
   });
 }
-

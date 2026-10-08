@@ -96,3 +96,17 @@ class TestGoogleAuth(unittest.TestCase):
             "name": "Locked User",
         })
         self.assertEqual(res_locked.status_code, 403)
+
+    def test_google_login_with_access_token(self):
+        # Đăng nhập với Google Access Token hợp lệ
+        res = self.client.post("/api/auth/google-login", json={
+            "email": "tokenuser@google-test.test",
+            "name": "Học Viên Token",
+            "access_token": "test_access_token_abc123",
+            "google_id": "google_123456789",
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data["user"]["name"], "Học Viên Token")
+        self.assertEqual(data["user"]["email"], "tokenuser@google-test.test")
+

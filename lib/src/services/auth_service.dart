@@ -149,10 +149,21 @@ class AuthService {
         true);
   }
 
+  Future<Map<String, dynamic>> fetchGoogleConfig(String baseUrl) async {
+    try {
+      final res = await _client.get(Uri.parse('$baseUrl/auth/google-config'));
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return {'client_id': '', 'is_configured': false};
+  }
+
   Future<AuthUser> loginWithGoogle({
     required String baseUrl,
     required String email,
     required String name,
+    String? accessToken,
     String? idToken,
     String? googleId,
     String? avatar,
@@ -164,13 +175,15 @@ class AuthService {
       {
         'email': email.trim().toLowerCase(),
         'name': name.trim(),
-        if (idToken != null) 'id_token': idToken,
-        if (googleId != null) 'google_id': googleId,
+        if (accessToken != null && accessToken.isNotEmpty) 'access_token': accessToken,
+        if (idToken != null && idToken.isNotEmpty) 'id_token': idToken,
+        if (googleId != null && googleId.isNotEmpty) 'google_id': googleId,
         if (avatar != null && avatar.isNotEmpty) 'avatar': avatar,
       },
       remember,
     );
   }
+
 
   Future<String> requestRegister({
     required String baseUrl,
