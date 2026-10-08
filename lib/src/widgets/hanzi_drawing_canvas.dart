@@ -180,6 +180,18 @@ class HanziDrawingCanvas extends StatelessWidget {
     {'id': 'purple', 'name': 'Tím Tử Cấm', 'color': Color(0xFF6A1B9A)},
     {'id': 'pastelGreen', 'name': 'Xanh Pastel', 'color': Color(0xFF4E8752)},
     {'id': 'blossom', 'name': 'Hồng đào', 'color': Color(0xFFD81B60)},
+    {'id': 'ocean', 'name': 'Xanh đại dương', 'color': Color(0xFF006064)},
+    {'id': 'turquoise', 'name': 'Xanh ngọc lam', 'color': Color(0xFF00838F)},
+    {'id': 'forest', 'name': 'Xanh rừng', 'color': Color(0xFF2E7D32)},
+    {'id': 'olive', 'name': 'Xanh ô liu', 'color': Color(0xFF667C20)},
+    {'id': 'indigo', 'name': 'Chàm', 'color': Color(0xFF303F9F)},
+    {'id': 'lavender', 'name': 'Tím oải hương', 'color': Color(0xFF9575CD)},
+    {'id': 'plum', 'name': 'Tím mận', 'color': Color(0xFF880E4F)},
+    {'id': 'coral', 'name': 'Cam san hô', 'color': Color(0xFFE76F51)},
+    {'id': 'amber', 'name': 'Hổ phách', 'color': Color(0xFFB76A00)},
+    {'id': 'terracotta', 'name': 'Nâu đất', 'color': Color(0xFF9C4933)},
+    {'id': 'coffee', 'name': 'Nâu cà phê', 'color': Color(0xFF5D4037)},
+    {'id': 'slate', 'name': 'Xám đá', 'color': Color(0xFF546E7A)},
   ];
 
   @override

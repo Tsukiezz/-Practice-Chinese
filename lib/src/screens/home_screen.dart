@@ -173,9 +173,9 @@ class HomeScreen extends StatelessWidget {
             ),
             _card(
               context,
-              'Tra từ điển',
-              'Hán tự, pinyin và phát âm',
-              Icons.search_rounded,
+              'Viết tay',
+              'Luyện nét chữ Hán · tra từ khi cần',
+              Icons.draw_rounded,
               const Color(0xFFF3E3DE),
               onOpenDictionary,
             ),

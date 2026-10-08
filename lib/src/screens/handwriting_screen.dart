@@ -14,11 +14,17 @@ class HandwritingScreen extends StatefulWidget {
     required this.service,
     this.source,
     this.guest = false,
+    this.startInPractice = false,
+    this.onOpenVocabulary,
+    this.onBack,
   });
 
   final StudentService service;
   final StudentResult? source;
   final bool guest;
+  final bool startInPractice;
+  final VoidCallback? onOpenVocabulary;
+  final VoidCallback? onBack;
 
   @override
   State<HandwritingScreen> createState() => _HandwritingScreenState();
@@ -38,6 +44,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
   final Map<int, String> _characterFeedback = {};
   int _guideRequest = 0;
   bool _isDrawing = false;
+  bool _showPracticeOptions = false;
   HandwritingGradeResult? _practiceResult;
   HandwritingRecognitionResult? _recognitionResult;
   String? _error;
@@ -83,7 +90,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
   @override
   void initState() {
     super.initState();
-    _mode = widget.source == null
+    _mode = widget.source == null && !widget.startInPractice
         ? _HandwritingMode.lookup
         : _HandwritingMode.practice;
     if (widget.source != null) {
@@ -124,12 +131,20 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
     appBar: AppBar(
+      leading: widget.onBack == null ? null : BackButton(onPressed: widget.onBack),
       title: Text(
         widget.source == null
-            ? 'Viết tay chữ Hán'
+            ? 'Viết tay'
             : 'Viết lại chữ dưới 80 điểm',
       ),
-
+      actions: [
+        if (widget.onOpenVocabulary != null)
+          Tooltip(message: 'Kho 4.999 từ vựng · tra cứu bổ trợ', child: TextButton.icon(
+            onPressed: widget.onOpenVocabulary,
+            icon: const Icon(Icons.menu_book_outlined, size: 19),
+            label: const Text('Từ vựng'),
+          )),
+      ],
     ),
     body: SafeArea(
       child: Center(
@@ -163,6 +178,17 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                 ),
                 const SizedBox(height: 16),
               ],
+              if (widget.startInPractice && !_isLookup)
+                Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [
+                  Expanded(child: Text(_blind ? _displayPinyin : _target.text,
+                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold))),
+                  TextButton.icon(
+                    onPressed: () => setState(() => _showPracticeOptions = !_showPracticeOptions),
+                    icon: Icon(_showPracticeOptions ? Icons.expand_less : Icons.tune),
+                    label: Text(_showPracticeOptions ? 'Thu gọn' : 'Chọn chữ & hướng dẫn'),
+                  ),
+                ])),
+              if (!widget.startInPractice || _isLookup || _showPracticeOptions) ...[
               if (!_isLookup && widget.source == null) ...[
                 Card(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -560,8 +586,10 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                   const SizedBox(height: 8),
                 ],
               ],
+              ],
               const SizedBox(height: 8),
               Semantics(
+                // Main writing tab keeps the canvas above optional search/guidance.
                 label: _practiceResult?.wrongStrokes.isNotEmpty == true
                     ? 'Nét sai được tô đỏ: ${_practiceResult!.wrongStrokes.join(', ')}'
                     : null,

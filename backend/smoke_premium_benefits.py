@@ -124,6 +124,9 @@ def main():
                         assert dashboards and dashboards[-1].status == 200
                         assert len(dashboards[-1].json()['streak_details']['calendar']) == 28
                         page.screenshot(path=str(output/f'streak-profile-{width}.png'), full_page=True)
+                        page.mouse.click(width * 4.5 / 7, height - 30)
+                        page.wait_for_timeout(2000)
+                        page.screenshot(path=str(output/f'handwriting-primary-{width}.png'), full_page=True)
                         assert not errors, errors
                         context.close()
                 browser.close()

@@ -23,3 +23,5 @@ backend/smoke_*.py
 skills-lock.json
 .local-backups/
 configs_backup/
+scratch/
+latest_build_log.txt

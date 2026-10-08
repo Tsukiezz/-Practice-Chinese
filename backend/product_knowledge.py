@@ -10,7 +10,7 @@ def local_product_answer(normalized):
         (r'hsk\s*[789]', ('- Bài học:', '- Nghe và Đọc:', '- Luyện đọc phát âm:', '- Kiểm tra:')),
         (r'dong ho|gio viet nam|loi chao', ('- Đồng hồ và lời chào:',)),
         (r'bao luu|streak|chuoi ngay', ('- Chuỗi ngày học:', '- Streak Freeze:')),
-        (r'but long|but muc|thu phap', ('- Bút:',)),
+        (r'but long|but muc|thu phap|viet tay|mau muc', ('- Viết tay:', '- Bút:')),
         (r'mau giao dien|mau sac', ('- Màu:',)),
     ]
     prefixes = next((prefix for pattern, prefix in groups if re.search(pattern, normalized)), None)
@@ -30,7 +30,8 @@ def product_knowledge():
 - Luyện đọc phát âm: trang /reading dùng chung giao diện nghe mẫu, thu âm micro, AI chấm và lịch sử cho HSK 1–9. HSK 7–9 cần Premium còn hạn, mỗi cấp hiện có 6 từ và 2 câu ví dụ bổ trợ; chưa phải toàn bộ từ vựng HSK. Chọn cấp trong app được giữ khi mở trang luyện phát âm.
 - Đồng hồ và lời chào: trang chủ hiện giờ Việt Nam UTC+7 và tên người dùng. Từ 06:00 đến trước 18:00 chào buổi sáng; từ 18:00 đến trước 06:00 chào buổi tối.
 - Kiểm tra: có nút Kiểm tra HSK 7/8/9 · Premium, bộ luyện 8 câu Nghe + Đọc, 20 phút, tự chấm và lưu kết quả. AI tạo đề cho phép chọn HSK 7–9 khi Premium còn hạn; nếu AI lỗi sẽ báo thử lại, không thay bằng câu HSK thấp hơn.
-- Bút: ngay trên khung luyện viết có Mặc định / Bút lông / Bút mực / Thư pháp. Ba kiểu sau cần Premium; lựa chọn lưu theo tài khoản.
+- Viết tay: tab chính Viết tay mở thẳng Luyện nét. Kho 4.999 từ là công cụ tra cứu bổ trợ, mở bằng nút Từ vựng ở góc trên màn hình Viết tay. Trên khung viết có 20 màu mực; vuốt ngang để xem thêm. Mực đen mặc định dùng miễn phí, màu mở rộng dành cho Premium.
+- Bút: chọn kiểu bút ngay trên khung luyện viết; các kiểu bút mở rộng cần Premium. Lựa chọn kiểu bút lưu theo tài khoản.
 - Màu: Cá nhân → Màu giao diện, Premium chọn toàn bộ bảng màu. Tài khoản miễn phí vẫn có sáng/tối mặc định. Hết hạn Premium trở về cọ và màu mặc định; huy hiệu vàng cũng hết hiệu lực.
 - Chuỗi ngày học: Cá nhân chỉ hiện mục gọn Chuỗi ngày học & bảo lưu, bấm mới mở chi tiết. Ngọn lửa và số chuỗi nằm cạnh nút sáng/tối trên thanh trên cùng, bấm cũng mở chi tiết; số lấy từ máy chủ. Trang chi tiết có chuỗi hiện tại, kỷ lục, tổng ngày đã học, mốc tiếp theo và lịch 28 ngày theo UTC+7. Lịch phân biệt đã học, bảo lưu và chưa học. Mở Cá nhân không tính là học; kết quả luyện tập, tiến độ bài học, đọc và tra từ mới ghi nhận hoạt động. Ngày bảo lưu giữ chuỗi nhưng không tăng tổng ngày thực học. Nút cập nhật tải lại dữ liệu từ máy chủ; trợ lý không được tự ghi nhận ngày học.
 - Streak Freeze: tự bảo lưu ngày bỏ lỡ cho chuỗi học đang có, tối đa 3 ngày mỗi tháng lịch UTC+7, không cộng dồn. Xử lý khi tải thống kê học tập; không tạo ngày học giả và không phục hồi khoảng trống trước khi bật quyền bảo lưu. Gói năm cũng nhận hạn mức 3/tháng, không phải 12 lượt một lần.

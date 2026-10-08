@@ -11,6 +11,7 @@ import 'screens/login_screen.dart';
 import 'screens/practice_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/vocabulary_screen.dart';
+import 'screens/handwriting_screen.dart';
 import 'screens/ai_exam_screen.dart';
 import 'services/auth_service.dart';
 import 'services/web_navigation.dart';
@@ -532,9 +533,13 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                 draftOwner: _authService.currentUser?.id,
                 onBack: _navigateBack,
               ),
-              VocabularyScreen(
+              HandwritingScreen(
                 service: _studentService,
+                startInPractice: true,
                 onBack: _navigateBack,
+                onOpenVocabulary: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => VocabularyScreen(service: _studentService),
+                )),
               ),
               AiExamScreen(
                 service: _aiExamService,
@@ -588,9 +593,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                 label: 'Đọc',
               ),
               NavigationDestination(
-                icon: Icon(Icons.style_outlined),
-                selectedIcon: Icon(Icons.style_rounded),
-                label: 'Từ vựng',
+                icon: Icon(Icons.draw_outlined),
+                selectedIcon: Icon(Icons.draw_rounded),
+                label: 'Viết tay',
               ),
               NavigationDestination(
                 icon: Icon(Icons.assignment_turned_in_outlined),
