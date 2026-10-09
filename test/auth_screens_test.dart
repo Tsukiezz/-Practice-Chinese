@@ -9,6 +9,29 @@ import 'package:hanzi_go/src/services/auth_service.dart';
 import 'package:hanzi_go/src/widgets/google_sign_in_sheet.dart';
 
 void main() {
+  test('Google checks registration without a name and preserves returning profile', () async {
+    SharedPreferences.setMockInitialValues({});
+    var newAccount = true;
+    final auth = await AuthService.load(MockClient((request) async {
+      expect(jsonDecode(request.body).containsKey('name'), isFalse);
+      return http.Response(jsonEncode(newAccount
+        ? {'requires_name': true}
+        : {'token': 'google-session', 'user': {
+            'id': 42, 'name': 'Chosen profile name', 'email': 'learner@example.com',
+            'role': 'student',
+          }}), 200);
+    }));
+    await expectLater(auth.loginWithGoogle(baseUrl: 'http://test/api',
+      email: 'learner@example.com', accessToken: 'verified-token'),
+      throwsA(isA<GoogleNameRequired>()));
+    expect(auth.isAuthenticated, isFalse);
+    newAccount = false;
+    final user = await auth.loginWithGoogle(baseUrl: 'http://test/api',
+      email: 'learner@example.com', accessToken: 'verified-token');
+    expect(user.name, 'Chosen profile name');
+    expect(auth.isAuthenticated, isTrue);
+  });
+
   testWidgets(
       'Tuyen registration validates confirmation and returns authenticated student',
       (tester) async {
@@ -186,6 +209,7 @@ void main() {
     expect(googleBtn, findsOneWidget);
 
     // Kiểm tra trực tiếp GoogleNameSelectionDialog (sau khi Google xác nhận danh tính)
+    await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
         body: GoogleNameSelectionDialog(

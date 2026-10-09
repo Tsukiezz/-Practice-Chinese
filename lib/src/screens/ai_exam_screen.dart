@@ -389,7 +389,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 ScreenHeader(
                   eyebrow: 'Khảo thí AI · Đề thi tiếng Trung',
                   title: 'Kiểm tra',
-                  showBackButton: widget.onBack != null || Navigator.of(context).canPop(),
+                  showBackButton: false,
                   onBack: widget.onBack ?? (Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null),
                   trailing: Icon(Icons.assignment_turned_in_rounded, color: Theme.of(context).colorScheme.primary),
                 ),

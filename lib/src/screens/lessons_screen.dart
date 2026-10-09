@@ -166,53 +166,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (widget.onBack != null || Navigator.of(context).canPop()) ...[
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 14),
-                                  child: InkWell(
-                                    onTap: widget.onBack ?? () => Navigator.of(context).maybePop(),
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.surface,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: Theme.of(context).colorScheme.outlineVariant,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: isDark
-                                                ? Colors.black.withOpacity(0.2)
-                                                : Theme.of(context).colorScheme.primary.withOpacity(0.06),
-                                            blurRadius: 6,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.arrow_back_rounded,
-                                            color: primary,
-                                            size: 18,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'Quay lại',
-                                            style: TextStyle(
-                                              color: primary,
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+
                               Text(
                                 'HỌC MỖI NGÀY · HSK 1–9',
                                 style: TextStyle(

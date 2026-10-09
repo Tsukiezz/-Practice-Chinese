@@ -26,6 +26,7 @@ flutter:
   assets:
     - assets/fonts/OFL.txt
     - assets/images/logo.png
+    - assets/images/google-g.png
   fonts:
     - family: HanziGoHSK
       fonts:

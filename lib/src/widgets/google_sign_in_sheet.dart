@@ -13,61 +13,12 @@ class GoogleLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: _GoogleLogoPainter(),
-      ),
+    return Image.asset(
+      'assets/images/google-g.png',
+      width: size, height: size, fit: BoxFit.contain,
+      semanticLabel: 'Google',
     );
   }
-}
-
-class _GoogleLogoPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final double w = size.width;
-    final double h = size.height;
-    final center = Offset(w / 2, h / 2);
-    final radius = w / 2;
-
-    final bluePaint = Paint()
-      ..color = const Color(0xFF4285F4)
-      ..style = PaintingStyle.fill;
-    final strokeWidth = w * 0.22;
-    final ringPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.butt;
-
-    final rect = Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
-
-    // Blue arc & bar
-    ringPaint.color = const Color(0xFF4285F4);
-    canvas.drawArc(rect, -0.6, 1.2, false, ringPaint);
-
-    // Green bottom arc
-    ringPaint.color = const Color(0xFF34A853);
-    canvas.drawArc(rect, 0.6, 1.3, false, ringPaint);
-
-    // Yellow left arc
-    ringPaint.color = const Color(0xFFFBBC05);
-    canvas.drawArc(rect, 1.9, 1.3, false, ringPaint);
-
-    // Red top arc
-    ringPaint.color = const Color(0xFFEA4335);
-    canvas.drawArc(rect, 3.2, 1.2, false, ringPaint);
-
-    // Blue horizontal bar
-    final barRect = RRect.fromRectAndRadius(
-      Rect.fromLTRB(w * 0.45, h * 0.40, w * 0.95, h * 0.60),
-      Radius.circular(w * 0.05),
-    );
-    canvas.drawRRect(barRect, bluePaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 /// Nút bấm Đăng nhập bằng Google tiêu chuẩn kết nối trực tiếp với tài khoản Google
@@ -139,8 +90,21 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
         return;
       }
 
-      // Khi Google đã xác nhận danh tính thành công:
-      // Mở hộp thoại cho khách tự do chọn tên hiển thị của mình
+      // Ask for a name only after the server verifies this is a new account.
+      try {
+        await auth.loginWithGoogle(
+          baseUrl: widget.baseUrl,
+          email: googleResult.email,
+          accessToken: googleResult.accessToken,
+          avatar: googleResult.avatar,
+          googleId: googleResult.googleId,
+        );
+        if (mounted) widget.onSuccess();
+        return;
+      } on GoogleNameRequired {
+        // A first-time registration needs a chosen display name.
+      }
+      if (!mounted) return;
       final completed = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
@@ -148,7 +112,7 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
           data: AppTheme.light,
           child: GoogleNameSelectionDialog(
             baseUrl: widget.baseUrl,
-            authService: widget.authService,
+            authService: auth,
             googleEmail: googleResult.email,
             suggestedName: googleResult.name,
             avatar: googleResult.avatar,
@@ -206,14 +170,16 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
                 children: [
                   const GoogleLogo(size: 22),
                   const SizedBox(width: 12),
-                  Text(
+                  Flexible(child: Text(
                     widget.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF1F1F1F),
                     ),
-                  ),
+                  )),
                 ],
               ),
       ),
@@ -541,8 +507,9 @@ class _GoogleNameSelectionDialogState extends State<GoogleNameSelectionDialog> {
               const SizedBox(height: 20),
 
               // Trường nhập tên hiển thị tự chọn
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
                 children: [
                   const Text(
                     'Tên hiển thị của bạn (*)',

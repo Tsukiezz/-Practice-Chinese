@@ -376,11 +376,6 @@ def google_config():
 
 def verify_google_identity(access_token: str | None, id_token: str | None, email: str) -> dict:
     """Xác thực token trực tiếp với Google để xác nhận đúng tài khoản."""
-    # Cho phép test token trong automated testing
-    if (access_token and access_token.startswith("test_")) or (id_token and id_token.startswith("test_")) or email.endswith("@google-test.test"):
-        return {"email": email, "verified": True}
-
-
     expected_email = email.lower().strip()
 
     if access_token:
@@ -398,6 +393,8 @@ def verify_google_identity(access_token: str | None, id_token: str | None, email
                 raise HTTPException(401, "Google không trả về email hợp lệ.")
             if google_email != expected_email:
                 raise HTTPException(401, f"Email gửi lên ({expected_email}) không khớp với tài khoản Google ({google_email}).")
+            if data.get("email_verified") not in (True, "true"):
+                raise HTTPException(401, "Email Google chưa được xác minh.")
             return data
         except urllib.error.HTTPError as err:
             raise HTTPException(401, f"Mã Google Access Token không hợp lệ hoặc đã hết hạn: {err.reason}")
@@ -416,6 +413,9 @@ def verify_google_identity(access_token: str | None, id_token: str | None, email
             google_email = data.get("email", "").lower().strip()
             if not google_email or google_email != expected_email:
                 raise HTTPException(401, "Google ID Token không hợp lệ hoặc không khớp email.")
+            client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+            if not client_id or data.get("aud") != client_id or data.get("email_verified") not in (True, "true"):
+                raise HTTPException(401, "Google ID Token không dành cho ứng dụng này hoặc email chưa xác minh.")
             return data
         except urllib.error.HTTPError as err:
             raise HTTPException(401, f"Google ID Token không hợp lệ: {err.reason}")
@@ -424,17 +424,13 @@ def verify_google_identity(access_token: str | None, id_token: str | None, email
         except Exception as err:
             raise HTTPException(502, f"Không thể kết nối đến máy chủ Google: {str(err)}")
 
-    client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip()
-    if client_id:
-        raise HTTPException(400, "Vui lòng cung cấp mã xác thực hợp lệ từ Google (access_token hoặc id_token).")
-
-    return {"email": expected_email, "verified": True}
+    raise HTTPException(401, "Vui lòng cung cấp mã xác thực hợp lệ từ Google.")
 
 
 @app.post("/api/auth/google-login")
 def google_login(body: GoogleLogin):
     email = body.email.lower()
-    chosen_name = body.name.strip()
+    chosen_name = body.name.strip() if body.name else None
     now = int(time.time())
 
     # Xác thực danh tính người dùng với máy chủ Google
@@ -448,11 +444,7 @@ def google_login(body: GoogleLogin):
                 raise HTTPException(403, "Tài khoản đã bị khóa")
             if user["role"] == "admin":
                 raise HTTPException(403, "Tài khoản quản trị viên vui lòng đăng nhập tại /admin bằng mật khẩu.")
-            # Riêng đăng nhập Google: cho khách chọn/cập nhật tên hiển thị của mình
-            conn.execute(
-                "UPDATE users SET name = ?, version = version + 1 WHERE id = ?",
-                (chosen_name, user["id"])
-            )
+            # Login never overwrites the learner's chosen profile name.
             if body.avatar:
                 conn.execute(
                     """INSERT INTO profiles(user_id, phone, birth_date, avatar, daily_goal, weekly_goal)
@@ -464,6 +456,8 @@ def google_login(body: GoogleLogin):
             conn.commit()
             return session(conn, updated_user)
         else:
+            if chosen_name is None:
+                return {"requires_name": True}
             # Tạo tài khoản học viên mới với tên hiển thị khách đã chọn
             salt = secrets.token_hex(16)
             password_hash = hash_password(secrets.token_urlsafe(32), salt)

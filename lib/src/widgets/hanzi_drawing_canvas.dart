@@ -198,99 +198,104 @@ class HanziDrawingCanvas extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([BenefitsService.instance, selectedInkColor]),
     builder: (context, _) => Column(mainAxisSize: MainAxisSize.min, children: [
-      if (enabled) ...[
-        Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final entry in _brushStyles.entries)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: ChoiceChip(
-                      avatar: entry.key != 'default' && !BenefitsService.instance.isPremium
-                          ? const Icon(Icons.lock_outline, size: 14)
-                          : null,
-                      label: Text(entry.value),
-                      selected: BenefitsService.instance.brush == entry.key,
-                      onSelected: (_) async {
-                        try {
-                          await BenefitsService.instance.select(brush: entry.key);
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
-                          }
-                        }
-                      },
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
+      if (enabled)
         Padding(
           padding: const EdgeInsets.only(bottom: 10),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final item in _inkColors)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Tooltip(
-                      message: '${item['name']}${item['id'] != 'ink' && !BenefitsService.instance.isPremium ? ' (Premium)' : ''}',
-                      child: InkWell(
-                        onTap: () {
-                          if (item['id'] != 'ink' && !BenefitsService.instance.isPremium) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Bảng màu mực viết tay phong phú dành cho thành viên HanziGo Premium.'),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                            return;
-                          }
-                          selectedInkColor.value = item['color'] as Color;
-                        },
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: item['color'] as Color,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: selectedInkColor.value == item['color']
-                                  ? const Color(0xFFD4AF37)
-                                  : Colors.white.withValues(alpha: 0.8),
-                              width: selectedInkColor.value == item['color'] ? 3.0 : 1.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: (item['color'] as Color).withValues(alpha: 0.35),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: item['id'] != 'ink' && !BenefitsService.instance.isPremium
-                              ? const Icon(Icons.lock, size: 12, color: Colors.white70)
-                              : selectedInkColor.value == item['color']
-                                  ? const Icon(Icons.check, size: 14, color: Colors.white)
-                                  : null,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
+          child: Row(children: [
+            Expanded(child: OutlinedButton.icon(
+              key: const Key('choose-brush'),
+              onPressed: () => _chooseBrush(context),
+              icon: const Icon(Icons.brush_outlined, size: 18),
+              label: Text(_brushStyles[BenefitsService.instance.brush] ?? 'Chọn cọ',
+                overflow: TextOverflow.ellipsis),
+            )),
+            const SizedBox(width: 8),
+            Expanded(child: OutlinedButton.icon(
+              key: const Key('choose-ink'),
+              onPressed: () => _chooseInk(context),
+              icon: Icon(Icons.circle, color: BenefitsService.instance.isPremium
+                ? selectedInkColor.value : const Color(0xFF24332E), size: 18),
+              label: const Text('Màu mực ▾'),
+            )),
+          ]),
         ),
-      ],
       _canvas(context),
     ]),
   );
+
+  Future<void> _chooseBrush(BuildContext context) async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('Chọn cọ viết tay'),
+        children: [
+          for (final entry in _brushStyles.entries)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(dialogContext, entry.key),
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(entry.key != 'default' && !BenefitsService.instance.isPremium
+                    ? Icons.lock_outline : Icons.brush_outlined),
+                title: Text(entry.value),
+                trailing: BenefitsService.instance.brush == entry.key
+                    ? const Icon(Icons.check) : null,
+              ),
+            ),
+        ],
+      ),
+    );
+    if (selected == null) return;
+    try {
+      await BenefitsService.instance.select(brush: selected);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      }
+    }
+  }
+
+  Future<void> _chooseInk(BuildContext context) async {
+    final selected = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Chọn màu mực'),
+        content: SizedBox(
+          width: 320,
+          child: SingleChildScrollView(
+            child: Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final item in _inkColors)
+                Tooltip(
+                  message: '${item['name']}${item['id'] != 'ink' && !BenefitsService.instance.isPremium ? ' (Premium)' : ''}',
+                  child: Semantics(
+                    button: true, label: item['name'] as String,
+                    child: InkWell(
+                      onTap: () => Navigator.pop(dialogContext, item),
+                      borderRadius: BorderRadius.circular(24),
+                      child: CircleAvatar(
+                        radius: 24, backgroundColor: item['color'] as Color,
+                        child: item['id'] != 'ink' && !BenefitsService.instance.isPremium
+                            ? const Icon(Icons.lock_outline, color: Colors.white, size: 18)
+                            : selectedInkColor.value == item['color']
+                                ? const Icon(Icons.check, color: Colors.white) : null,
+                      ),
+                    ),
+                  ),
+                ),
+            ]),
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Đóng'))],
+      ),
+    );
+    if (selected == null || !context.mounted) return;
+    if (selected['id'] != 'ink' && !BenefitsService.instance.isPremium) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Màu mực mở rộng dành cho HanziGo Premium.'),
+      ));
+      return;
+    }
+    selectedInkColor.value = selected['color'] as Color;
+  }
 
   Widget _canvas(BuildContext context) => Center(
     child: ConstrainedBox(
@@ -348,7 +353,8 @@ class HanziDrawingCanvas extends StatelessWidget {
                   foregroundPainter: _HanziPainter(
                     controller._strokes,
                     brush: BenefitsService.instance.brush,
-                    inkColor: selectedInkColor.value,
+                    inkColor: BenefitsService.instance.isPremium
+                        ? selectedInkColor.value : const Color(0xFF24332E),
                     wrongStrokes: wrongStrokes,
                     guideStrokes: guideStrokes,
                     visibleGuideStrokeCount: visibleGuideStrokeCount,

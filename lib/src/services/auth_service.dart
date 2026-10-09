@@ -3,6 +3,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'benefits_service.dart';
 
+class GoogleNameRequired implements Exception {
+  const GoogleNameRequired();
+}
+
 class AuthUser {
   const AuthUser({
     required this.id,
@@ -163,7 +167,7 @@ class AuthService {
   Future<AuthUser> loginWithGoogle({
     required String baseUrl,
     required String email,
-    required String name,
+    String? name,
     String? accessToken,
     String? idToken,
     String? googleId,
@@ -175,7 +179,7 @@ class AuthService {
       'google-login',
       {
         'email': email.trim().toLowerCase(),
-        'name': name.trim(),
+        if (name != null) 'name': name.trim(),
         if (accessToken != null && accessToken.isNotEmpty) 'access_token': accessToken,
         if (idToken != null && idToken.isNotEmpty) 'id_token': idToken,
         if (googleId != null && googleId.isNotEmpty) 'google_id': googleId,
@@ -318,6 +322,9 @@ class AuthService {
           : response.statusCode == 422
               ? 'Thông tin chưa hợp lệ. Kiểm tra họ tên, email và mật khẩu.'
               : 'Không thực hiện được yêu cầu. Vui lòng thử lại.');
+    }
+    if (action == 'google-login' && data['requires_name'] == true) {
+      throw const GoogleNameRequired();
     }
     final token = data['token'] as String;
     final expiresIn = data['expires_in'] as int? ?? 86400;

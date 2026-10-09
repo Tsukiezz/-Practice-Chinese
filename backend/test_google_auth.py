@@ -1,5 +1,8 @@
 """Unit tests for Google Sign-In with customizable learner display name."""
 import unittest
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from database import database, init_db
@@ -8,7 +11,20 @@ from main import app
 
 class TestGoogleAuth(unittest.TestCase):
     def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.db_patch = patch('database.DB_PATH', Path(temp.name) / 'auth.db')
+        self.db_patch.start()
+        self.addCleanup(self.db_patch.stop)
+        self.env_patch = patch.dict('os.environ', {'TURSO_DATABASE_URL': '', 'HANZIGO_DB_DRIVER': 'sqlite'})
+        self.env_patch.start()
+        self.addCleanup(self.env_patch.stop)
+        self.identity = patch('main.verify_google_identity', return_value={'email_verified': True})
+        self.identity.start()
+        self.addCleanup(self.identity.stop)
         init_db()
+        from usecase_features import init_features
+        init_features()
         self.client = TestClient(app)
         self._clean()
 
@@ -49,7 +65,7 @@ class TestGoogleAuth(unittest.TestCase):
         self.assertEqual(session_res.status_code, 200)
         self.assertEqual(session_res.json()["name"], "Tiểu Long Nữ")
 
-    def test_google_login_existing_user_updates_chosen_name(self):
+    def test_google_login_existing_user_preserves_chosen_name(self):
         # Lần 1: đăng nhập với tên "Bảo Nam"
         res1 = self.client.post("/api/auth/google-login", json={
             "email": "learner2@google-test.test",
@@ -64,7 +80,31 @@ class TestGoogleAuth(unittest.TestCase):
             "name": "Minh Thư HSK6",
         })
         self.assertEqual(res2.status_code, 200)
-        self.assertEqual(res2.json()["user"]["name"], "Minh Thư HSK6")
+        self.assertEqual(res2.json()["user"]["name"], "Bảo Nam")
+        res3 = self.client.post("/api/auth/google-login", json={"email": "learner2@google-test.test"})
+        self.assertEqual(res3.status_code, 200)
+        self.assertEqual(res3.json()["user"]["name"], "Bảo Nam")
+
+    def test_first_login_requests_name_without_creating_account(self):
+        res = self.client.post("/api/auth/google-login", json={"email": "new@google-test.test"})
+        self.assertEqual(res.json(), {"requires_name": True})
+        with database() as conn:
+            self.assertIsNone(conn.execute("SELECT id FROM users WHERE email=?", ("new@google-test.test",)).fetchone())
+
+    def test_identity_required_even_for_test_addresses(self):
+        self.identity.stop()
+        res = self.client.post("/api/auth/google-login", json={"email": "new@google-test.test", "name": "Test"})
+        self.assertEqual(res.status_code, 401)
+
+    def test_fake_test_token_cannot_bypass_google_verification(self):
+        import urllib.error
+        self.identity.stop()
+        with patch('urllib.request.urlopen', side_effect=urllib.error.HTTPError(
+                'https://www.googleapis.com/oauth2/v3/userinfo', 401, 'Unauthorized', {}, None)) as google:
+            res = self.client.post("/api/auth/google-login", json={
+                "email": "new@google-test.test", "access_token": "test_fake", "name": "Test"})
+        self.assertEqual(res.status_code, 401)
+        google.assert_called_once()
 
     def test_google_login_empty_name_or_invalid_email_rejected(self):
         # Empty name
@@ -109,4 +149,3 @@ class TestGoogleAuth(unittest.TestCase):
         data = res.json()
         self.assertEqual(data["user"]["name"], "Học Viên Token")
         self.assertEqual(data["user"]["email"], "tokenuser@google-test.test")
-

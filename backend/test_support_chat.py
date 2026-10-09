@@ -13,6 +13,19 @@ from support_chat import HANDOFF, init_chat, generate_reply
 
 
 class SupportChatTest(unittest.TestCase):
+    def test_current_product_guidance_for_google_and_compact_writing_tools(self):
+        from support_chat import local_hanzigo_tutor, is_on_topic_chinese_or_hanzigo
+        for question, expected in [
+            ('Đổi tên Google ở đâu?', 'Cá nhân'),
+            ('Chọn cọ viết tay thế nào?', 'Chọn cọ viết tay'),
+            ('Màu mực ở đâu?', 'ô Màu mực'),
+            ('Nút quay lại ở đâu?', 'thanh điều hướng'),
+        ]:
+            self.assertTrue(is_on_topic_chinese_or_hanzigo(question))
+            answer, handoff = local_hanzigo_tutor([{'role': 'user', 'content': question}])
+            self.assertIn(expected, answer)
+            self.assertFalse(handoff)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.old = storage.DB_PATH

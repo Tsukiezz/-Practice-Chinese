@@ -109,7 +109,7 @@ class ProfileScreen extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onEditProfile,
                 icon: const Icon(Icons.manage_accounts_outlined),
-                label: const Text('Hồ sơ, ảnh đại diện và mật khẩu'),
+                label: const Text('Đổi tên, ảnh đại diện và mật khẩu'),
               ),
             ),
           if (onOpenAdmin != null)
