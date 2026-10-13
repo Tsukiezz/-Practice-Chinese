@@ -25,6 +25,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/fonts/OFL.txt
+    - assets/licenses/MAKEMEAHANZI-COPYING.txt
+    - assets/licenses/MAKEMEAHANZI-APL.txt
     - assets/images/logo.png
     - assets/images/google-g.png
   fonts:

@@ -504,6 +504,12 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             index: _index,
             children: [
               HomeScreen(
+                active: _index == 0,
+                onOpenHandwritingSample: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => HandwritingScreen(
+                    service: _studentService, startInPractice: true,
+                  )),
+                ),
                 userName: _authService.currentUser?.name ?? '',
                 user: _authService.currentUser,
                 token: _authService.token,

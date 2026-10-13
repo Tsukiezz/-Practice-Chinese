@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../widgets/brand_logo.dart';
+import '../widgets/handwriting_sample_card.dart';
 import '../widgets/hanzigo_premium_card.dart';
 import '../widgets/learning_status.dart';
 
@@ -10,6 +11,8 @@ class HomeScreen extends StatelessWidget {
     super.key,
     required this.onOpenLessons,
     this.userName = '',
+    this.onOpenHandwritingSample,
+    this.active = true,
     this.onOpenListening,
     this.onOpenReading,
     this.onOpenDictionary,
@@ -21,6 +24,8 @@ class HomeScreen extends StatelessWidget {
     this.onRefreshUser,
   });
   final String userName;
+  final VoidCallback? onOpenHandwritingSample;
+  final bool active;
   final AuthUser? user;
   final String? token;
   final String? apiBaseUrl;
@@ -130,6 +135,11 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+            const SizedBox(height: 24),
+            HandwritingSampleCard(
+              active: active,
+              onPractice: onOpenHandwritingSample ?? onOpenDictionary,
             ),
             const SizedBox(height: 28),
             Text(
