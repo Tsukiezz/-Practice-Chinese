@@ -249,6 +249,64 @@ class SupportChatTest(unittest.TestCase):
         self.assertEqual(ans, custom_decline)
         self.assertTrue(handoff)
 
+    @patch('support_chat.generate_reply', return_value=('Reply in current session', False))
+    def test_idle_expiry_hides_history_from_guest_and_student_but_retains_admin(self, provider):
+        for headers in ({}, self.student):
+            now = int(time.time())
+            with patch('support_chat.time.time', return_value=now):
+                thread = self.thread(headers)
+                self.assertEqual(self.send(thread, headers=headers).status_code, 200)
+            with patch('support_chat.time.time', return_value=now + 299):
+                live = self.client.get('/api/chat/' + thread, headers=headers).json()
+                self.assertTrue(live['active'])
+                self.assertEqual(self.client.post('/api/chat/session', headers=headers).json()['expires_at'], now + 300)
+            with patch('support_chat.time.time', return_value=now + 300):
+                ended = self.client.get('/api/chat/' + thread, headers=headers).json()
+                self.assertFalse(ended['active'])
+                self.assertEqual(ended['messages'], [])
+                self.assertEqual(self.send(thread, key='request_after_expiry', headers=headers).status_code, 410)
+                archive = self.client.get('/api/admin/chats/' + thread, headers=self.admin).json()
+                self.assertEqual(len(archive['messages']), 2)
+                self.assertEqual(archive['state'], 'closed')
+                self.assertEqual(self.client.get('/api/admin/chats?state=closed', headers=self.admin).status_code, 200)
+                restarted = self.client.post('/api/chat/session', headers=headers).json()
+                self.assertTrue(restarted['active'])
+                self.assertEqual(restarted['messages'], [])
+                stale = self.client.post('/api/chat/' + thread + '/messages', headers=headers,
+                    json={'content': 'stale tab', 'request_id': 'request_old_session', 'session_key': live['session_key']})
+                self.assertEqual(stale.status_code, 410)
+                self.send(thread, text='New question', key='request_new_session', headers=headers)
+                self.assertEqual(provider.call_args.args[0], [{'role': 'user', 'content': 'New question'}])
+                fresh = self.client.get('/api/chat/' + thread + '?after=0', headers=headers).json()
+                self.assertEqual(len(fresh['messages']), 2)
+                self.assertEqual(len(self.client.get('/api/admin/chats/' + thread, headers=self.admin).json()['messages']), 4)
+
+    def test_legacy_history_is_admin_only_and_admin_cannot_reopen_expired_session(self):
+        thread = self.thread(self.student)
+        with storage.database() as conn:
+            conn.execute("INSERT INTO chat_messages(thread_id,role,content,created_at) VALUES(?,'user','old message',?)", (thread, int(time.time())))
+            conn.execute('DELETE FROM chat_sessions WHERE thread_id=?', (thread,))
+        self.assertEqual(self.client.get('/api/chat/' + thread, headers=self.student).json()['messages'], [])
+        self.assertEqual(len(self.client.get('/api/admin/chats/' + thread, headers=self.admin).json()['messages']), 1)
+        self.assertEqual(self.client.post('/api/admin/chats/' + thread + '/messages', headers=self.admin,
+            json={'content':'late reply','request_id':'admin_late_reply_123'}).status_code, 410)
+        self.assertEqual(self.client.patch('/api/admin/chats/' + thread, headers=self.admin, json={'state':'ai'}).status_code, 410)
+        self.assertEqual(self.client.post('/api/chat/session', headers=self.student).json()['messages'], [])
+
+    @patch('support_chat.generate_reply', return_value=('Reply', False))
+    def test_admin_reply_restarts_idle_clock(self, provider):
+        now = int(time.time())
+        with patch('support_chat.time.time', return_value=now):
+            thread = self.thread()
+            self.send(thread)
+        with patch('support_chat.time.time', return_value=now + 240):
+            self.client.post('/api/admin/chats/' + thread + '/messages', headers=self.admin,
+                json={'content':'Human support','request_id':'admin_response_1234'})
+        with patch('support_chat.time.time', return_value=now + 301):
+            self.assertTrue(self.client.get('/api/chat/' + thread).json()['active'])
+        with patch('support_chat.time.time', return_value=now + 540):
+            self.assertFalse(self.client.get('/api/chat/' + thread).json()['active'])
+
 
 if __name__ == '__main__':
     unittest.main()

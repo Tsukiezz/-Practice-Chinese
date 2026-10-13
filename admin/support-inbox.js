@@ -1,5 +1,5 @@
 const escape = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-const states = {ai:'AI đang hỗ trợ',waiting:'Chờ quản trị viên',admin:'Quản trị viên hỗ trợ'};
+const states = {closed:'Đã kết thúc',ai:'AI đang hỗ trợ',waiting:'Chờ quản trị viên',admin:'Quản trị viên hỗ trợ'};
 const roles = {user:'Người dùng',assistant:'Trợ lý AI',admin:'Quản trị viên'};
 const stamp = value => new Date(value*1000).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'numeric'});
 
@@ -7,7 +7,7 @@ export function renderChatInbox(content, initial, api) {
   const panel = document.createElement('section');
   panel.className = 'support-workspace';
   panel.innerHTML = '<div class="support-overview"><div><b>Hội thoại hỗ trợ</b><span class="chat-counts"></span></div><div class="support-sync"><span class="chat-sync" role="status">Tự cập nhật mỗi 4 giây</span><button class="chat-refresh">↻ Làm mới</button></div></div>' +
-    '<div class="chat-inbox"><aside class="chat-list" aria-label="Danh sách hội thoại"><form class="chat-filter"><label>Tìm người trò chuyện<input type="search" maxlength="100" placeholder="Tên học viên hoặc mã khách…" aria-label="Tìm hội thoại"></label><div><select aria-label="Trạng thái"><option value="all">Tất cả hội thoại</option><option value="waiting">Chờ quản trị viên</option><option value="admin">Đang tiếp nhận</option><option value="ai">AI hỗ trợ</option></select><button>Tìm</button></div></form><div class="chat-threads"></div><div class="chat-paging"><button class="prev" aria-label="Trang hội thoại trước">←</button><span></span><button class="next" aria-label="Trang hội thoại sau">→</button></div></aside>' +
+    '<div class="chat-inbox"><aside class="chat-list" aria-label="Danh sách hội thoại"><form class="chat-filter"><label>Tìm người trò chuyện<input type="search" maxlength="100" placeholder="Tên học viên hoặc mã khách…" aria-label="Tìm hội thoại"></label><div><select aria-label="Trạng thái"><option value="all">Tất cả hội thoại</option><option value="waiting">Chờ quản trị viên</option><option value="admin">Đang tiếp nhận</option><option value="ai">AI hỗ trợ</option><option value="closed">Đã kết thúc</option></select><button>Tìm</button></div></form><div class="chat-threads"></div><div class="chat-paging"><button class="prev" aria-label="Trang hội thoại trước">←</button><span></span><button class="next" aria-label="Trang hội thoại sau">→</button></div></aside>' +
     '<section class="chat-detail" aria-label="Nội dung hội thoại"><header class="chat-detail-head"><button class="chat-back">← Danh sách</button><div class="chat-person"><span class="chat-avatar">聊</span><div><h2>Chọn một hội thoại</h2><p class="chat-mode">Xem lịch sử và hỗ trợ người học tại đây.</p></div></div><div class="chat-ownership"><button class="take" disabled>Tiếp nhận</button><button class="resume" disabled>Giao lại cho AI</button></div></header>' +
     '<div class="chat-history" role="log" aria-live="polite" aria-label="Lịch sử hội thoại"><button class="chat-older" hidden>Xem tin nhắn cũ hơn</button><div class="chat-messages"><div class="chat-welcome"><span>聊</span><h3>Mọi trao đổi, trong một nơi</h3><p>Chọn khách hoặc học viên bên cạnh để xem tin nhắn của người dùng, AI và quản trị viên.</p></div></div></div><button class="chat-new" hidden>↓ Có tin nhắn mới</button><div class="chat-error" role="status"></div>' +
     '<form class="chat-compose"><label class="chat-compose-label">Phản hồi của quản trị viên<textarea aria-label="Trả lời người dùng" placeholder="Nhập nội dung hỗ trợ…" maxlength="3000" rows="3" required disabled></textarea></label><div class="chat-compose-footer"><small class="chat-hint">Chọn hội thoại để bắt đầu.</small><button class="primary" disabled>Gửi trả lời</button></div></form></section></div>';
@@ -19,12 +19,12 @@ export function renderChatInbox(content, initial, api) {
   const fail = err => { if(alive()) $('.chat-error').textContent = err.message; };
   const bottom = () => { const el = $('.chat-history'); el.scrollTop = el.scrollHeight; $('.chat-new').hidden = true; };
   function controls() {
-    $('.chat-compose textarea').disabled = !active;
-    $('.chat-compose button').disabled = !active || sending.has(active);
+    $('.chat-compose textarea').disabled = !active || currentState === 'closed';
+    $('.chat-compose button').disabled = !active || currentState === 'closed' || sending.has(active);
     $('.chat-compose button').textContent = sending.has(active) ? 'Đang gửi…' : 'Gửi trả lời';
-    $('.take').disabled = !active || changing || currentState === 'admin';
-    $('.resume').disabled = !active || changing || currentState === 'ai';
-    $('.chat-hint').textContent = active ? 'Ctrl + Enter để gửi · Gửi trả lời sẽ tạm dừng AI.' : 'Chọn hội thoại để bắt đầu.';
+    $('.take').disabled = !active || currentState === 'closed' || changing || currentState === 'admin';
+    $('.resume').disabled = !active || currentState === 'closed' || changing || currentState === 'ai';
+    $('.chat-hint').textContent = currentState === 'closed' ? 'Phiên đã kết thúc. Lịch sử chỉ còn hiển thị cho quản trị viên.' : active ? 'Ctrl + Enter để gửi · Gửi trả lời sẽ tạm dừng AI.' : 'Chọn hội thoại để bắt đầu.';
   }
   function list(data) {
     const el = $('.chat-threads'), keep = new Set();
@@ -43,7 +43,7 @@ export function renderChatInbox(content, initial, api) {
     $('.chat-paging span').textContent = data.total ? (offset+1)+'–'+Math.min(offset+40,data.total)+' / '+data.total : '0 hội thoại';
     $('.prev').disabled=offset===0; $('.next').disabled=offset+40>=data.total;
     const counts=data.counts||{};
-    $('.chat-counts').textContent=((counts.ai||0)+(counts.waiting||0)+(counts.admin||0))+' hội thoại · '+(counts.waiting||0)+' đang chờ tiếp nhận';
+    $('.chat-counts').textContent=((counts.ai||0)+(counts.waiting||0)+(counts.admin||0)+(counts.closed||0))+' hội thoại · '+(counts.waiting||0)+' đang chờ tiếp nhận';
   }
   async function reloadList() {
     if(!alive()) return;

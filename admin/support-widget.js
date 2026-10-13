@@ -7,13 +7,13 @@
   root.innerHTML = `<style>
     :host{font:14px system-ui,sans-serif;color:var(--chat-text,#173c33)}*{box-sizing:border-box}
     button,textarea{font:inherit}button{cursor:pointer;border:0;border-radius:12px;padding:10px 14px;background:var(--chat-accent,#17634e);color:white}
-    button:disabled{opacity:.55;cursor:wait}button:focus-visible,textarea:focus-visible{outline:3px solid #e2ac43;outline-offset:2px}
+    button:disabled{opacity:.55;cursor:default}button:focus-visible,textarea:focus-visible{outline:3px solid #e2ac43;outline-offset:2px}
     #launch{box-shadow:0 4px 20px #0003}#panel{width:min(380px,calc(100vw - 24px));height:min(540px,calc(100dvh - 130px));background:var(--chat-surface,#fff);border:1px solid var(--chat-border,#cee0d8);border-radius:18px;box-shadow:0 12px 45px #0003;display:flex;flex-direction:column;overflow:hidden}
     [hidden]{display:none!important}header{display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--chat-accent,#17634e);color:white}header small{display:block;margin-top:4px;font-size:11px}header button{font-size:20px}
     #messages{flex:1;overflow:auto;padding:12px;background:var(--chat-background,#f2f7f4)}.message{white-space:pre-wrap;overflow-wrap:anywhere;padding:10px 12px;border-radius:12px;background:var(--chat-surface,#fff);margin-bottom:10px;line-height:1.55}.user{background:var(--chat-bubble,#dcefe4);margin-left:26px}.admin{border:1px solid #bc9741}.label{font-size:11px;font-weight:700;display:block;margin-bottom:4px;color:var(--chat-muted,#487265)}
     #status{font-size:12px;padding:8px 12px;min-height:30px}form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--chat-border,#dce7e0)}textarea{color:var(--chat-text,#173c33);background:var(--chat-surface,#fff);flex:1;min-width:0;resize:none;border:1px solid var(--chat-border,#bfd3c7);border-radius:10px;padding:10px}#retry{margin:0 10px 6px}
   </style>
-  <button id="launch" aria-expanded="false" aria-controls="panel">💬 Hỏi HanziGo</button>
+  <button id="launch" aria-expanded="false" aria-controls="panel">Tôi cần hỗ trợ</button>
   <section id="panel" role="region" aria-label="Trò chuyện với HanziGo" hidden>
     <header><div><b>HanziGo · Trợ lý học tập</b><small>AI chuyên biệt tiếng Trung · Quản trị viên hỗ trợ thêm</small></div><button id="close" aria-label="Đóng trò chuyện">×</button></header>
     <div id="messages" role="log" aria-live="polite"></div><div id="status" role="status"></div>
@@ -31,23 +31,36 @@
   });
   const $ = s => root.querySelector(s);
   let token = '', thread = null, last = 0, generation = 0, busy = false, loading = false;
-  let pending = null;
+  let pending = null, sessionKey = null, expiryTimer = null;
+  function reset() {
+    generation++; thread = null; last = 0; pending = null; sessionKey = null;
+    busy = false; loading = false; clearTimeout(expiryTimer);
+    $('#messages').replaceChildren(); $('textarea').value = ''; $('#status').textContent = '';
+    $('#retry').hidden = true; $('#send').disabled = false; $('#launch').disabled = false;
+    $('#panel').hidden = true; $('#launch').hidden = false;
+    $('#launch').setAttribute('aria-expanded','false');
+  }
   window.addEventListener('hanzigo-chat-session', event => {
     const next = typeof event.detail === 'string' ? event.detail : '';
     if (next === token) return;
-    token = next; generation++; thread = null; last = 0; pending = null; busy = false; loading = false;
-    $('#messages').replaceChildren(); $('textarea').value = ''; $('#send').disabled = false;
-    if (!$('#panel').hidden) refresh();
+    token = next; reset();
   });
   async function api(path, method = 'GET', body) {
     const response = await fetch('/api/chat' + path, {method, credentials:'same-origin',
       headers: {'Content-Type':'application/json', ...(token ? {Authorization:'Bearer ' + token} : {})},
       body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(60000)});
     const data = await response.json();
-    if (!response.ok) throw Error(typeof data.detail === 'string' ? data.detail : 'Không thể gửi tin nhắn. Vui lòng thử lại.');
+    if (!response.ok) { const error = Error(typeof data.detail === 'string' ? data.detail : 'Không thể gửi tin nhắn. Vui lòng thử lại.'); error.status = response.status; throw error; }
     return data;
   }
   function show(data) {
+    if (!data.active) { reset(); return; }
+    if (sessionKey && sessionKey !== data.session_key) {
+      last = 0; pending = null; $('#messages').replaceChildren(); $('textarea').value = '';
+    }
+    sessionKey = data.session_key;
+    clearTimeout(expiryTimer);
+    expiryTimer = setTimeout(reset, Math.max(0, data.expires_at - data.server_now) * 1000);
     const box = $('#messages'), atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
     if (!last && !data.messages.length) box.textContent = 'Xin chào! Tôi là Trợ lý AI HanziGo được huấn luyện chuyên sâu về tiếng Trung và ứng dụng HanziGo. Bạn cần hỗ trợ gì về từ vựng, ngữ pháp, phát âm, bài học hay đề thi hôm nay?';
     for (const m of data.messages) {
@@ -62,8 +75,8 @@
     $('#status').textContent = data.busy_until > Date.now()/1000 ? 'AI đang soạn trả lời…' : data.state === 'waiting' ? 'Đã chuyển yêu cầu đến quản trị viên.' : data.state === 'admin' ? 'Quản trị viên đang hỗ trợ bạn.' : 'Bạn đang trò chuyện với AI.';
     $('#retry').hidden = true;
   }
-  async function refresh() {
-    if (loading) return;
+  async function refresh(start = false) {
+    if (loading || (!thread && !start)) return;
     const version = generation; loading = true;
     try {
       let data;
@@ -76,30 +89,42 @@
       show(data);
       if (data.messages.length === 100) { loading = false; return refresh(); }
     } catch (err) {
-      if (version === generation) { $('#status').textContent = err.message; $('#retry').hidden = false; }
+      if (version === generation) { if (err.status === 410) reset(); else { $('#status').textContent = err.message; $('#retry').hidden = false; } }
     } finally { if (version === generation) loading = false; }
   }
-  $('#launch').onclick = () => { $('#panel').hidden = false; $('#launch').hidden = true; $('#launch').setAttribute('aria-expanded','true'); refresh(); $('textarea').focus(); };
+  $('#launch').onclick = async () => {
+    const version = generation;
+    $('#launch').disabled = true;
+    await refresh(true);
+    if (version !== generation) return;
+    $('#launch').disabled = false;
+    $('#panel').hidden = false; $('#launch').hidden = true;
+    $('#launch').setAttribute('aria-expanded','true');
+    if (thread) $('textarea').focus();
+    $('form').hidden = !thread;
+  };
   function close() { $('#panel').hidden = true; $('#launch').hidden = false; $('#launch').setAttribute('aria-expanded','false'); $('#launch').focus(); }
   $('#close').onclick = close;
   root.addEventListener('keydown', e => { if(e.key === 'Escape') close(); });
-  $('#retry').onclick = refresh;
+  $('#retry').onclick = async () => { await refresh(true); $('form').hidden = !thread; };
   $('form').onsubmit = async event => {
     event.preventDefault();
     const content = $('textarea').value.trim();
-    if (!content || busy) return;
+    if (!content || busy || !thread) return;
+    clearTimeout(expiryTimer);
+    expiryTimer = setTimeout(reset, 300000);
     const version = generation; busy = true; $('#send').disabled = true;
     try {
-      if (!thread) await refresh();
       if (!thread || version !== generation) return;
-      pending = pending && pending.content === content ? pending : {content,request_id:crypto.randomUUID()};
+      pending = pending && pending.content === content ? pending : {content,request_id:crypto.randomUUID(),session_key:sessionKey};
       $('#status').textContent = 'Đang gửi và chờ trả lời…';
       await api('/' + thread + '/messages', 'POST', pending);
       if (version !== generation) return;
       $('textarea').value = ''; pending = null;
       await refresh();
-    } catch (err) { if (version === generation) $('#status').textContent = err.message + ' Nội dung vẫn được giữ để gửi lại.'; }
+    } catch (err) { if (version === generation) { if (err.status === 410) reset(); else { await refresh(); if (version === generation) $('#status').textContent = err.message + ' Nội dung vẫn được giữ để gửi lại.'; } } }
     finally { if (version === generation) { busy = false; $('#send').disabled = false; } }
   };
   setInterval(() => { if (!$('#panel').hidden && !document.hidden) refresh(); }, 4000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && thread) refresh(); });
 })();

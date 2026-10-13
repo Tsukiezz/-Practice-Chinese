@@ -18,6 +18,7 @@ from services import ai_settings, _post_gemini, _decode_gemini_candidate
 router = APIRouter(prefix='/api')
 HANDOFF = 'Đợi một chút, quản trị viên sẽ liên lạc lại ngay'
 COOKIE = 'hanzigo_chat_guest'
+SESSION_IDLE_SECONDS = 300
 
 
 DEFAULT_OFF_TOPIC_DECLINE_MESSAGE = (
@@ -308,6 +309,11 @@ def init_chat():
             request_id TEXT, UNIQUE(thread_id, request_id)
         );
         CREATE INDEX IF NOT EXISTS chat_history ON chat_messages(thread_id, id);
+        CREATE TABLE IF NOT EXISTS chat_sessions (
+            thread_id TEXT PRIMARY KEY REFERENCES chat_threads(id),
+            session_key TEXT NOT NULL, visible_after_id INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL
+        );
         ''')
 
 
@@ -333,11 +339,48 @@ def owned(conn, thread_id, who):
     return row_to_dict(row)
 
 
+def support_session(conn, thread_id):
+    row = conn.execute('SELECT * FROM chat_sessions WHERE thread_id=?', (thread_id,)).fetchone()
+    return row_to_dict(row) if row else None
+
+
+def active_session(conn, thread_id):
+    session = support_session(conn, thread_id)
+    if not session or session['expires_at'] <= int(time.time()):
+        raise HTTPException(410, 'Phiên hỗ trợ đã kết thúc. Hãy nhấn Tôi cần hỗ trợ để bắt đầu lại.')
+    return session
+
+
+def learner_snapshot(conn, thread_id, after=0):
+    session = support_session(conn, thread_id)
+    now = int(time.time())
+    if not session or session['expires_at'] <= now:
+        return {'id': thread_id, 'active': False, 'state': 'closed', 'messages': [], 'busy_until': 0}
+    result = snapshot(conn, thread_id, max(after, session['visible_after_id']))
+    result.update(active=True, session_key=session['session_key'], expires_at=session['expires_at'], server_now=now)
+    return result
+
+
+def begin_support(conn, thread_id, now):
+    boundary = conn.execute('SELECT COALESCE(MAX(id),0) FROM chat_messages WHERE thread_id=?', (thread_id,)).fetchone()[0]
+    changed = conn.execute("""INSERT INTO chat_sessions(thread_id,session_key,visible_after_id,expires_at) VALUES(?,?,?,?)
+        ON CONFLICT(thread_id) DO UPDATE SET session_key=excluded.session_key,
+        visible_after_id=excluded.visible_after_id,expires_at=excluded.expires_at
+        WHERE chat_sessions.expires_at<=?""", (thread_id, secrets.token_hex(16), boundary, now + SESSION_IDLE_SECONDS, now))
+    if changed.rowcount:
+        conn.execute("UPDATE chat_threads SET state='ai',busy_until=0,updated_at=? WHERE id=?", (now, thread_id))
+    return learner_snapshot(conn, thread_id)
+
+
 def snapshot(conn, thread_id, after=0, *, recent=False, before=None):
     row = conn.execute('SELECT id,name,state,updated_at,busy_until FROM chat_threads WHERE id=?', (thread_id,)).fetchone()
     if not row:
         raise HTTPException(404, 'Không tìm thấy hội thoại')
     result = row_to_dict(row)
+    session = support_session(conn, thread_id)
+    if not session or session['expires_at'] <= int(time.time()):
+        result['state'] = 'closed'
+        result['busy_until'] = 0
     if recent or before is not None:
         rows = conn.execute(
             'SELECT id,role,content,created_at FROM chat_messages WHERE thread_id=? AND id<? ORDER BY id DESC LIMIT 51',
@@ -360,7 +403,7 @@ def chat_session(request: Request, response: Response, who=Depends(identity)):
                            'SELECT id FROM chat_threads WHERE guest_hash=?',
                            (user['id'] if user else guest,)).fetchone()
         if row:
-            return snapshot(conn, row['id'])
+            return begin_support(conn, row['id'], now)
         source = hashlib.sha256((request.client.host if request.client else 'unknown').encode()).hexdigest()
         if not user and conn.execute('SELECT COUNT(*) FROM chat_threads WHERE source_hash=? AND created_at>?',
                                     (source, now - 3600)).fetchone()[0] >= 20:
@@ -374,17 +417,18 @@ def chat_session(request: Request, response: Response, who=Depends(identity)):
         if not user:
             response.set_cookie(COOKIE, raw, max_age=60 * 60 * 24 * 180, httponly=True,
                                 secure=request.url.scheme == 'https', samesite='lax', path='/api/chat')
-        return snapshot(conn, thread_id)
+        return begin_support(conn, thread_id, now)
 
 
 @router.get('/chat/{thread_id}')
 def chat_history(thread_id: str, after: int = Query(0, ge=0), who=Depends(identity)):
     with database() as conn:
         owned(conn, thread_id, who)
-        return snapshot(conn, thread_id, after)
+        return learner_snapshot(conn, thread_id, after)
 
 
 class Message(BaseModel):
+    session_key: str | None = Field(default=None, max_length=64)
     content: str = Field(min_length=1, max_length=3000)
     request_id: str = Field(min_length=16, max_length=80, pattern=r'^[a-zA-Z0-9_-]+$')
 
@@ -445,6 +489,9 @@ def send_message(thread_id: str, body: Message, who=Depends(identity)):
     now = int(time.time())
     with database() as conn:
         thread = owned(conn, thread_id, who)
+        session = active_session(conn, thread_id)
+        if body.session_key and body.session_key != session['session_key']:
+            raise HTTPException(410, 'Phiên hỗ trợ đã thay đổi. Vui lòng mở lại hỗ trợ.')
         if conn.execute('SELECT id FROM chat_messages WHERE thread_id=? AND request_id=?', (thread_id, body.request_id)).fetchone():
             return {'accepted': True}
         if conn.execute("SELECT COUNT(*) FROM chat_messages WHERE thread_id=? AND role='user' AND created_at>?", (thread_id, now - 60)).fetchone()[0] >= 6:
@@ -455,8 +502,9 @@ def send_message(thread_id: str, body: Message, who=Depends(identity)):
             raise HTTPException(409, 'AI đang trả lời. Vui lòng đợi một chút.')
         conn.execute("INSERT INTO chat_messages(thread_id,role,content,created_at,request_id) VALUES(?,'user',?,?,?)",
                      (thread_id, content, now, body.request_id))
+        conn.execute('UPDATE chat_sessions SET expires_at=? WHERE thread_id=?', (now + SESSION_IDLE_SECONDS, thread_id))
         history = [row_to_dict(r) for r in conn.execute(
-            'SELECT role,content FROM chat_messages WHERE thread_id=? ORDER BY id DESC LIMIT 16', (thread_id,)).fetchall()][::-1]
+            'SELECT role,content FROM chat_messages WHERE thread_id=? AND id>? ORDER BY id DESC LIMIT 16', (thread_id, session['visible_after_id'])).fetchall()][::-1]
     if thread['state'] == 'admin':
         with database() as conn:
             conn.execute('UPDATE chat_threads SET busy_until=0 WHERE id=?', (thread_id,))
@@ -473,6 +521,9 @@ def send_message(thread_id: str, body: Message, who=Depends(identity)):
     if handoff:
         answer += '\n\n' + HANDOFF
     with database() as conn:
+        latest = support_session(conn, thread_id)
+        if not latest or latest['session_key'] != session['session_key'] or latest['expires_at'] <= int(time.time()):
+            return {'accepted': True}
         current = conn.execute('SELECT state FROM chat_threads WHERE id=?', (thread_id,)).fetchone()
         # An administrator can take over while the provider is running.
         if current['state'] != 'admin':
@@ -481,13 +532,17 @@ def send_message(thread_id: str, body: Message, who=Depends(identity)):
             if handoff:
                 conn.execute("UPDATE chat_threads SET state='waiting' WHERE id=?", (thread_id,))
         conn.execute('UPDATE chat_threads SET busy_until=0,updated_at=? WHERE id=?', (int(time.time()), thread_id))
+        conn.execute('UPDATE chat_sessions SET expires_at=? WHERE thread_id=?', (int(time.time()) + SESSION_IDLE_SECONDS, thread_id))
     return {'accepted': True}
 
 
 @router.get('/admin/chats')
 def inbox(offset: int = Query(0, ge=0), search: str = Query('', max_length=100),
-          state: Literal['all', 'ai', 'waiting', 'admin'] = 'all', user=Depends(admin_identity)):
+          state: Literal['all', 'ai', 'waiting', 'admin', 'closed'] = 'all', user=Depends(admin_identity)):
     with database() as conn:
+        # Derive expiry on reads; serverless deployments need no background timer.
+        now = int(time.time())
+        conn.execute("UPDATE chat_threads SET state='closed',busy_until=0 WHERE id NOT IN (SELECT thread_id FROM chat_sessions WHERE expires_at>?)", (now,))
         args = ('%' + search + '%', state, state)
         where = " WHERE t.name LIKE ? AND (?='all' OR t.state=?)"
         total = conn.execute('SELECT COUNT(*) FROM chat_threads t' + where, args).fetchone()[0]
@@ -514,9 +569,11 @@ def admin_reply(thread_id: str, body: Message, user=Depends(admin_identity)):
         raise HTTPException(422, 'Vui lòng nhập tin nhắn')
     with database() as conn:
         snapshot(conn, thread_id)
+        active_session(conn, thread_id)
         changed = conn.execute("INSERT OR IGNORE INTO chat_messages(thread_id,role,content,created_at,request_id) VALUES(?,'admin',?,?,?)",
                      (thread_id, body.content.strip(), int(time.time()), 'admin_' + body.request_id))
         if changed.rowcount:
+            conn.execute('UPDATE chat_sessions SET expires_at=? WHERE thread_id=?', (int(time.time()) + SESSION_IDLE_SECONDS, thread_id))
             conn.execute("UPDATE chat_threads SET state='admin',updated_at=? WHERE id=?", (int(time.time()), thread_id))
             audit(conn, user['id'], 'reply', 'chat', thread_id, None,
                   {'message_id': changed.lastrowid, 'content': body.content.strip(), 'state': 'admin'})
@@ -531,6 +588,7 @@ class ChatState(BaseModel):
 def set_state(thread_id: str, body: ChatState, user=Depends(admin_identity)):
     with database() as conn:
         previous = snapshot(conn, thread_id)
+        active_session(conn, thread_id)
         if previous['state'] != body.state:
             conn.execute('UPDATE chat_threads SET state=?,updated_at=? WHERE id=?', (body.state, int(time.time()), thread_id))
             audit(conn, user['id'], 'takeover' if body.state == 'admin' else 'resume_ai', 'chat', thread_id,
