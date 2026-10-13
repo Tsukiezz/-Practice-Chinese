@@ -44,6 +44,10 @@
 .chat-compose{padding:16px 20px;background:#fff;border-top:1px solid var(--line)}
 .chat-compose-label{font-size:11px;color:var(--muted)}.chat-compose textarea{min-height:76px;max-height:170px;resize:vertical;font-size:14px;line-height:1.6}
 .chat-compose-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}
+.chat-file-label{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--muted)}
+.chat-file-label input{max-width:100%;min-width:0;font-size:12px}
+.chat-file-name{display:block;overflow-wrap:anywhere;font-size:12px;margin-top:4px}
+.chat-remove-file{font-size:11px;padding:4px 8px;margin-top:4px}
 .chat-hint{font-size:10px;line-height:1.5}.chat-compose-footer button{font-size:12px;white-space:nowrap}
 .system-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:22px}
 .system-summary article{border:1px solid var(--line);background:white;border-radius:16px;padding:20px;display:grid;gap:10px}

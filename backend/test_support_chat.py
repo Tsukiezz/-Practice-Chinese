@@ -307,6 +307,63 @@ class SupportChatTest(unittest.TestCase):
         with patch('support_chat.time.time', return_value=now + 540):
             self.assertFalse(self.client.get('/api/chat/' + thread).json()['active'])
 
+    def test_private_files_follow_session_boundary_and_remain_in_admin_archive(self):
+        import base64
+        file = {'filename': 'lesson.txt', 'data_base64': base64.b64encode(b'Chinese learning notes').decode()}
+        thread = self.thread(self.student)
+        request = {'attachment': file, 'request_id': 'request_attachment_123'}
+        for _ in range(2):
+            self.assertEqual(self.client.post('/api/chat/' + thread + '/messages', headers=self.student, json=request).status_code, 200)
+        data = self.client.get('/api/chat/' + thread, headers=self.student).json()
+        self.assertEqual(data['state'], 'waiting')
+        self.assertEqual(len(data['messages']), 2)
+        attached = data['messages'][0]['attachment']
+        self.assertEqual(attached['filename'], 'lesson.txt')
+        self.assertNotIn('data_base64', attached)
+        url = '/api/chat/' + thread + '/attachments/' + str(attached['id'])
+        self.assertEqual(self.client.get(url, headers=self.student).json()['data_base64'], file['data_base64'])
+        self.assertEqual(self.client.get(url).status_code, 404)
+        admin_url = '/api/admin/chats/' + thread + '/attachments/' + str(attached['id'])
+        self.assertEqual(self.client.get(admin_url, headers=self.student).status_code, 403)
+        with storage.database() as conn:
+            self.assertEqual(conn.execute('SELECT COUNT(*) FROM chat_attachments').fetchone()[0], 1)
+            conn.execute('UPDATE chat_sessions SET expires_at=0 WHERE thread_id=?', (thread,))
+        self.assertEqual(self.client.get(url, headers=self.student).status_code, 410)
+        self.client.post('/api/chat/session', headers=self.student)
+        self.assertEqual(self.client.get(url, headers=self.student).status_code, 404)
+        archived = self.client.get(admin_url, headers=self.admin)
+        self.assertEqual(archived.status_code, 200)
+        self.assertIn('no-store', archived.headers['cache-control'])
+        self.assertEqual(archived.json()['data_base64'], file['data_base64'])
+
+    def test_admin_can_send_file_to_guest_and_invalid_uploads_leave_no_messages(self):
+        import base64
+        thread = self.thread()
+        file = {'filename': 'guide.pdf', 'data_base64': base64.b64encode(b'%PDF-1.4\nexample').decode()}
+        response = self.client.post('/api/admin/chats/' + thread + '/messages', headers=self.admin,
+            json={'attachment': file, 'request_id':'admin_attachment_123'})
+        self.assertEqual(response.status_code, 200, response.text)
+        messages = self.client.get('/api/chat/' + thread).json()['messages']
+        self.assertEqual(messages[0]['role'], 'admin')
+        self.assertEqual(messages[0]['attachment']['content_type'], 'application/pdf')
+        for name, content in [('evil.html', b'<script>hi</script>'), ('fake.png', b'not an image'), ('large.txt', b'x' * (2*1024*1024+1))]:
+            response = self.client.post('/api/chat/' + thread + '/messages', json={
+                'attachment':{'filename':name, 'data_base64':base64.b64encode(content).decode()},
+                'request_id':'request_invalid_file'})
+            self.assertGreaterEqual(response.status_code, 400)
+        self.assertEqual(len(self.client.get('/api/chat/' + thread).json()['messages']), 1)
+
+    def test_docx_and_text_file_validation(self):
+        import base64, io, zipfile
+        from support_attachments import AttachmentInput, validate_attachment
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, 'w') as archive:
+            archive.writestr('[Content_Types].xml', '<Types/>')
+            archive.writestr('word/document.xml', '<document/>')
+        data = validate_attachment(AttachmentInput(filename='../notes.docx', data_base64=base64.b64encode(buffer.getvalue()).decode()))
+        self.assertEqual(data['filename'], 'notes.docx')
+        self.assertIn('wordprocessingml', data['content_type'])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -10,18 +10,22 @@ export function renderChatInbox(content, initial, api) {
     '<div class="chat-inbox"><aside class="chat-list" aria-label="Danh sách hội thoại"><form class="chat-filter"><label>Tìm người trò chuyện<input type="search" maxlength="100" placeholder="Tên học viên hoặc mã khách…" aria-label="Tìm hội thoại"></label><div><select aria-label="Trạng thái"><option value="all">Tất cả hội thoại</option><option value="waiting">Chờ quản trị viên</option><option value="admin">Đang tiếp nhận</option><option value="ai">AI hỗ trợ</option><option value="closed">Đã kết thúc</option></select><button>Tìm</button></div></form><div class="chat-threads"></div><div class="chat-paging"><button class="prev" aria-label="Trang hội thoại trước">←</button><span></span><button class="next" aria-label="Trang hội thoại sau">→</button></div></aside>' +
     '<section class="chat-detail" aria-label="Nội dung hội thoại"><header class="chat-detail-head"><button class="chat-back">← Danh sách</button><div class="chat-person"><span class="chat-avatar">聊</span><div><h2>Chọn một hội thoại</h2><p class="chat-mode">Xem lịch sử và hỗ trợ người học tại đây.</p></div></div><div class="chat-ownership"><button class="take" disabled>Tiếp nhận</button><button class="resume" disabled>Giao lại cho AI</button></div></header>' +
     '<div class="chat-history" role="log" aria-live="polite" aria-label="Lịch sử hội thoại"><button class="chat-older" hidden>Xem tin nhắn cũ hơn</button><div class="chat-messages"><div class="chat-welcome"><span>聊</span><h3>Mọi trao đổi, trong một nơi</h3><p>Chọn khách hoặc học viên bên cạnh để xem tin nhắn của người dùng, AI và quản trị viên.</p></div></div></div><button class="chat-new" hidden>↓ Có tin nhắn mới</button><div class="chat-error" role="status"></div>' +
-    '<form class="chat-compose"><label class="chat-compose-label">Phản hồi của quản trị viên<textarea aria-label="Trả lời người dùng" placeholder="Nhập nội dung hỗ trợ…" maxlength="3000" rows="3" required disabled></textarea></label><div class="chat-compose-footer"><small class="chat-hint">Chọn hội thoại để bắt đầu.</small><button class="primary" disabled>Gửi trả lời</button></div></form></section></div>';
+    '<form class="chat-compose"><label class="chat-compose-label">Phản hồi của quản trị viên<textarea aria-label="Trả lời người dùng" placeholder="Nhập nội dung hỗ trợ…" maxlength="3000" rows="3" disabled></textarea></label><label class="chat-file-label">📎 Đính kèm tệp (tối đa 2 MB)<input class="chat-file" aria-label="Đính kèm tệp" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.txt" disabled></label><span class="chat-file-name"></span><button class="chat-remove-file" type="button" hidden>Bỏ tệp</button><div class="chat-compose-footer"><small class="chat-hint">Chọn hội thoại để bắt đầu.</small><button class="primary" disabled>Gửi trả lời</button></div></form></section></div>';
   content.append(panel);
   const $ = s => panel.querySelector(s), alive = () => panel.isConnected;
   let active = null, version = 0, first = 0, last = 0, offset = 0, search = '', filter = 'all';
   let listRequest = 0, historyRequest = null, fetching = false, olderBusy = false, changing = false, currentState = null;
+  const files = new Map(), preparingFiles = new Set();
   const drafts = new Map(), requests = new Map(), sending = new Set(), nodes = new Map();
   const fail = err => { if(alive()) $('.chat-error').textContent = err.message; };
   const bottom = () => { const el = $('.chat-history'); el.scrollTop = el.scrollHeight; $('.chat-new').hidden = true; };
   function controls() {
     $('.chat-compose textarea').disabled = !active || currentState === 'closed';
-    $('.chat-compose button').disabled = !active || currentState === 'closed' || sending.has(active);
-    $('.chat-compose button').textContent = sending.has(active) ? 'Đang gửi…' : 'Gửi trả lời';
+    $('.chat-compose button.primary').disabled = !active || currentState === 'closed' || sending.has(active) || preparingFiles.has(active);
+    $('.chat-file').disabled = !active || currentState === 'closed' || sending.has(active) || preparingFiles.has(active);
+    $('.chat-file-name').textContent = files.get(active)?.filename || '';
+    $('.chat-remove-file').hidden = !files.has(active);
+    $('.chat-compose button.primary').textContent = sending.has(active) ? 'Đang gửi…' : 'Gửi trả lời';
     $('.take').disabled = !active || currentState === 'closed' || changing || currentState === 'admin';
     $('.resume').disabled = !active || currentState === 'closed' || changing || currentState === 'ai';
     $('.chat-hint').textContent = currentState === 'closed' ? 'Phiên đã kết thúc. Lịch sử chỉ còn hiển thị cho quản trị viên.' : active ? 'Ctrl + Enter để gửi · Gửi trả lời sẽ tạm dừng AI.' : 'Chọn hội thoại để bắt đầu.';
@@ -66,7 +70,24 @@ export function renderChatInbox(content, initial, api) {
       const author=document.createElement('b'); author.textContent=roles[m.role]||m.role;
       const time=document.createElement('time'); time.textContent=stamp(m.created_at); label.append(author,time);
       const text=document.createElement('div'); text.className='chat-message-text'; text.textContent=m.content;
-      bubble.append(label,text); fragment.append(bubble); if(mode!=='older') last=Math.max(last,m.id);
+      bubble.append(label,text);
+      if(m.attachment) {
+        const button = document.createElement('button'); button.type = 'button';
+        button.textContent = '📎 Tải ' + m.attachment.filename + ' (' + Math.ceil(m.attachment.size/1024) + ' KB)';
+        button.style.cssText = 'display:block;max-width:100%;overflow-wrap:anywhere;margin-top:8px';
+        button.onclick = async () => {
+          button.disabled = true;
+          try {
+            const file = await api('/admin/chats/'+data.id+'/attachments/'+m.attachment.id);
+            const bytes = Uint8Array.from(atob(file.data_base64), ch => ch.charCodeAt(0));
+            const url = URL.createObjectURL(new Blob([bytes], {type:'application/octet-stream'}));
+            const link = document.createElement('a'); link.href=url; link.download=file.filename;
+            document.body.append(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+          } catch(error) { fail(error); } finally { button.disabled=false; }
+        };
+        bubble.append(button);
+      }
+      fragment.append(bubble); if(mode!=='older') last=Math.max(last,m.id);
     }
     const added=fragment.childElementCount;
     if(mode==='older') box.prepend(fragment); else box.append(fragment);
@@ -93,6 +114,7 @@ export function renderChatInbox(content, initial, api) {
   }
   async function select(id) {
     panel.classList.add('detail-open'); if(active===id) return;
+    $('.chat-file').value='';
     active=id; version++; first=0; last=0; currentState=null; changing=false; olderBusy=false;
     $('.chat-messages').innerHTML='<p class="chat-empty-list" role="status">Đang tải hội thoại…</p>';
     $('.chat-older').hidden=true; $('.chat-older').disabled=false; $('.chat-new').hidden=true; $('.chat-error').textContent='';
@@ -121,16 +143,37 @@ export function renderChatInbox(content, initial, api) {
     try{await api('/admin/chats/'+active,'PATCH',{state});if(current===version&&alive()){currentState=state;await history();}await reloadList();}catch(err){fail(err);}
     finally{if(current===version){changing=false;controls();}}
   };
+  $('.chat-remove-file').onclick=()=>{files.delete(active);$('.chat-file').value='';controls();};
+  $('.chat-file').onchange=async()=>{
+    const file=$('.chat-file').files[0],id=active;
+    if(!file||!id)return;
+    $('.chat-file').value='';
+    if(!file.size||file.size>2*1024*1024||!/\.(png|jpe?g|webp|pdf|docx|txt)$/i.test(file.name)) {
+      fail(Error('Chọn PNG, JPG, WEBP, PDF, DOCX hoặc TXT, tối đa 2 MB.'));return;
+    }
+    preparingFiles.add(id);controls();
+    try {
+      const data=await new Promise((resolve,reject)=>{
+        const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);
+        reader.onerror=()=>reject(Error('Không đọc được tệp.'));reader.readAsDataURL(file);
+      });
+      files.set(id,{filename:file.name,data_base64:data});
+    }catch(error){fail(error);}finally{preparingFiles.delete(id);if(alive())controls();}
+  };
   $('.chat-compose').onsubmit=async e=>{
     e.preventDefault();const text=$('.chat-compose textarea').value.trim(),id=active;
-    if(!id||!text||sending.has(id))return;
-    const old=requests.get(id),request=old?.content===text?old:{content:text,request_id:crypto.randomUUID()};
-    requests.set(id,request);sending.add(id);controls();$('.chat-error').textContent='';
+    if(!id||(!text&&!files.has(id))||sending.has(id)||preparingFiles.has(id))return;
+    const old=requests.get(id),request=old?.content===text && old?.attachment?.data_base64===files.get(id)?.data_base64?old:{content:text,attachment:files.get(id)||null,request_id:crypto.randomUUID()};
+    requests.set(id,request);sending.add(id);
+    drafts.delete(id);files.delete(id);$('.chat-compose textarea').value='';controls();$('.chat-error').textContent='';
     try{
       await api('/admin/chats/'+id+'/messages','POST',request);requests.delete(id);
-      if((drafts.get(id)||'').trim()===text){drafts.delete(id);if(active===id)$('.chat-compose textarea').value='';}
       if(alive()&&active===id){await history();bottom();}await reloadList();
-    }catch(err){fail(err);}finally{sending.delete(id);if(alive())controls();}
+    }catch(err){
+      if(!drafts.get(id)){drafts.set(id,text);if(active===id)$('.chat-compose textarea').value=text;}
+      if(request.attachment&&!files.has(id))files.set(id,request.attachment);
+      fail(err);
+    }finally{sending.delete(id);if(alive())controls();}
   };
   async function refresh(){
     if(!alive()||fetching)return;

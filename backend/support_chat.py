@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, R
 from pydantic import BaseModel, Field
 
 from database import audit, database, row_to_dict
+from support_attachments import AttachmentInput, validate_attachment, check_file_quota, save_attachment
 from product_knowledge import product_knowledge, local_product_answer
 from services import ai_settings, _post_gemini, _decode_gemini_candidate
 
@@ -309,6 +310,11 @@ def init_chat():
             request_id TEXT, UNIQUE(thread_id, request_id)
         );
         CREATE INDEX IF NOT EXISTS chat_history ON chat_messages(thread_id, id);
+        CREATE TABLE IF NOT EXISTS chat_attachments (
+            id INTEGER PRIMARY KEY, message_id INTEGER NOT NULL UNIQUE REFERENCES chat_messages(id),
+            filename TEXT NOT NULL, content_type TEXT NOT NULL, size INTEGER NOT NULL,
+            data_base64 TEXT NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS chat_sessions (
             thread_id TEXT PRIMARY KEY REFERENCES chat_threads(id),
             session_key TEXT NOT NULL, visible_after_id INTEGER NOT NULL,
@@ -383,14 +389,20 @@ def snapshot(conn, thread_id, after=0, *, recent=False, before=None):
         result['busy_until'] = 0
     if recent or before is not None:
         rows = conn.execute(
-            'SELECT id,role,content,created_at FROM chat_messages WHERE thread_id=? AND id<? ORDER BY id DESC LIMIT 51',
+            'SELECT id,role,content,created_at,request_id FROM chat_messages WHERE thread_id=? AND id<? ORDER BY id DESC LIMIT 51',
             (thread_id, before if before is not None else 9223372036854775807)).fetchall()
         result['has_older'] = len(rows) > 50
         result['messages'] = [row_to_dict(m) for m in rows[:50]][::-1]
     else:
         result['messages'] = [row_to_dict(m) for m in conn.execute(
-            'SELECT id,role,content,created_at FROM chat_messages WHERE thread_id=? AND id>? ORDER BY id LIMIT 100',
+            'SELECT id,role,content,created_at,request_id FROM chat_messages WHERE thread_id=? AND id>? ORDER BY id LIMIT 100',
             (thread_id, after)).fetchall()]
+    if result['messages']:
+        ids = [message['id'] for message in result['messages']]
+        files = conn.execute('SELECT id,message_id,filename,content_type,size FROM chat_attachments WHERE message_id IN (' + ','.join('?' for _ in ids) + ')', ids).fetchall()
+        by_message = {file['message_id']: row_to_dict(file) for file in files}
+        for message in result['messages']:
+            message['attachment'] = by_message.get(message['id'])
     return result
 
 
@@ -429,7 +441,8 @@ def chat_history(thread_id: str, after: int = Query(0, ge=0), who=Depends(identi
 
 class Message(BaseModel):
     session_key: str | None = Field(default=None, max_length=64)
-    content: str = Field(min_length=1, max_length=3000)
+    attachment: AttachmentInput | None = None
+    content: str = Field(default='', max_length=3000)
     request_id: str = Field(min_length=16, max_length=80, pattern=r'^[a-zA-Z0-9_-]+$')
 
 
@@ -483,7 +496,8 @@ Trả về định dạng JSON:
 
 @router.post('/chat/{thread_id}/messages')
 def send_message(thread_id: str, body: Message, who=Depends(identity)):
-    content = body.content.strip()
+    file = validate_attachment(body.attachment)
+    content = body.content.strip() or (('Tệp đính kèm: ' + file['filename']) if file else '')
     if not content:
         raise HTTPException(422, 'Vui lòng nhập tin nhắn')
     now = int(time.time())
@@ -496,12 +510,14 @@ def send_message(thread_id: str, body: Message, who=Depends(identity)):
             return {'accepted': True}
         if conn.execute("SELECT COUNT(*) FROM chat_messages WHERE thread_id=? AND role='user' AND created_at>?", (thread_id, now - 60)).fetchone()[0] >= 6:
             raise HTTPException(429, 'Vui lòng đợi một phút trước khi gửi thêm.')
+        check_file_quota(conn, thread_id, file, now)
         changed = conn.execute('UPDATE chat_threads SET busy_until=?,updated_at=? WHERE id=? AND busy_until<=?',
                               (now + 55, now, thread_id, now)).rowcount
         if not changed:
             raise HTTPException(409, 'AI đang trả lời. Vui lòng đợi một chút.')
-        conn.execute("INSERT INTO chat_messages(thread_id,role,content,created_at,request_id) VALUES(?,'user',?,?,?)",
-                     (thread_id, content, now, body.request_id))
+        message_id = conn.execute("INSERT INTO chat_messages(thread_id,role,content,created_at,request_id) VALUES(?,'user',?,?,?)",
+                     (thread_id, content, now, body.request_id)).lastrowid
+        save_attachment(conn, message_id, file)
         conn.execute('UPDATE chat_sessions SET expires_at=? WHERE thread_id=?', (now + SESSION_IDLE_SECONDS, thread_id))
         history = [row_to_dict(r) for r in conn.execute(
             'SELECT role,content FROM chat_messages WHERE thread_id=? AND id>? ORDER BY id DESC LIMIT 16', (thread_id, session['visible_after_id'])).fetchall()][::-1]
@@ -510,7 +526,7 @@ def send_message(thread_id: str, body: Message, who=Depends(identity)):
             conn.execute('UPDATE chat_threads SET busy_until=0 WHERE id=?', (thread_id,))
         return {'accepted': True}
     try:
-        answer, handoff = generate_reply(history)
+        answer, handoff = ('', True) if file and not body.content.strip() else generate_reply(history)
     except Exception:
         try:
             answer, handoff = local_hanzigo_tutor(history)
@@ -518,6 +534,9 @@ def send_message(thread_id: str, body: Message, who=Depends(identity)):
         except Exception:
             answer = 'Trợ lý AI HanziGo tạm thời chưa thể trả lời đầy đủ. Bạn có thể gửi câu hỏi cụ thể về tiếng Trung hoặc mô tả trình độ HSK để được hỗ trợ.'
             handoff = True
+    if file:
+        answer += ('\n\n' if answer else '') + 'Tôi đã nhận tệp và chuyển cho quản trị viên xem xét. AI hiện chỉ trả lời nội dung bạn nhập, chưa đọc nội dung tệp.'
+        handoff = True
     if handoff:
         answer += '\n\n' + HANDOFF
     with database() as conn:
@@ -542,7 +561,7 @@ def inbox(offset: int = Query(0, ge=0), search: str = Query('', max_length=100),
     with database() as conn:
         # Derive expiry on reads; serverless deployments need no background timer.
         now = int(time.time())
-        conn.execute("UPDATE chat_threads SET state='closed',busy_until=0 WHERE id NOT IN (SELECT thread_id FROM chat_sessions WHERE expires_at>?)", (now,))
+        conn.execute("UPDATE chat_threads SET state='closed',busy_until=0 WHERE state!='closed' AND id NOT IN (SELECT thread_id FROM chat_sessions WHERE expires_at>?)", (now,))
         args = ('%' + search + '%', state, state)
         where = " WHERE t.name LIKE ? AND (?='all' OR t.state=?)"
         total = conn.execute('SELECT COUNT(*) FROM chat_threads t' + where, args).fetchone()[0]
@@ -565,14 +584,18 @@ def admin_history(thread_id: str, after: int = Query(0, ge=0), recent: bool = Fa
 
 @router.post('/admin/chats/{thread_id}/messages')
 def admin_reply(thread_id: str, body: Message, user=Depends(admin_identity)):
-    if not body.content.strip():
+    file = validate_attachment(body.attachment)
+    content = body.content.strip() or (('Tệp đính kèm: ' + file['filename']) if file else '')
+    if not content:
         raise HTTPException(422, 'Vui lòng nhập tin nhắn')
     with database() as conn:
         snapshot(conn, thread_id)
         active_session(conn, thread_id)
+        check_file_quota(conn, thread_id, file, int(time.time()))
         changed = conn.execute("INSERT OR IGNORE INTO chat_messages(thread_id,role,content,created_at,request_id) VALUES(?,'admin',?,?,?)",
-                     (thread_id, body.content.strip(), int(time.time()), 'admin_' + body.request_id))
+                     (thread_id, content, int(time.time()), 'admin_' + body.request_id))
         if changed.rowcount:
+            save_attachment(conn, changed.lastrowid, file)
             conn.execute('UPDATE chat_sessions SET expires_at=? WHERE thread_id=?', (int(time.time()) + SESSION_IDLE_SECONDS, thread_id))
             conn.execute("UPDATE chat_threads SET state='admin',updated_at=? WHERE id=?", (int(time.time()), thread_id))
             audit(conn, user['id'], 'reply', 'chat', thread_id, None,
@@ -594,3 +617,27 @@ def set_state(thread_id: str, body: ChatState, user=Depends(admin_identity)):
             audit(conn, user['id'], 'takeover' if body.state == 'admin' else 'resume_ai', 'chat', thread_id,
                   {'state': previous['state']}, {'state': body.state})
     return {'state': body.state}
+
+
+def attachment_payload(conn, thread_id, attachment_id, *, session=None):
+    row = conn.execute("""SELECT a.* FROM chat_attachments a JOIN chat_messages m ON m.id=a.message_id
+        WHERE a.id=? AND m.thread_id=?""", (attachment_id, thread_id)).fetchone()
+    if not row or (session and row['message_id'] <= session['visible_after_id']):
+        raise HTTPException(404, 'Không tìm thấy tệp')
+    return row_to_dict(row)
+
+
+@router.get('/chat/{thread_id}/attachments/{attachment_id}')
+def learner_attachment(thread_id: str, attachment_id: int, response: Response, who=Depends(identity)):
+    response.headers['Cache-Control'] = 'private, no-store'
+    with database() as conn:
+        owned(conn, thread_id, who)
+        session = active_session(conn, thread_id)
+        return attachment_payload(conn, thread_id, attachment_id, session=session)
+
+
+@router.get('/admin/chats/{thread_id}/attachments/{attachment_id}')
+def admin_attachment(thread_id: str, attachment_id: int, response: Response, user=Depends(admin_identity)):
+    response.headers['Cache-Control'] = 'private, no-store'
+    with database() as conn:
+        return attachment_payload(conn, thread_id, attachment_id)
