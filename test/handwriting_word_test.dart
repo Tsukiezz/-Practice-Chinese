@@ -43,7 +43,9 @@ void main() {
     expect(find.byKey(const Key('switch-to-keyboard-btn')), findsNothing);
     draw(tester); draw(tester);
     await tester.pump();
-    await tester.ensureVisible(find.byKey(const Key('submit-handwriting')));
+    await Scrollable.ensureVisible(tester.element(find.byKey(const Key('submit-handwriting'))), alignment: 0.5);
+      await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 250));
     await tester.tap(find.byKey(const Key('submit-handwriting')));
     await tester.pumpAndSettle();
     expect(find.text('你好'), findsOneWidget);
@@ -66,8 +68,10 @@ void main() {
       expect(find.text('Từ: 你好啊 · Chữ ${i + 1}/3'), findsOneWidget);
       draw(tester);
       await tester.pump();
-      await tester.ensureVisible(find.byKey(const Key('submit-handwriting')));
-      await tester.tap(find.byKey(const Key('submit-handwriting')));
+      await Scrollable.ensureVisible(tester.element(find.byKey(const Key('submit-handwriting'))), alignment: 0.5);
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 250));
+    await tester.tap(find.byKey(const Key('submit-handwriting')));
       await tester.pumpAndSettle();
     }
     expect(service.targets, ['你', '好', '啊']);

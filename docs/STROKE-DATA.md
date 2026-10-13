@@ -7,3 +7,11 @@ Kho 5.000 mục từ HSK dùng 2.632 chữ khác nhau. Toàn bộ các chữ nà
 Chấm offline v2 vẫn chuẩn hóa vị trí và kích thước toàn chữ, nhưng cho điểm từng mức ở phần vị trí/thứ tự và hướng viết. Bài có nét nhận tối thiểu 5 điểm để khuyến khích luyện tập; bài rỗng vẫn bị từ chối. Viết thiếu hoặc đảo nét vẫn được nhắc sửa và bị trừ điểm. Điểm lịch sử giữ nguyên.
 
 Dự án địa phương được hợp nhất vào `practice-chinese-test-run` để giữ đường dẫn môi trường Python, cấu hình và cơ sở dữ liệu đang dùng. Thư mục `.local-backups` chứa các phiên bản xung đột và Git cũ để khôi phục; không đưa lên Git hoặc Vercel.
+
+
+## Mẫu viết luyện nét (13/10/2026)
+
+- `backend/data/stroke_guides.json` đóng gói thứ tự nét thực của 2.632 chữ, phủ toàn bộ 4.999 mục từ trong database hiện tại và 5.000 mục nguồn HSK.
+- Nguồn medians: Make Me a Hanzi `graphics.txt`; giấy phép Arphic đã lưu trong `backend/data` và assets.
+- Dựng lại: `python backend/tools/build_stroke_guides.py graphics.txt`. Kiểm tra phủ kho, số nét, tọa độ: `python -m unittest discover -s backend -p test_stroke_guides.py`.
+- Mẫu nhỏ tự vẽ lặp trong luyện nét, đổi theo chữ đang luyện của từ nhiều chữ. Nét mờ và số nét mặc định tắt và trở về tắt khi chọn chữ mới. Chế độ viết theo phiên âm ẩn mẫu.

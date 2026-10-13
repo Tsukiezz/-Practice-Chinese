@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../services/student_service.dart';
 import '../widgets/hanzi_drawing_canvas.dart';
+import '../widgets/stroke_order_preview.dart';
 
 enum _HandwritingMode { lookup, practice }
 
@@ -60,8 +61,8 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
   int _activeGuideStrokeIndex = 0;
   bool _isPlayingAnimation = false;
   Timer? _animationTimer;
-  bool _showGhostStrokes = true;
-  bool _showStrokeNumbers = true;
+  bool _showGhostStrokes = false;
+  bool _showStrokeNumbers = false;
 
   // Blind dictation: write from pinyin only, no Hanzi / ghost / stroke order.
   bool _blindMode = false;
@@ -151,7 +152,7 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 760),
           child: ListView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 112),
             physics: _isDrawing
                 ? const NeverScrollableScrollPhysics()
                 : const ClampingScrollPhysics(),
@@ -182,11 +183,11 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                 Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [
                   Expanded(child: Text(_blind ? _displayPinyin : _target.text,
                     style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold))),
-                  TextButton.icon(
+                  Flexible(child: TextButton.icon(
                     onPressed: () => setState(() => _showPracticeOptions = !_showPracticeOptions),
                     icon: Icon(_showPracticeOptions ? Icons.expand_less : Icons.tune),
-                    label: Text(_showPracticeOptions ? 'Thu gọn' : 'Chọn chữ & hướng dẫn'),
-                  ),
+                    label: Text(_showPracticeOptions ? 'Thu gọn' : 'Chọn chữ & hướng dẫn', style: const TextStyle(fontSize: 12)),
+                  )),
                 ])),
               if (!widget.startInPractice || _isLookup || _showPracticeOptions) ...[
               if (!_isLookup && widget.source == null) ...[
@@ -499,47 +500,20 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                       padding: const EdgeInsets.all(12),
                       child: Column(
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          Wrap(
+                            spacing: 8, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.school, size: 18, color: Theme.of(context).colorScheme.primary),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Hướng dẫn nét:',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark ? Colors.white : const Color(0xFF153E35),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  FilterChip(
-                                    label: const Text('Nét mờ'),
-                                    selected: _showGhostStrokes,
-                                    padding: EdgeInsets.zero,
-                                    labelStyle: const TextStyle(fontSize: 11),
-                                    onSelected: (val) => setState(() => _showGhostStrokes = val),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  FilterChip(
-                                    label: const Text('Số nét 1..N'),
-                                    selected: _showStrokeNumbers,
-                                    padding: EdgeInsets.zero,
-                                    labelStyle: const TextStyle(fontSize: 11),
-                                    onSelected: (val) => setState(() => _showStrokeNumbers = val),
-                                  ),
-                                ],
-                              ),
+                              const Text('Hướng dẫn nét:', style: TextStyle(fontWeight: FontWeight.w700)),
+                              FilterChip(label: const Text('Nét mờ'), selected: _showGhostStrokes,
+                                onSelected: (value) => setState(() => _showGhostStrokes = value)),
+                              FilterChip(label: const Text('Số nét 1..N'), selected: _showStrokeNumbers,
+                                onSelected: (value) => setState(() => _showStrokeNumbers = value)),
                             ],
                           ),
                           const Divider(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          Wrap(
+                            spacing: 8, runSpacing: 8, alignment: WrapAlignment.center,
+                            crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               IconButton.outlined(
                                 icon: const Icon(Icons.replay),
@@ -588,6 +562,42 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
               ],
               ],
               const SizedBox(height: 8),
+              if (!_isLookup && !_blind) ...[
+                Container(
+                  key: const Key('practice-stroke-preview'),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+                  ),
+                  child: Row(children: [
+                    Expanded(child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Mẫu viết ${_target.text}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 6),
+                        Text(_practiceCharacters.length > 1
+                          ? 'Chữ ${_characterIndex + 1}/${_practiceCharacters.length} · ${_practiceCharacters.join()}'
+                          : 'Xem thứ tự nét rồi tự viết.',
+                          style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                        const SizedBox(height: 4),
+                        Text('Tự động lặp lại', style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.primary)),
+                      ],
+                    )),
+                    const SizedBox(width: 12),
+                    SizedBox(width: 112, height: 112, child:
+                      _strokeGuide?.strokes.isNotEmpty == true
+                        ? StrokeOrderPreview(key: ValueKey('sample-${_target.text}'),
+                            character: _target.text, strokes: _strokeGuide!.strokes)
+                        : Center(child: _loadingStrokeGuide
+                            ? const CircularProgressIndicator(strokeWidth: 2)
+                            : const Text('Chưa có mẫu', textAlign: TextAlign.center)),
+                    ),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+              ],
               Semantics(
                 // Main writing tab keeps the canvas above optional search/guidance.
                 label: _practiceResult?.wrongStrokes.isNotEmpty == true
@@ -599,13 +609,13 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
                   wrongStrokes: _blind
                       ? const {}
                       : _practiceResult?.wrongStrokes.toSet() ?? const {},
-                  guideStrokes: !_isLookup && !_blind && _showGhostStrokes && _strokeGuide != null
+                  guideStrokes: !_isLookup && !_blind && (_showGhostStrokes || _showStrokeNumbers) && _strokeGuide != null
                       ? _strokeGuide!.strokes
                       : null,
                   visibleGuideStrokeCount: _isPlayingAnimation || _activeGuideStrokeIndex > 0
                       ? _activeGuideStrokeIndex + 1
                       : null,
-                  activeGuideStrokeIndex: !_isLookup && !_blind && _strokeGuide != null && _strokeGuide!.strokes.isNotEmpty
+                  activeGuideStrokeIndex: !_isLookup && !_blind && _showGhostStrokes && _strokeGuide != null && _strokeGuide!.strokes.isNotEmpty
                       ? _activeGuideStrokeIndex
                       : null,
                   showStrokeNumbers: !_isLookup && !_blind && _showStrokeNumbers && _strokeGuide != null,
@@ -873,6 +883,8 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
     setState(() {
       _loadingStrokeGuide = true;
       _strokeGuide = null;
+      _showGhostStrokes = false;
+      _showStrokeNumbers = false;
       _activeGuideStrokeIndex = 0;
     });
     try {

@@ -479,7 +479,7 @@ class _HanziPainter extends CustomPainter {
         }
 
         // Show starting point badge if active or numbers enabled
-        if (showStrokeNumbers || isActive) {
+        if (showStrokeNumbers) {
           final startPt = Offset(
             gStroke.first.dx / 1024 * size.width,
             gStroke.first.dy / 1024 * size.height,

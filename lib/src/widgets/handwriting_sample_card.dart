@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'stroke_order_preview.dart';
 
 /// Local stroke medians for the single featured sample, from Make Me a Hanzi.
 /// Same data as backend/data/stroke_data/4f60.json (see backend/data/MAKEMEAHANZI-COPYING.txt and MAKEMEAHANZI-APL.txt).
@@ -129,7 +130,8 @@ class _HandwritingSampleCardState extends State<HandwritingSampleCard>
                     child: Semantics(
                       label: 'Mẫu chữ 你, 7 nét, tự động vẽ lặp lại',
                       child: CustomPaint(
-                        painter: _SamplePainter(_animation, colors),
+                        painter: StrokeOrderPainter(
+                            _animation, colors, _sampleStrokes),
                       ),
                     ),
                   ),
@@ -151,52 +153,3 @@ class _HandwritingSampleCardState extends State<HandwritingSampleCard>
     );
   }
 }
-
-class _SamplePainter extends CustomPainter {
-  _SamplePainter(this.animation, this.colors) : super(repaint: animation);
-  final Animation<double> animation;
-  final ColorScheme colors;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawRRect(
-        RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(16)),
-        Paint()..color = colors.surfaceContainerLow);
-    canvas.save();
-    canvas.scale(size.width / 1024, size.height / 1024);
-    final grid = Paint()
-      ..color = colors.outlineVariant
-      ..strokeWidth = 3;
-    canvas.drawLine(const Offset(512, 0), const Offset(512, 1024), grid);
-    canvas.drawLine(const Offset(0, 512), const Offset(1024, 512), grid);
-    canvas.drawLine(Offset.zero, const Offset(1024, 1024), grid);
-    canvas.drawLine(const Offset(1024, 0), const Offset(0, 1024), grid);
-    final ink = Paint()
-      ..color = colors.primary
-      ..strokeWidth = 28
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    // Seven drawing seconds, two seconds holding, one second blank before restart.
-    final elapsed = animation.value * 10;
-    if (elapsed < 9) {
-      for (var i = 0; i < _sampleStrokes.length; i++) {
-        final fraction = (elapsed - i).clamp(0.0, 1.0);
-        if (fraction <= 0) continue;
-        final stroke = _sampleStrokes[i];
-        final path = Path()..moveTo(stroke.first.dx, stroke.first.dy);
-        for (final point in stroke.skip(1)) {
-          path.lineTo(point.dx, point.dy);
-        }
-        final metric = path.computeMetrics().first;
-        canvas.drawPath(metric.extractPath(0, metric.length * fraction), ink);
-      }
-    }
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(_SamplePainter oldDelegate) =>
-      oldDelegate.colors != colors || oldDelegate.animation != animation;
-}
-

@@ -19,6 +19,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from stroke_counts import stroke_metadata
+from stroke_guides import bundled_strokes
 from ai_errors import ai_http_error
 from database import audit, database, init_db, row_to_dict, ensure_default_admin
 from email_service import (get_smtp_status, send_verification_email,
@@ -1217,6 +1218,9 @@ def fetch_or_get_stroke_guide(char: str) -> dict[str, Any]:
             raw_strokes = json.loads(word["strokes_json"] or "[]")
             if raw_strokes:
                 strokes = raw_strokes
+
+    if not strokes:
+        strokes = bundled_strokes(target)
 
     if not strokes:
         char_code = f"{ord(target):04x}"
