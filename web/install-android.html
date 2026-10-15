@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#153E35">
+  <meta name="description" content="Cài HanziGo miễn phí từ Chrome lên màn hình chính điện thoại Android.">
+  <title>Cài HanziGo trên Android</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icons/Icon-192.png">
+  <script src="/install-app.js" defer></script>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f2f6f3;color:#183e35;font:16px/1.65 system-ui,sans-serif}
+    main{max-width:680px;margin:auto;padding:28px 20px calc(32px + env(safe-area-inset-bottom))}
+    a{color:#185e4c}header{margin:28px 0}header img{width:84px;height:84px;border-radius:22px;box-shadow:0 8px 24px #153e3520}
+    h1{font-size:clamp(26px,6vw,36px);line-height:1.25;margin:18px 0 12px}h2{font-size:21px;margin:0 0 12px}
+    p{margin:12px 0}.muted{color:#486459}.badge{display:inline-block;background:#dcece2;padding:4px 12px;border-radius:20px;font-size:14px;font-weight:650}
+    section{background:white;border:1px solid #d8e5dc;border-radius:22px;padding:24px;margin:18px 0}
+    button,.primary{display:inline-block;border:0;border-radius:14px;background:#153e35;color:white;padding:14px 22px;font:600 16px/1.4 system-ui;cursor:pointer;text-decoration:none;min-height:48px}
+    button:disabled{opacity:.6}button[hidden]{display:none}button:focus-visible,a:focus-visible{outline:3px solid #c88623;outline-offset:4px}
+    ol{padding-left:22px}li{margin:12px 0}#install-status{min-height:3em;font-size:15px}.links{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+  </style>
+</head>
+<body><main>
+  <a href="/">← Trở về HanziGo</a>
+  <header><img src="/icons/Icon-192.png" alt="Biểu tượng HanziGo"><p><span class="badge">Android · Cài đặt miễn phí</span></p>
+    <h1>Mang HanziGo lên màn hình chính</h1>
+    <p class="muted">Mở nhanh bằng biểu tượng ứng dụng, học tiếng Trung và luyện viết ngay trên điện thoại. Dùng tài khoản hiện có để tiếp tục tiến độ học của bạn.</p>
+  </header>
+  <section aria-label="Cài ứng dụng">
+    <button type="button" data-install-app>Hướng dẫn cài từ Chrome</button>
+    <p id="install-status" data-install-status role="status" aria-live="polite"></p>
+    <a href="/">Mở HanziGo để học ngay →</a>
+  </section>
+  <section id="manual-install">
+    <h2>Cài trên điện thoại Android</h2>
+    <ol>
+      <li>Mở trang này bằng <strong>Google Chrome</strong>. Nếu đang xem trong Zalo, Facebook hoặc Messenger, chọn mở bằng trình duyệt ngoài.</li>
+      <li>Nhấn nút <strong>Cài HanziGo</strong> phía trên nếu có. Hoặc nhấn menu <strong>⋮</strong> của Chrome → <strong>Thêm vào màn hình chính</strong> → <strong>Cài đặt</strong> (có máy hiện “Cài ứng dụng”).</li>
+      <li>Xác nhận, rồi mở biểu tượng <strong>HanziGo</strong> trên màn hình chính. Đăng nhập bằng tài khoản của bạn nếu được yêu cầu.</li>
+    </ol>
+    <p class="muted">Không cần tải APK hay đăng ký Google Play. Nếu chỉ hiện “Tạo lối tắt”, hãy cập nhật Chrome và thử lại; lối tắt vẫn giúp mở HanziGo nhanh.</p>
+  </section>
+  <section>
+    <h2>Học và sử dụng trên điện thoại</h2>
+    <p>Viết chữ bằng ngón tay, nghe phát âm, làm bài đọc và kiểm tra, gửi tin nhắn hoặc tệp cho hỗ trợ như trên website. Khi luyện đọc, cho phép Chrome dùng micro nếu điện thoại hỏi.</p>
+    <p>Ứng dụng cần Internet để tải dữ liệu, đồng bộ tiến độ và gọi AI. Khi có phiên bản mới, đóng rồi mở lại ứng dụng để tải giao diện mới.</p>
+    <p class="muted">Cài đặt miễn phí. Quyền lợi tài khoản và hạn mức AI được áp dụng giống website; việc cài ứng dụng không tự mở khóa gói Premium.</p>
+  </section>
+</main></body></html>

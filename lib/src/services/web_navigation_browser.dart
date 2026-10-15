@@ -22,6 +22,11 @@ void openAccount(String token, {int? returnTab}) {
 
 void openRecovery() => web.window.location.assign('/recover');
 
+void openAndroidInstall() {
+  web.window.sessionStorage.setItem('hanzigo_return_tab', '6');
+  web.window.location.assign('/install-android.html');
+}
+
 void openAdmin(String token) {
   web.window.sessionStorage.setItem('hanzigo_admin_token', token);
   web.window.location.replace('/admin');

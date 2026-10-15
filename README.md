@@ -1,5 +1,7 @@
 # HanziGo · Chinese Learning
 
+Android: [Cài miễn phí từ Chrome](https://hanzigo-chinese-learning.vercel.app/install-android.html) · [Hướng dẫn và phạm vi PWA](docs/ANDROID.md). Trong ứng dụng: **Cá nhân → Cài HanziGo trên Android**.
+
 Bản online: **https://hanzigo-chinese-learning.vercel.app** · [Bàn giao Vercel và database Turso](docs/VERCEL_HANDOFF.md). Admin và học viên đăng nhập chung tại trang này; nhánh triển khai là `test`.
 
 Kho từ đã bổ sung đủ 5.000 mục HSK 2.0 (4.993 cách viết), nghĩa tiếng Việt và 22 chủ đề. Trong **Từ vựng**, chọn **HSK 1–6 · Chọn chủ đề** để lọc cấp/chủ đề; danh sách chia trang 40 từ. Máy mới chạy thêm `python vocabulary_catalog.py` từ `backend/` sau bước seed. Xem [nguồn dữ liệu, phạm vi và cách nhập](docs/HSK_VOCABULARY.md).

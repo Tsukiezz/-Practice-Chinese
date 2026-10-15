@@ -1,6 +1,8 @@
 import '../widgets/brand_logo.dart';
 import 'appearance_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import '../services/web_navigation.dart';
 import 'dart:convert';
 
 import 'personalized_practice_screen.dart';
@@ -102,6 +104,15 @@ class ProfileScreen extends StatelessWidget {
               token: token,
               apiBaseUrl: apiBaseUrl!,
               onUserUpdated: onRefreshUser,
+            ),
+          if (kIsWeb)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: OutlinedButton.icon(
+                onPressed: openAndroidInstall,
+                icon: const Icon(Icons.install_mobile_rounded),
+                label: const Text('Cài HanziGo trên Android'),
+              ),
             ),
           if (onEditProfile != null)
             Padding(
