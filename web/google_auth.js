@@ -39,9 +39,14 @@
               scope: 'email profile openid',
               prompt: 'select_account',
               error_callback: function(err) {
+                var popupBlocked = err.type === 'popup_failed_to_open';
                 reject({
                   code: err.type || 'POPUP_ERROR',
-                  message: err.message || 'Cửa sổ đăng nhập Google bị đóng hoặc bị chặn.'
+                  message: popupBlocked
+                    ? 'Không mở được cửa sổ Google. Hãy bấm Đăng nhập với Google lần nữa. Nếu iPhone vẫn chặn, mở HanziGo bằng Safari để đăng nhập.'
+                    : err.type === 'popup_closed'
+                      ? 'Bạn đã đóng cửa sổ Google. Bấm đăng nhập để thử lại.'
+                      : 'Không thể mở đăng nhập Google. Vui lòng thử lại.'
                 });
               },
               callback: function(tokenResponse) {
@@ -95,25 +100,9 @@
           }
         }
 
-        // Đợi Google SDK tải nếu cần
-        if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
-          var attempts = 0;
-          var poll = setInterval(function() {
-            attempts++;
-            if (window.google && window.google.accounts && window.google.accounts.oauth2) {
-              clearInterval(poll);
-              runTokenClient();
-            } else if (attempts > 30) {
-              clearInterval(poll);
-              reject({
-                code: 'SDK_TIMEOUT',
-                message: 'Không thể kết nối đến Google Identity Services (accounts.google.com).'
-              });
-            }
-          }, 100);
-        } else {
-          runTokenClient();
-        }
+        // Never defer popup creation to a timer: Safari/PWA user activation
+        // may expire. A fresh user tap is required when the SDK is ready.
+        runTokenClient();
       });
     }
   };

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -7,8 +8,42 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hanzi_go/src/screens/login_screen.dart';
 import 'package:hanzi_go/src/services/auth_service.dart';
 import 'package:hanzi_go/src/widgets/google_sign_in_sheet.dart';
+import 'package:hanzi_go/src/services/google_auth_service.dart';
 
 void main() {
+  testWidgets('Google config is ready before tap and popup starts synchronously', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final config = Completer<http.Response>();
+    var configCalls = 0, popupCalls = 0;
+    final auth = await AuthService.load(MockClient((request) {
+      configCalls++;
+      expect(request.url.path, '/api/auth/google-config');
+      return config.future;
+    }));
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: GoogleSignInButton(
+      baseUrl: 'http://test/api', authService: auth, onSuccess: () {},
+      signIn: (id) {
+        expect(id, 'configured-client');
+        popupCalls++;
+        return Future.value(const GoogleAuthResult(success: false, error: 'Cancelled'));
+      },
+    ))));
+    await tester.pump();
+    expect(tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed, isNull);
+    config.complete(http.Response('{"client_id":"configured-client"}', 200));
+    await tester.pumpAndSettle();
+    final button = tester.widget<OutlinedButton>(find.byType(OutlinedButton));
+    button.onPressed!();
+    // Before pumping any async continuation, the popup must already be invoked.
+    expect(popupCalls, 1);
+    expect(configCalls, 1);
+    await tester.pumpAndSettle();
+    tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed!();
+    expect(popupCalls, 2);
+    expect(configCalls, 1);
+    await tester.pumpAndSettle();
+  });
+
   test('Google checks registration without a name and preserves returning profile', () async {
     SharedPreferences.setMockInitialValues({});
     var newAccount = true;
@@ -43,6 +78,9 @@ void main() {
     var requests = 0;
     var succeeded = false;
     final auth = await AuthService.load(MockClient((request) async {
+      if (request.url.path == '/api/auth/google-config') {
+        return http.Response('{"client_id":"configured-client"}', 200);
+      }
       if (request.url.path == '/api/me/benefits') {
         expect(request.headers['Authorization'], 'Bearer registered');
         return http.Response('{"premium_until":0,"brush":"default","palette":"dark","streak_freezes":0}', 200);

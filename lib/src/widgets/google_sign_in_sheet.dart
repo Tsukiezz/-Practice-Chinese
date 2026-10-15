@@ -29,12 +29,14 @@ class GoogleSignInButton extends StatefulWidget {
     this.authService,
     required this.onSuccess,
     this.label = 'Tiếp tục với Google',
+    this.signIn = triggerGoogleWebSignIn,
   });
 
   final String baseUrl;
   final AuthService? authService;
   final VoidCallback onSuccess;
   final String label;
+  final Future<GoogleAuthResult> Function(String) signIn;
 
   @override
   State<GoogleSignInButton> createState() => _GoogleSignInButtonState();
@@ -42,39 +44,57 @@ class GoogleSignInButton extends StatefulWidget {
 
 class _GoogleSignInButtonState extends State<GoogleSignInButton> {
   bool _connecting = false;
+  bool _preparing = true;
+  AuthService? _auth;
+  String _clientId = '';
+  final _httpClient = http.Client();
+
+  @override
+  void initState() {
+    super.initState();
+    _prepare();
+  }
+
+  Future<void> _prepare() async {
+    setState(() => _preparing = true);
+    try {
+      final auth = widget.authService ?? await AuthService.load(_httpClient);
+      final config = await auth.fetchGoogleConfig(widget.baseUrl)
+          .timeout(const Duration(seconds: 15));
+      if (!mounted) return;
+      _auth = auth;
+      _clientId = (config['client_id'] ?? '').toString().trim();
+    } catch (_) {
+      _clientId = '';
+    } finally {
+      if (mounted) setState(() => _preparing = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _httpClient.close();
+    super.dispose();
+  }
   static const primary = Color(0xFF1B4D3E);
   static const outline = Color(0xFF707974);
 
   Future<void> _handleTap() async {
-    if (_connecting) return;
+    if (_connecting || _preparing) return;
+    final auth = _auth;
+    if (auth == null || _clientId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Chưa tải được cấu hình Google. Đang thử lại; vui lòng bấm đăng nhập khi nút sẵn sàng.'),
+      ));
+      _prepare();
+      return;
+    }
     setState(() => _connecting = true);
 
     try {
-      final auth = widget.authService ?? await AuthService.load(http.Client());
-      final config = await auth.fetchGoogleConfig(widget.baseUrl);
-      String clientId = (config['client_id'] ?? '').toString().trim();
-
-      // Nếu chưa có Google Client ID, mở hộp thoại hướng dẫn / nhập nhanh Client ID
-      if (clientId.isEmpty) {
-        if (!mounted) return;
-        final enteredClientId = await showDialog<String>(
-          context: context,
-          barrierDismissible: true,
-          builder: (ctx) => Theme(
-            data: AppTheme.light,
-            child: const _GoogleClientIdDialog(),
-          ),
-        );
-
-        if (enteredClientId == null || enteredClientId.trim().isEmpty) {
-          setState(() => _connecting = false);
-          return;
-        }
-        clientId = enteredClientId.trim();
-      }
-
-      // Kích hoạt popup đăng nhập thực tế của Google (accounts.google.com)
-      final googleResult = await triggerGoogleWebSignIn(clientId);
+      // Do not await config/storage/network before this call: iOS requires
+      // the popup to open in the original tap's user activation.
+      final googleResult = await widget.signIn(_clientId);
 
       if (!mounted) return;
 
@@ -145,7 +165,7 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
     return SizedBox(
       height: 52,
       child: OutlinedButton(
-        onPressed: _connecting ? null : _handleTap,
+        onPressed: _connecting || _preparing ? null : _handleTap,
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF1F1F1F),
@@ -156,7 +176,7 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16),
         ),
-        child: _connecting
+        child: _connecting || _preparing
             ? const SizedBox(
                 width: 22,
                 height: 22,
@@ -187,117 +207,7 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
   }
 }
 
-/// Hộp thoại cấu hình Google Client ID nếu môi trường chưa cài đặt
-class _GoogleClientIdDialog extends StatefulWidget {
-  const _GoogleClientIdDialog();
 
-  @override
-  State<_GoogleClientIdDialog> createState() => _GoogleClientIdDialogState();
-}
-
-class _GoogleClientIdDialogState extends State<_GoogleClientIdDialog> {
-  final _ctrl = TextEditingController();
-  static const primary = Color(0xFF1B4D3E);
-  static const textColor = Color(0xFF191C1B);
-  static const outline = Color(0xFF707974);
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 460),
-        child: Padding(
-          padding: const EdgeInsets.all(22),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const GoogleLogo(size: 24),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Kết nối Google OAuth 2.0',
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: textColor),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded, color: outline),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: .4)),
-                ),
-                child: const Text(
-                  'Hệ thống chưa tìm thấy biến GOOGLE_CLIENT_ID trên máy chủ. Bạn có thể nhập Google Client ID tại đây để kết nối với Google ngay lập tức:',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF92400E), height: 1.4),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Google Client ID (Web Application)',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: textColor),
-              ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _ctrl,
-                style: const TextStyle(fontSize: 13.5, color: textColor),
-                decoration: InputDecoration(
-                  hintText: 'xxxxxx.apps.googleusercontent.com',
-                  hintStyle: TextStyle(color: outline.withValues(alpha: .6), fontSize: 13),
-                  filled: true,
-                  fillColor: const Color(0xFFF9FAF8),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Hủy'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: primary, foregroundColor: Colors.white),
-                      onPressed: () {
-                        if (_ctrl.text.trim().isNotEmpty) {
-                          Navigator.pop(context, _ctrl.text.trim());
-                        }
-                      },
-                      child: const Text('Mở popup Google'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// Hộp thoại SAU KHI GOOGLE ĐÃ XÁC THỰC DANH TÍNH:
 /// Cho phép khách hàng tự do chọn/đổi tên hiển thị của mình trên HanziGo
