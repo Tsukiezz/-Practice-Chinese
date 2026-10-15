@@ -111,7 +111,7 @@ class ProfileScreen extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: openAndroidInstall,
                 icon: const Icon(Icons.install_mobile_rounded),
-                label: const Text('Cài HanziGo trên Android'),
+                label: const Text('Cài HanziGo trên Android / iOS'),
               ),
             ),
           if (onEditProfile != null)

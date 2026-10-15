@@ -1,14 +1,23 @@
 (() => {
   'use strict';
   let pendingPrompt = null;
-  let installed = window.matchMedia('(display-mode: standalone)').matches;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let installed = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   const button = document.querySelector('[data-install-app]');
   const status = document.querySelector('[data-install-status]');
+  const iosGuide = document.querySelector('#ios-install');
+  const androidGuide = document.querySelector('#manual-install');
+  const iosInstructions = 'Trên iPhone/iPad: nhấn Chia sẻ (ô vuông có mũi tên lên). Nếu chưa thấy, mở menu … của Safari → Chia sẻ. Chọn Thêm vào Màn hình chính → bật Mở dưới dạng ứng dụng web nếu có → Thêm.';
+  if (iosGuide && androidGuide) {
+    if (isIOS) androidGuide.before(iosGuide);
+    else iosGuide.before(androidGuide);
+  }
   const update = (message) => {
     if (status) status.textContent = message;
     if (button) {
       button.hidden = installed;
-      button.textContent = pendingPrompt ? 'Cài HanziGo' : 'Hướng dẫn cài từ Chrome';
+      button.textContent = 'Cài HanziGo';
     }
   };
   window.addEventListener('beforeinstallprompt', (event) => {
@@ -22,6 +31,15 @@
     update('Đã cài HanziGo. Bạn có thể mở ứng dụng từ màn hình chính.');
   });
   if (button) button.addEventListener('click', async () => {
+    if (isIOS) {
+      update(iosInstructions);
+      if (iosGuide) {
+        iosGuide.classList.add('selected-guide');
+        iosGuide.focus({preventScroll: true});
+        iosGuide.scrollIntoView({behavior: 'smooth', block: 'start'});
+      }
+      return;
+    }
     if (!pendingPrompt) {
       document.querySelector('#manual-install')?.scrollIntoView({behavior: 'smooth'});
       update('Trong Chrome, nhấn ⋮ → Thêm vào màn hình chính → Cài đặt. Tên mục có thể khác theo phiên bản Chrome.');
@@ -43,7 +61,8 @@
     }
   });
   update(installed ? 'Bạn đang mở HanziGo trong cửa sổ ứng dụng.'
-    : 'Mở trang này bằng Chrome trên Android. Nếu chưa có lời mời cài đặt, dùng hướng dẫn bên dưới.');
+    : isIOS ? 'Cài miễn phí trên iPhone/iPad bằng Safari. Nhấn Cài HanziGo để xem các bước; Safari yêu cầu xác nhận trong menu Chia sẻ.'
+    : 'Cài miễn phí trên Android bằng Chrome. Nhấn Cài HanziGo hoặc xem hướng dẫn Android và iPhone/iPad bên dưới.');
   // Live server data stays on the network. The worker only supplies an offline
   // navigation message; it never stores accounts, messages, API data or app code.
   if ('serviceWorker' in navigator && window.isSecureContext) {

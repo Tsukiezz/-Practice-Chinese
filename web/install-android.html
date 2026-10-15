@@ -4,14 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#153E35">
-  <meta name="description" content="Cài HanziGo miễn phí từ Chrome lên màn hình chính điện thoại Android.">
-  <title>Cài HanziGo trên Android</title>
+  <meta name="description" content="Cài HanziGo miễn phí lên màn hình chính Android, iPhone và iPad.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="HanziGo">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="/icons/Icon-192.png">
+  <title>Cài HanziGo · Android và iOS</title>
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="/icons/Icon-192.png">
   <script src="/install-app.js" defer></script>
   <style>
     *{box-sizing:border-box}body{margin:0;background:#f2f6f3;color:#183e35;font:16px/1.65 system-ui,sans-serif}
-    main{max-width:680px;margin:auto;padding:28px 20px calc(32px + env(safe-area-inset-bottom))}
+    main{max-width:680px;margin:auto;padding:calc(28px + env(safe-area-inset-top)) 20px calc(32px + env(safe-area-inset-bottom))}
+    section{scroll-margin-top:24px}.selected-guide{outline:3px solid #287a60}.platform-links{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px}.platform-links a{padding:8px 0}
     a{color:#185e4c}header{margin:28px 0}header img{width:84px;height:84px;border-radius:22px;box-shadow:0 8px 24px #153e3520}
     h1{font-size:clamp(26px,6vw,36px);line-height:1.25;margin:18px 0 12px}h2{font-size:21px;margin:0 0 12px}
     p{margin:12px 0}.muted{color:#486459}.badge{display:inline-block;background:#dcece2;padding:4px 12px;border-radius:20px;font-size:14px;font-weight:650}
@@ -23,14 +28,26 @@
 </head>
 <body><main>
   <a href="/">← Trở về HanziGo</a>
-  <header><img src="/icons/Icon-192.png" alt="Biểu tượng HanziGo"><p><span class="badge">Android · Cài đặt miễn phí</span></p>
+  <header><img src="/icons/Icon-192.png" alt="Biểu tượng HanziGo"><p><span class="badge">Android & iOS · Cài đặt miễn phí</span></p>
     <h1>Mang HanziGo lên màn hình chính</h1>
     <p class="muted">Mở nhanh bằng biểu tượng ứng dụng, học tiếng Trung và luyện viết ngay trên điện thoại. Dùng tài khoản hiện có để tiếp tục tiến độ học của bạn.</p>
   </header>
   <section aria-label="Cài ứng dụng">
-    <button type="button" data-install-app>Hướng dẫn cài từ Chrome</button>
+    <button type="button" data-install-app>Cài HanziGo</button>
     <p id="install-status" data-install-status role="status" aria-live="polite"></p>
     <a href="/">Mở HanziGo để học ngay →</a>
+    <nav class="platform-links" aria-label="Chọn thiết bị"><a href="#ios-install">iPhone / iPad</a><a href="#manual-install">Android</a></nav>
+  </section>
+  <section id="ios-install" tabindex="-1" aria-labelledby="ios-title">
+    <h2 id="ios-title">Cài trên iPhone / iPad</h2>
+    <ol>
+      <li>Mở trang này bằng <strong>Safari</strong>. Nếu đang xem trong Zalo, Facebook hoặc Messenger, hãy mở liên kết bằng Safari.</li>
+      <li>Nhấn <strong>Chia sẻ</strong> — biểu tượng ô vuông có mũi tên hướng lên. Với thanh công cụ như trong Safari mới, nhấn <strong>…</strong> ở góc màn hình rồi chọn <strong>Chia sẻ</strong>.</li>
+      <li>Cuộn danh sách chia sẻ, chọn <strong>Thêm vào Màn hình chính</strong>. Nếu chưa thấy, tìm trong <strong>Sửa tác vụ</strong>.</li>
+      <li>Bật <strong>Mở dưới dạng ứng dụng web</strong> nếu có, giữ tên <strong>HanziGo</strong>, rồi nhấn <strong>Thêm</strong>.</li>
+      <li>Mở biểu tượng HanziGo trên màn hình chính và đăng nhập để học.</li>
+    </ol>
+    <p class="muted">Miễn phí, không cần App Store. Nút “Cài HanziGo” hướng dẫn thao tác; Safari yêu cầu bạn tự xác nhận trong menu Chia sẻ.</p>
   </section>
   <section id="manual-install">
     <h2>Cài trên điện thoại Android</h2>
@@ -43,7 +60,7 @@
   </section>
   <section>
     <h2>Học và sử dụng trên điện thoại</h2>
-    <p>Viết chữ bằng ngón tay, nghe phát âm, làm bài đọc và kiểm tra, gửi tin nhắn hoặc tệp cho hỗ trợ như trên website. Khi luyện đọc, cho phép Chrome dùng micro nếu điện thoại hỏi.</p>
+    <p>Viết chữ bằng ngón tay, nghe phát âm, làm bài đọc và kiểm tra, gửi tin nhắn hoặc tệp cho hỗ trợ như trên website. Khi luyện đọc, cho phép trình duyệt dùng micro nếu điện thoại hỏi.</p>
     <p>Ứng dụng cần Internet để tải dữ liệu, đồng bộ tiến độ và gọi AI. Khi có phiên bản mới, đóng rồi mở lại ứng dụng để tải giao diện mới.</p>
     <p class="muted">Cài đặt miễn phí. Quyền lợi tài khoản và hạn mức AI được áp dụng giống website; việc cài ứng dụng không tự mở khóa gói Premium.</p>
   </section>

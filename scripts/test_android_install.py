@@ -57,8 +57,29 @@ async def check(base):
         await standalone.goto(base + '/install-android.html')
         assert not await standalone.locator('[data-install-app]').is_visible()
         assert 'cửa sổ ứng dụng' in await standalone.locator('[data-install-status]').inner_text()
+        for device in ['iPhone', 'iPad-desktop']:
+            ios = await browser.new_context(viewport={'width':390,'height':844},
+                user_agent=('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1'
+                    if device == 'iPhone' else 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15'))
+            if device == 'iPad-desktop':
+                await ios.add_init_script("Object.defineProperty(navigator, 'platform', {get:()=> 'MacIntel'}); Object.defineProperty(navigator, 'maxTouchPoints', {get:()=>5});")
+            tab = await ios.new_page()
+            await tab.goto(base + '/install-android.html')
+            assert await tab.locator('[data-install-app]').inner_text() == 'Cài HanziGo'
+            assert 'Safari' in await tab.locator('[data-install-status]').inner_text()
+            await tab.locator('[data-install-app]').click()
+            assert 'Chia sẻ' in await tab.locator('[data-install-status]').inner_text()
+            assert 'Chrome' not in await tab.locator('[data-install-status]').inner_text()
+            assert await tab.locator('#ios-install').evaluate("el => el === document.activeElement")
+            assert await tab.evaluate('document.documentElement.scrollWidth <= innerWidth')
+            if device == 'iPhone':
+                await tab.screenshot(path=str(output / 'ios-install-mobile.png'), full_page=True)
+            await ios.add_init_script("Object.defineProperty(navigator, 'standalone', {get:()=>true});")
+            await tab.reload()
+            assert not await tab.locator('[data-install-app]').is_visible()
+            await ios.close()
         await browser.close()
-        print('PASS: mobile layout, manual install, prompt outcomes, standalone, offline recovery, API pass-through')
+        print('PASS: Android, iPhone, iPad desktop UA, iOS standalone, mobile layout, prompts, offline recovery, API pass-through')
 
 
 if __name__ == '__main__':

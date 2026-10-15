@@ -1,4 +1,10 @@
-# HanziGo trên Android (PWA)
+# HanziGo trên Android và iOS (PWA)
+
+Trang `/install-android.html` nay hỗ trợ cả Android và iOS, giữ đường dẫn cũ để các liên kết đã chia sẻ vẫn hoạt động. Trong Cá nhân, mục cài đặt mang tên **Cài HanziGo trên Android / iOS**.
+
+Trên iPhone/iPad, mở trang bằng Safari → **Cài HanziGo** để xem hướng dẫn → **Chia sẻ** (hoặc **… → Chia sẻ**) → **Thêm vào Màn hình chính** → bật **Mở dưới dạng ứng dụng web** nếu có → **Thêm**. Không cần App Store. Safari không hỗ trợ lời mời cài `beforeinstallprompt`; nút trên trang không thể tự xác nhận thay người dùng.
+
+Nhận diện iPad dùng giao diện desktop qua MacIntel và số điểm chạm. Nhận diện ứng dụng đã mở độc lập bằng cả `display-mode` và `navigator.standalone`. Hai hướng dẫn luôn có liên kết để chọn thủ công nếu nhận diện thiết bị không chính xác. Kiểm thử trình duyệt mô phỏng iPhone/iPad đã được bổ sung; chưa xác nhận trên thiết bị iOS thật.
 
 Cập nhật: 15/10/2026.
 
