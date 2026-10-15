@@ -389,7 +389,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 ScreenHeader(
                   eyebrow: 'Khảo thí AI · Đề thi tiếng Trung',
                   title: 'Kiểm tra',
-                  showBackButton: false,
+                  showBackButton: widget.onBack != null || Navigator.of(context).canPop(),
                   onBack: widget.onBack ?? (Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null),
                   trailing: Icon(Icons.assignment_turned_in_rounded, color: Theme.of(context).colorScheme.primary),
                 ),
@@ -506,7 +506,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: isWide ? 3 : 2,
+                  crossAxisCount: constraints.maxWidth < 400 ? 1 : (isWide ? 3 : 2),
                   mainAxisSpacing: 8,
                   crossAxisSpacing: 8,
                   mainAxisExtent: 58,
@@ -1441,6 +1441,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
         title: const Text('Kết quả & Sửa bài', style: TextStyle(fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
+          tooltip: 'Quay lại danh sách đề',
           onPressed: () => setState(() {
             _currentFeedback = null;
             _reviewedExam = null;
