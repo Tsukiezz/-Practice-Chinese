@@ -6,6 +6,7 @@ import re
 def local_product_answer(normalized):
     lines = product_knowledge().splitlines()
     groups = [
+        (r'cai.*hanzigo|cai.*ung dung|iphone|ipad|android', ('- Cài ứng dụng:',)),
         (r'google|dang nhap|dang ky|doi ten|dat ten', ('- Tài khoản:',)),
         (r'quay lai|dieu huong', ('- Điều hướng:',)),
         (r'sepay|thanh toan|chuyen khoan', ('- Thanh toán:', '- Nếu chuyển tiền', '- Trợ lý')),
@@ -32,7 +33,8 @@ def product_knowledge():
 - Luyện đọc phát âm: trang /reading dùng chung giao diện nghe mẫu, thu âm micro, AI chấm và lịch sử cho HSK 1–9. HSK 7–9 cần Premium còn hạn, mỗi cấp hiện có 6 từ và 2 câu ví dụ bổ trợ; chưa phải toàn bộ từ vựng HSK. Chọn cấp trong app được giữ khi mở trang luyện phát âm.
 - Đồng hồ và lời chào: trang chủ hiện giờ Việt Nam UTC+7 và tên người dùng. Từ 06:00 đến trước 18:00 chào buổi sáng; từ 18:00 đến trước 06:00 chào buổi tối.
 - Kiểm tra: có nút Kiểm tra HSK 7/8/9 · Premium, bộ luyện 8 câu Nghe + Đọc, 20 phút, tự chấm và lưu kết quả. AI tạo đề cho phép chọn HSK 7–9 khi Premium còn hạn; nếu AI lỗi sẽ báo thử lại, không thay bằng câu HSK thấp hơn.
-- Tài khoản: đăng nhập/đăng ký Google dùng nút logo Google chính thức. Sau khi Google xác thực, chỉ tài khoản đăng ký lần đầu cần chọn tên; tài khoản đã tồn tại vào học ngay, không bị ghi đè tên. Đổi tên trên web tại Cá nhân → Đổi tên, ảnh đại diện và mật khẩu. Không gửi mật khẩu Google hay mã OTP cho trợ lý.
+- Tài khoản: đăng nhập/đăng ký Google dùng nút logo Google chính thức. Chỉ tài khoản mới cần chọn tên; đăng nhập lại không ghi đè tên. Trong Cá nhân, bấm Thông tin cá nhân để mở biểu mẫu ngay tại chỗ, không chuyển trang. Có họ tên, ảnh đại diện PNG/JPEG/WebP tối đa 5MB, số điện thoại, ngày sinh và mục tiêu bài mỗi ngày/tuần; bấm Lưu thay đổi. Đổi mật khẩu cũng ở trong mục này và cần đăng nhập lại sau khi lưu. Không gửi mật khẩu Google hay OTP cho trợ lý.
+- Cài ứng dụng: Cá nhân → Cài HanziGo trên Android / iOS mở hướng dẫn ngay trong ứng dụng, không chuyển trang. Android dùng Chrome: Cài HanziGo hoặc menu ⋮ → Thêm vào màn hình chính → Cài đặt. iPhone/iPad dùng Safari: Chia sẻ → Thêm vào Màn hình chính → bật Mở dưới dạng ứng dụng web nếu có → Thêm; Safari không tự cài từ nút trong app. Không cần APK/App Store. Cài miễn phí, không tự mở Premium; cần Internet để đồng bộ và dùng AI.
 - Điều hướng: Bài học, Nghe, Đọc, Kiểm tra không còn nút Quay lại thừa ở đầu trang chính; chuyển mục bằng thanh điều hướng. Màn hình bài tập chi tiết vẫn giữ nút trở về.
 - Viết tay: tab chính Viết tay mở thẳng Luyện nét. Kho 4.999 từ là công cụ tra cứu bổ trợ, mở bằng nút Từ vựng ở góc trên màn hình Viết tay. Bấm ô Màu mực trên khung viết để mở bảng 20 màu, chọn màu rồi bảng tự đóng. Mực đen mặc định dùng miễn phí, màu mở rộng dành cho Premium.
 - Bút: bấm ô có biểu tượng cọ và tên cọ đang dùng để mở Chọn cọ viết tay. Có Tiêu chuẩn, Bút lông, Bút máy, Thư pháp, Bút chì, Bút dạ, Lông vũ; các kiểu bút mở rộng cần Premium. Lựa chọn kiểu bút lưu theo tài khoản.

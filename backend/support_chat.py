@@ -141,6 +141,7 @@ def is_on_topic_chinese_or_hanzigo(content: str) -> bool:
 
     # Positive category 2: HanziGo app features / usage
     app_keywords = (
+        r'\b(?:cai.*hanzigo|cai.*ung dung|iphone|ipad|android)\b|'
         r'\b(?:google|doi ten|dat ten|quay lai|dieu huong|viet tay|mau muc|chon co|bang mau)\b|'
         r'\b(?:hanzigo|ung dung|app|premium|prenium|sepay|voucher|bao luu|streak|chuoi ngay|dong ho|gio viet nam|loi chao|but long|but muc|thu phap|huy hieu|thanh toan|chuyen khoan|goi nam|goi thang|'
         r'bai hoc|kho tu vung|flashcard|luyen viet|viet chu|luyen doc|bai doc|luyen nghe|bai nghe|phat am|'
@@ -193,6 +194,9 @@ def local_hanzigo_tutor(history: list[dict]) -> tuple[str, bool]:
 
     norm = ''.join(ch for ch in unicodedata.normalize('NFD', latest.lower())
                    if unicodedata.category(ch) != 'Mn').replace('đ', 'd')
+
+    if re.search(r'cai.*hanzigo|cai.*ung dung|iphone|ipad|android', norm):
+        return local_product_answer(norm), False
 
     if re.search(r'\b(?:google|dang nhap|dang ky|doi ten|dat ten|quay lai|dieu huong|viet tay|mau muc|chon co|bang mau|premium|prenium|sepay|voucher|bao luu|streak|chuoi ngay|dong ho|gio viet nam|loi chao|but long|but muc|thu phap|huy hieu|mau giao dien|thanh toan|chuyen khoan|hsk\s*[789])\b', norm):
         needs_admin = bool(re.search(r'\b(?:chuyen tien|chuyen khoan|thanh toan)\b', norm) and re.search(r'\b(?:loi|chua|khong nhan)\b', norm))

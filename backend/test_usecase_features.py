@@ -36,6 +36,13 @@ class AccountUseCaseTests(unittest.TestCase):
   self.assertEqual(self.client.post("/api/account/password",headers=self.headers,json={"old_password":"Original-password-123","new_password":"New-password-123"}).status_code,204)
   self.assertEqual(self.client.get("/api/me",headers=self.headers).status_code,401)
   self.assertEqual(self.client.post("/api/auth/login",json={"email":"owner@example.test","password":"New-password-123"}).status_code,200)
+ def test_google_avatar_is_preserved_on_profile_save(self):
+  avatar="https://lh3.googleusercontent.com/a/test-photo"
+  res=self.client.put("/api/account",headers=self.headers,json={"name":"Updated","avatar":avatar})
+  self.assertEqual(res.status_code,200,res.text)
+  self.assertEqual(res.json()["avatar"],avatar)
+  bad=self.client.put("/api/account",headers=self.headers,json={"name":"Updated","avatar":"https://example.test/photo"})
+  self.assertEqual(bad.status_code,422)
  def test_recovery_otp_expiration_attempts_and_single_use(self):
   sent=[]
   with patch("usecase_features.smtp_ready",return_value=True),patch("usecase_features.send_otp",side_effect=lambda email,code:sent.append(code)):

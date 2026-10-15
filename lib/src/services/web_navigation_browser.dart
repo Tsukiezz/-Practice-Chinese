@@ -2,6 +2,14 @@ import 'dart:js_interop';
 import 'dart:convert';
 import 'package:web/web.dart' as web;
 
+@JS('hanzigoPickAvatar')
+external JSPromise<JSString?> _pickAvatar();
+@JS('hanzigoInstall')
+external JSPromise<JSString> _installApp();
+
+Future<String?> pickAccountAvatar() async => (await _pickAvatar().toDart)?.toDart;
+Future<String> installHanziGo() async => (await _installApp().toDart).toDart;
+
 void setChatTheme(Map<String, String> colors) {
   web.window.dispatchEvent(web.CustomEvent('hanzigo-chat-theme',
       web.CustomEventInit(detail: jsonEncode(colors).toJS)));

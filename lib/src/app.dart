@@ -567,9 +567,6 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                   } catch (_) {}
                 },
                 onBack: _navigateBack,
-                onEditProfile: kIsWeb
-                    ? () => openAccount(_authService.token!, returnTab: _index)
-                    : null,
                 onOpenAdmin: kIsWeb && (_authService.currentUser?.isAdmin ?? false)
                     ? () => openAdmin(_authService.token ?? '')
                     : null,

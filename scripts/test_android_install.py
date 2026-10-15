@@ -37,6 +37,27 @@ async def check(base):
             await page.locator('[data-install-app]').click()
             await page.wait_for_function('!document.querySelector("[data-install-app]").disabled')
         assert await page.evaluate('window.promptCount') == 2
+        # Flutter calls the same install bridge without leaving the current URL.
+        before = page.url
+        assert 'Chrome' in await page.evaluate('window.hanzigoInstall()')
+        await page.evaluate('''() => {
+            const event = new Event('beforeinstallprompt', {cancelable:true});
+            event.prompt = async () => {};
+            event.userChoice = Promise.resolve({outcome:'accepted'});
+            window.dispatchEvent(event);
+        }''')
+        assert 'Đã gửi yêu cầu' in await page.evaluate('window.hanzigoInstall()')
+        assert page.url == before
+        async with page.expect_file_chooser() as choice:
+            await page.evaluate('''() => {
+                window.avatarResult = null;
+                window.hanzigoPickAvatar().then(value => { window.avatarResult = value; });
+            }''')
+        await (await choice.value).set_files({
+            'name': 'avatar.png', 'mimeType': 'image/png', 'buffer': b'fake-local-image',
+        })
+        await page.wait_for_function("window.avatarResult?.startsWith('data:image/png;base64,')")
+        assert page.url == before
         await page.evaluate("window.dispatchEvent(new Event('appinstalled'))")
         assert not await page.locator('[data-install-app]').is_visible()
         assert await page.evaluate('caches.keys()') == []

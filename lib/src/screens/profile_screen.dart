@@ -2,7 +2,8 @@ import '../widgets/brand_logo.dart';
 import 'appearance_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import '../services/web_navigation.dart';
+import '../widgets/inline_account.dart';
+import '../widgets/inline_install.dart';
 import 'dart:convert';
 
 import 'personalized_practice_screen.dart';
@@ -34,7 +35,6 @@ class ProfileScreen extends StatelessWidget {
     this.token,
     this.apiBaseUrl,
     this.onRefreshUser,
-    this.onEditProfile,
     this.onOpenAdmin,
     this.onBack,
   });
@@ -46,7 +46,6 @@ class ProfileScreen extends StatelessWidget {
   final String? token;
   final String? apiBaseUrl;
   final VoidCallback? onRefreshUser;
-  final VoidCallback? onEditProfile;
   final VoidCallback? onOpenAdmin;
   final VoidCallback? onBack;
 
@@ -105,24 +104,13 @@ class ProfileScreen extends StatelessWidget {
               apiBaseUrl: apiBaseUrl!,
               onUserUpdated: onRefreshUser,
             ),
-          if (kIsWeb)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: OutlinedButton.icon(
-                onPressed: openAndroidInstall,
-                icon: const Icon(Icons.install_mobile_rounded),
-                label: const Text('Cài HanziGo trên Android / iOS'),
-              ),
+          if (token != null && apiBaseUrl != null)
+            InlineAccount(
+              key: ValueKey('account-${user?.id}'),
+              baseUrl: apiBaseUrl!, token: token!,
+              onSaved: onRefreshUser, onPasswordChanged: onLogout,
             ),
-          if (onEditProfile != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: OutlinedButton.icon(
-                onPressed: onEditProfile,
-                icon: const Icon(Icons.manage_accounts_outlined),
-                label: const Text('Đổi tên, ảnh đại diện và mật khẩu'),
-              ),
-            ),
+          if (kIsWeb) const InlineInstall(),
           if (onOpenAdmin != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),

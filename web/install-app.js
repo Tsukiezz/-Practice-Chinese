@@ -21,7 +21,7 @@
     }
   };
   window.addEventListener('beforeinstallprompt', (event) => {
-    if (button) event.preventDefault();
+    event.preventDefault();
     pendingPrompt = event;
     update('Sẵn sàng cài đặt. Nhấn “Cài HanziGo” rồi xác nhận với Chrome.');
   });
@@ -29,6 +29,44 @@
     installed = true;
     pendingPrompt = null;
     update('Đã cài HanziGo. Bạn có thể mở ứng dụng từ màn hình chính.');
+  });
+  // Shared with the Flutter inline installation panel. No document navigation.
+  window.hanzigoInstall = async () => {
+    if (installed) return 'HanziGo đã được cài. Bạn có thể mở từ màn hình chính.';
+    if (isIOS) return iosInstructions;
+    if (!pendingPrompt) return 'Trong Chrome, nhấn ⋮ → Thêm vào màn hình chính → Cài đặt. Tên mục có thể khác theo phiên bản Chrome.';
+    const prompt = pendingPrompt;
+    pendingPrompt = null;
+    await prompt.prompt();
+    const choice = await prompt.userChoice;
+    return choice.outcome === 'accepted'
+      ? 'Đã gửi yêu cầu cài đặt. Chờ trình duyệt thêm biểu tượng HanziGo.'
+      : 'Bạn đã hủy cài đặt; có thể thử lại qua menu Chrome.';
+  };
+
+  window.hanzigoPickAvatar = () => new Promise((resolve, reject) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/png,image/jpeg,image/webp';
+    input.style.display = 'none';
+    document.body.append(input);
+    const finish = (value, error) => {
+      input.remove();
+      if (error) reject(error); else resolve(value);
+    };
+    input.addEventListener('cancel', () => finish(null), {once: true});
+    input.addEventListener('change', () => {
+      const file = input.files[0];
+      if (!file) return finish(null);
+      if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+        return finish(null, new Error('Ảnh phải là PNG, JPEG hoặc WebP, tối đa 5MB.'));
+      }
+      const reader = new FileReader();
+      reader.onload = () => finish(reader.result);
+      reader.onerror = () => finish(null, new Error('Không đọc được ảnh.'));
+      reader.readAsDataURL(file);
+    }, {once: true});
+    input.click();
   });
   if (button) button.addEventListener('click', async () => {
     if (isIOS) {

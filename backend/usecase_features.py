@@ -33,6 +33,11 @@ class Profile(BaseModel):
     @classmethod
     def valid_avatar(cls,v):
         if not v: return v
+        # Keep the verified Google profile photo when editing other fields.
+        from urllib.parse import urlsplit
+        parsed = urlsplit(v)
+        if parsed.scheme == 'https' and parsed.hostname == 'lh3.googleusercontent.com' and not parsed.username and not parsed.password:
+            return v
         if not v.startswith(("data:image/png;base64,","data:image/jpeg;base64,","data:image/webp;base64,")):
             raise ValueError("Chỉ hỗ trợ PNG, JPEG, WebP")
         try:

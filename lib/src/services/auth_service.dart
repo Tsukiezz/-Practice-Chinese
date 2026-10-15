@@ -373,7 +373,7 @@ class AuthService {
     if (response.statusCode != 200) {
       throw const AuthException('Phiên đăng nhập đã hết hạn.');
     }
-    final data = Map<String, dynamic>.from(jsonDecode(response.body) as Map)
+    final data = Map<String, dynamic>.from(jsonDecode(utf8.decode(response.bodyBytes)) as Map)
       ..['expires_at'] = currentUser?.expiresAt ?? 0;
     final user = AuthUser.fromJson(data);
     if (user.isAdmin) {

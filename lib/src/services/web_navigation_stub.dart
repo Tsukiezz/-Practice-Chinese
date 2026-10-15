@@ -1,4 +1,6 @@
 void openAdmin(String token) {}
+Future<String?> pickAccountAvatar() async => null;
+Future<String> installHanziGo() async => 'Mở HanziGo bằng Safari hoặc Chrome để cài lên màn hình chính.';
 void setChatSession(String? token) {}
 void setChatTheme(Map<String, String> colors) {}
 void openAccount(String token, {int? returnTab}) {}
