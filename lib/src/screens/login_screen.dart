@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_logo.dart';
-import '../widgets/google_sign_in_sheet.dart';
+import '../widgets/social_sign_in.dart';
 import 'forgot_password_screen.dart';
 import 'guest_dictionary_screen.dart';
 import 'register_screen.dart';
@@ -366,11 +366,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  GoogleSignInButton(
+                  SocialSignIn(
                     baseUrl: widget.baseUrl,
                     authService: widget.authService,
                     onSuccess: widget.onLoginSuccess,
-                    label: 'Đăng nhập với Google',
+                    googleLabel: 'Đăng nhập với Google',
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),

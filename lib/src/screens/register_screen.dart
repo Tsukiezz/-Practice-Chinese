@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_logo.dart';
-import '../widgets/google_sign_in_sheet.dart';
+import '../widgets/social_sign_in.dart';
 import 'guest_dictionary_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -471,11 +471,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ],
                     ),
                     const SizedBox(height: 18),
-                    GoogleSignInButton(
+                    SocialSignIn(
                       baseUrl: widget.baseUrl,
                       authService: widget.authService,
                       onSuccess: () => Navigator.pop(context, true),
-                      label: 'Đăng ký nhanh với Google',
+                      googleLabel: 'Đăng ký nhanh với Google',
                     ),
                   ] else ...[
                     Container(

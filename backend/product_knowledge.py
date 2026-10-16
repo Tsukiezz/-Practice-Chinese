@@ -7,7 +7,8 @@ def local_product_answer(normalized):
     lines = product_knowledge().splitlines()
     groups = [
         (r'cai.*hanzigo|cai.*ung dung|iphone|ipad|android', ('- Cài ứng dụng:',)),
-        (r'google|dang nhap|dang ky|doi ten|dat ten', ('- Tài khoản:',)),
+        (r'facebook', ('- Facebook:',)),
+        (r'google|dang nhap|dang ky|doi ten|dat ten', ('- Tài khoản:', '- Facebook:')),
         (r'quay lai|dieu huong', ('- Điều hướng:',)),
         (r'sepay|thanh toan|chuyen khoan', ('- Thanh toán:', '- Nếu chuyển tiền', '- Trợ lý')),
         (r'hsk\s*[789]', ('- Bài học:', '- Nghe và Đọc:', '- Luyện đọc phát âm:', '- Kiểm tra:')),
@@ -26,6 +27,8 @@ def product_knowledge():
     comparisons = '\n'.join(f"- {f['feature']}: miễn phí {f['free']}; Premium {f['premium']}." for f in COMPARISON_FEATURES)
     return f'''THÔNG TIN SẢN PHẨM HANZIGO HIỆN HÀNH (ưu tiên hơn mô tả cũ):
 {comparisons}
+- Facebook: nút Facebook nằm cạnh Google ở trang đăng nhập/đăng ký. Chỉ dùng được khi quản trị viên đã cấu hình ứng dụng Meta; khi chưa cấu hình hãy dùng Google/email. Không tự ghép tài khoản trùng email; hãy dùng cách đăng nhập cũ. Trợ lý không được khẳng định Facebook đã hoạt động khi chưa kiểm tra cấu hình.
+- Điều hướng: Test Tổng hợp mở từ Cá nhân có nút Quay lại ở đầu trang để về trang trước.
 - Giá gói 1 tháng: {PLAN_PRICES['1_month']['price']:,} VNĐ, 30 ngày; 1 năm: {PLAN_PRICES['1_year']['price']:,} VNĐ, 365 ngày. Gia hạn nối tiếp hạn còn lại.
 - AI tạo đề: miễn phí 3 đề/ngày theo giờ Việt Nam UTC+7; đề mẫu không tính lượt, xóa đề không trả lượt. Premium không giới hạn số đề, mỗi đề 1–50 câu; lỗi AI vẫn có thể xảy ra.
 - Bài học: 48 bài bổ trợ HSK 1–6; Premium thêm 2 bài/cấp HSK 7, 8, 9 và 1 bài giao tiếp thương lượng. Có từ vựng, mẫu câu, đoạn đọc, 4 câu hỏi và tiến độ riêng theo tài khoản.

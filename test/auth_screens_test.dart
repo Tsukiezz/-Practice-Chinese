@@ -243,7 +243,8 @@ void main() {
     await tester.tap(find.text('Đăng ký mới'));
     await tester.pumpAndSettle();
 
-    final googleBtn = find.text('Đăng ký nhanh với Google');
+    final googleBtn = find.byTooltip('Đăng ký nhanh với Google');
+    expect(find.text('Facebook'), findsOneWidget);
     expect(googleBtn, findsOneWidget);
 
     // Kiểm tra trực tiếp GoogleNameSelectionDialog (sau khi Google xác nhận danh tính)

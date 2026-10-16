@@ -366,6 +366,10 @@ def admin_login(body: Login):
     return login_for_role(body, "admin")
 
 
+from facebook_auth import register_facebook_auth
+register_facebook_auth(app, session, hash_password)
+
+
 @app.get("/api/auth/google-config")
 def google_config():
     client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip()

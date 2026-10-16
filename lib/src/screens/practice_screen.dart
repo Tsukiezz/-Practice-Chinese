@@ -174,7 +174,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
           ScreenHeader(
             eyebrow: widget.eyebrow,
             title: widget.title,
-                  showBackButton: false,
+            showBackButton: widget.onBack != null || Navigator.of(context).canPop(),
             onBack: widget.onBack ?? (Navigator.of(context).canPop() ? () => Navigator.of(context).pop() : null),
             trailing: Icon(
               Icons.chrome_reader_mode_outlined,

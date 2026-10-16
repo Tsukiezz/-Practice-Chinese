@@ -164,6 +164,9 @@ class AuthService {
   }
 
 
+  Future<AuthUser> loginWithFacebook({required String baseUrl, required String accessToken}) =>
+      _authenticate(baseUrl, 'facebook-login', {'access_token': accessToken}, true);
+
   Future<AuthUser> loginWithGoogle({
     required String baseUrl,
     required String email,
