@@ -21,6 +21,12 @@ class SocialSignIn extends StatelessWidget {
       Expanded(child: FacebookSignInButton(
         baseUrl: baseUrl, authService: authService, onSuccess: onSuccess)),
     ]),
+    const SizedBox(height: 8),
+    const Text(
+      'Facebook đang thử nghiệm, chỉ dành cho tài khoản được cấp vai trò trong ứng dụng Meta. Bạn có thể đăng nhập bằng Google hoặc email.',
+      textAlign: TextAlign.center,
+      style: TextStyle(fontSize: 12, color: Color(0xFF59665F)),
+    ),
   ]);
 }
 
@@ -62,12 +68,12 @@ class _FacebookSignInButtonState extends State<FacebookSignInButton> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
     } catch (_) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Không hoàn tất đăng nhập Facebook. Vui lòng thử lại.')));
+        content: Text('Facebook đang thử nghiệm, chưa mở cho mọi người. Nếu bạn chưa được cấp vai trò thử nghiệm, hãy dùng Google hoặc email.')));
     } finally { if (mounted) setState(() => _busy = false); }
   }
   @override
   Widget build(BuildContext context) => Tooltip(
-    message: _ready ? 'Đăng nhập với Facebook' : 'Facebook · Chưa cấu hình',
+    message: _ready ? 'Facebook · Đang thử nghiệm' : 'Facebook · Đang thử nghiệm · Chưa sẵn sàng',
     child: SizedBox(height: 52, child: OutlinedButton(
       onPressed: _busy || _loading ? null : _login,
       style: OutlinedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: const Color(0xFF1877F2),
@@ -76,7 +82,11 @@ class _FacebookSignInButtonState extends State<FacebookSignInButton> {
       child: _busy || _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
         : const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(Icons.facebook, size: 24), SizedBox(width: 8),
-          Flexible(child: Text('Facebook', maxLines: 1, overflow: TextOverflow.ellipsis)),
+          Flexible(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text('Facebook', maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text('Đang thử nghiệm', maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500)),
+          ])),
         ]),
     )),
   );

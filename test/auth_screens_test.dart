@@ -245,6 +245,8 @@ void main() {
 
     final googleBtn = find.byTooltip('Đăng ký nhanh với Google');
     expect(find.text('Facebook'), findsOneWidget);
+    expect(find.text('Đang thử nghiệm'), findsOneWidget);
+    expect(find.textContaining('chỉ dành cho tài khoản được cấp vai trò'), findsOneWidget);
     expect(googleBtn, findsOneWidget);
 
     // Kiểm tra trực tiếp GoogleNameSelectionDialog (sau khi Google xác nhận danh tính)

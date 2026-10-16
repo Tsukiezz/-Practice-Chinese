@@ -27,7 +27,7 @@ def product_knowledge():
     comparisons = '\n'.join(f"- {f['feature']}: miễn phí {f['free']}; Premium {f['premium']}." for f in COMPARISON_FEATURES)
     return f'''THÔNG TIN SẢN PHẨM HANZIGO HIỆN HÀNH (ưu tiên hơn mô tả cũ):
 {comparisons}
-- Facebook: nút Facebook nằm cạnh Google ở trang đăng nhập/đăng ký. Chỉ dùng được khi quản trị viên đã cấu hình ứng dụng Meta; khi chưa cấu hình hãy dùng Google/email. Không tự ghép tài khoản trùng email; hãy dùng cách đăng nhập cũ. Trợ lý không được khẳng định Facebook đã hoạt động khi chưa kiểm tra cấu hình.
+- Facebook: nút Facebook nằm cạnh Google ở trang đăng nhập/đăng ký, có nhãn Đang thử nghiệm. Hiện chưa mở cho mọi người: chỉ tài khoản được cấp vai trò trong ứng dụng Meta mới có thể thử đăng nhập sau khi cấu hình hoàn tất. Người dùng khác hãy dùng Google/email. Không tự ghép tài khoản trùng email; hãy dùng cách đăng nhập cũ. Cấu hình đã bật không đồng nghĩa ứng dụng Meta đã được phát hành công khai.
 - Điều hướng: Test Tổng hợp mở từ Cá nhân có nút Quay lại ở đầu trang để về trang trước.
 - Giá gói 1 tháng: {PLAN_PRICES['1_month']['price']:,} VNĐ, 30 ngày; 1 năm: {PLAN_PRICES['1_year']['price']:,} VNĐ, 365 ngày. Gia hạn nối tiếp hạn còn lại.
 - AI tạo đề: miễn phí 3 đề/ngày theo giờ Việt Nam UTC+7; đề mẫu không tính lượt, xóa đề không trả lượt. Premium không giới hạn số đề, mỗi đề 1–50 câu; lỗi AI vẫn có thể xảy ra.
