@@ -2285,6 +2285,8 @@ async def text_to_speech(text: str = Query(..., min_length=1, max_length=1000)):
 
 
 ADMIN_DIR = Path(__file__).resolve().parent.parent / "admin"
+from privacy_pages import register_privacy_pages
+register_privacy_pages(app)
 from sepay_gateway import register_gateway
 register_gateway(app)
 
