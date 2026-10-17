@@ -4,6 +4,7 @@ import binascii
 import io
 import re
 import zipfile
+from PIL import Image, UnidentifiedImageError
 
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
@@ -55,6 +56,16 @@ def validate_attachment(file: AttachmentInput | None):
             pass
     if not valid:
         raise HTTPException(422, 'Nội dung tệp không khớp định dạng. Vui lòng chọn lại tệp.')
+    if types[extension].startswith('image/'):
+        try:
+            with Image.open(io.BytesIO(data)) as image:
+                if image.width * image.height > 16_000_000 or image.width < 1 or image.height < 1:
+                    raise ValueError('Image dimensions exceed limit')
+                if Image.MIME.get(image.format) != types[extension]:
+                    raise ValueError('Image type mismatch')
+                image.verify()
+        except (UnidentifiedImageError, OSError, ValueError, SyntaxError, Image.DecompressionBombError):
+            raise HTTPException(422, 'Ảnh bị hỏng hoặc quá lớn. Chọn PNG/JPG/WEBP tối đa 16 triệu điểm ảnh.') from None
     return {'filename': name, 'content_type': types[extension], 'size': len(data),
             'data_base64': base64.b64encode(data).decode('ascii')}
 

@@ -37,6 +37,50 @@
   let token = '', thread = null, last = 0, generation = 0, busy = false, loading = false;
   let pending = null, pendingAccepted = false, selectedFile = null, preparing = false;
   let sessionKey = null, expiryTimer = null;
+  const examLeases = new Set();
+  let examBlocked = false, guardQueue = Promise.resolve();
+  function lockChat(value) {
+    examBlocked = value || examLeases.size > 0;
+    host.hidden = examBlocked;
+    if (examBlocked) {
+      reset(); $('#panel').hidden = true; $('#launch').hidden = false;
+      $('#launch').setAttribute('aria-expanded', 'false');
+    }
+  }
+  function queueGuard(lease, active) {
+    const task = guardQueue.catch(() => {}).then(() => api('/exam-guard', 'POST', {lease, active}));
+    guardQueue = task;
+    return task;
+  }
+  window.hanziGoExamGuard = {
+    async start(lease) {
+      examLeases.add(lease); lockChat(true);
+      try {
+        // Establish a private guest cookie when there is no authenticated user.
+        if (!token) await api('/session', 'POST');
+        await queueGuard(lease, true);
+        return true;
+      } catch (_) {
+        examLeases.delete(lease);
+        // A timed-out request may already have acquired the lock.
+        queueGuard(lease, false).then(data => lockChat(data.blocked)).catch(() => {});
+        lockChat(false);
+        return false;
+      }
+    },
+    end(lease) {
+      if (!examLeases.delete(lease)) return;
+      queueGuard(lease, false).then(data => lockChat(data.blocked)).catch(() => {});
+      lockChat(examLeases.size > 0);
+    },
+  };
+  setInterval(async () => {
+    try {
+      for (const lease of examLeases) await queueGuard(lease, true);
+      const status = await api('/exam-guard');
+      lockChat(status.blocked);
+    } catch (_) { /* Local lock remains active through transient network errors. */ }
+  }, 30000);
   function selectFile(file) {
     selectedFile = file; $('#file').value = '';
     $('#selected').hidden = !file;
@@ -61,11 +105,15 @@
     if (next !== token) { token = next; reset(); }
   });
   async function api(path, method = 'GET', body) {
+    if (examBlocked && path !== '/exam-guard' && path !== '/session') {
+      throw Error('Trợ lý AI bị khóa trong khi làm bài kiểm tra.');
+    }
     const response = await fetch('/api/chat' + path, {method, credentials:'same-origin',
       headers: {'Content-Type':'application/json', ...(token ? {Authorization:'Bearer ' + token} : {})},
       body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(60000)});
     const data = await response.json();
     if (!response.ok) {
+      if (response.status === 423) lockChat(true);
       const error = Error(typeof data.detail === 'string' ? data.detail : 'Yêu cầu không hợp lệ. Tệp tối đa 2 MB, nội dung tối đa 3.000 ký tự.');
       error.status = response.status; throw error;
     }
@@ -95,7 +143,7 @@
     clearTimeout(expiryTimer);
     expiryTimer = setTimeout(reset, Math.max(0, data.expires_at - data.server_now) * 1000);
     const box = $('#messages'), atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-    if (!last && !data.messages.length) box.textContent = 'Xin chào! Bạn cần hỗ trợ gì về tiếng Trung hoặc HanziGo? Bạn cũng có thể đính kèm tệp để quản trị viên xem xét.';
+    if (!last && !data.messages.length) box.textContent = 'Xin chào! Bạn có thể hỏi về tiếng Trung/HanziGo hoặc gửi ảnh PNG, JPG, WEBP (tối đa 2 MB) để AI đọc chữ, giải thích và hướng dẫn học. Ảnh sẽ được gửi tới dịch vụ AI; tránh gửi thông tin riêng tư. PDF/DOCX/TXT được chuyển quản trị viên.';
     for (const message of data.messages) {
       if (pending && message.request_id === pending.request_id) pendingAccepted = true;
       if (message.id <= last) continue;
@@ -132,10 +180,12 @@
     } finally { if (version === generation) loading = false; }
   }
   $('#launch').onclick = () => {
+    if (examBlocked) return;
     $('#panel').hidden = false; $('#launch').hidden = true; $('#launch').setAttribute('aria-expanded','true');
     if (thread) refresh(); else $('#start').focus();
   };
   $('#start').onclick = async () => {
+    if (examBlocked) return;
     const version = generation; $('#start').disabled = true; $('#status').textContent = 'Đang mở phiên hỗ trợ…';
     try {
       const data = await api('/session','POST');
@@ -167,7 +217,7 @@
     finally { if (version === generation) { preparing = false; controls(); } }
   };
   async function deliver(request) {
-    if (!thread || busy || preparing) return;
+    if (examBlocked || !thread || busy || preparing) return;
     const version = generation; busy = true; pending = request; pendingAccepted = false;
     controls(); $('#retry-send').hidden = true;
     clearTimeout(expiryTimer); expiryTimer = setTimeout(reset,300000);

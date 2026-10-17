@@ -151,7 +151,8 @@ class SupportChatTest(unittest.TestCase):
     @patch('support_chat._decode_gemini_candidate')
     def test_provider_routing_requires_valid_booleans(self, decode, post, settings):
         decode.return_value = {'answer':'helpful answer','chinese_topic':False,'needs_admin':False}
-        self.assertEqual(generate_reply([{'role':'user','content':'hello'}]),('helpful answer',True))
+        from support_chat import get_chat_ai_config
+        self.assertEqual(generate_reply([{'role':'user','content':'hello'}]),(get_chat_ai_config()[1],True))
         decode.return_value['chinese_topic'] = True
         self.assertEqual(generate_reply([]),('helpful answer',False))
         self.assertEqual(generate_reply([{'role':'user','content':'Tôi muốn liên hệ quản trị viên'}]),('helpful answer',True))

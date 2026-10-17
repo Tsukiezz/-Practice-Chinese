@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../services/exam_draft_store.dart';
+import '../services/exam_chat_guard.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -52,6 +53,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
   String? _loadError;
   String? _submitError;
   ReadingExam? _activeExam;
+  final _chatGuard = ExamChatGuard();
+  bool _startingExam = false;
   ReadingResult? _result;
   List<ReadingExam> _exams = const [];
 
@@ -64,6 +67,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
 
   @override
   void dispose() {
+    _chatGuard.dispose();
     _examTimer?.cancel();
     _textAnswerController.dispose();
     for (final controller in _canvasControllers.values) {
@@ -1043,7 +1047,13 @@ class _PracticeScreenState extends State<PracticeScreen> {
   }
 
   void _startExam(ReadingExam exam) async {
-    _startTimer(exam.durationMinutes);
+    if (_startingExam || _activeExam != null) return;
+    _startingExam = true;
+    try { await _loadAndStartExam(exam); }
+    finally { _startingExam = false; }
+  }
+
+  Future<void> _loadAndStartExam(ReadingExam exam) async {
     final restored = await ExamDraftStore.read(
       widget.draftOwner,
       'reading',
@@ -1051,6 +1061,13 @@ class _PracticeScreenState extends State<PracticeScreen> {
       exam.version,
     );
     if (!mounted) return;
+    if (!await _chatGuard.start()) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Chưa khóa được trợ lý AI. Kiểm tra kết nối và thử mở bài lại.')));
+      return;
+    }
+    if (!mounted) return;
+    _startTimer(exam.durationMinutes);
     setState(() {
       _activeExam = exam;
       _result = null;
@@ -1201,6 +1218,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
         _activeExam!,
         Map.unmodifiable(answersToSubmit),
       );
+      _chatGuard.end();
       try {
         await ExamDraftStore.clear(
           widget.draftOwner,
@@ -1266,6 +1284,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
 
 
   void _returnToExamList() {
+    _chatGuard.end();
     setState(() {
       _activeExam = null;
       _result = null;

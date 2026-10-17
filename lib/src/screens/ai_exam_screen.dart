@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../services/ai_exam_service.dart';
+import '../services/exam_chat_guard.dart';
 import '../services/reading_exam_service.dart';
 import 'practice_screen.dart';
 import '../services/pronunciation_service.dart';
@@ -43,6 +44,8 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
 
   // Active exam taking state
   AIExam? _activeExam;
+  final _chatGuard = ExamChatGuard();
+  bool _startingExam = false;
   int _currentQuestionIndex = 0;
   final Map<String, String> _userAnswers = {};
   Timer? _countdownTimer;
@@ -69,6 +72,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
 
   @override
   void dispose() {
+    _chatGuard.dispose();
     _customCountController.dispose();
     _countdownTimer?.cancel();
     _tabController.dispose();
@@ -187,6 +191,14 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
   }
 
   Future<void> _startExam(AIExam exam) async {
+    if (_startingExam || _activeExam != null) return;
+    _startingExam = true;
+    try {
+      await _loadAndStartExam(exam);
+    } finally { _startingExam = false; }
+  }
+
+  Future<void> _loadAndStartExam(AIExam exam) async {
     AIExam fullExam = exam;
     if (fullExam.questions.isEmpty) {
       showDialog<void>(
@@ -222,6 +234,13 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
       }
     }
 
+    if (!mounted) return;
+    if (!await _chatGuard.start()) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Chưa khóa được trợ lý AI. Kiểm tra kết nối và thử mở bài lại.')));
+      return;
+    }
+    if (!mounted) return;
     setState(() {
       _activeExam = fullExam;
       _currentQuestionIndex = 0;
@@ -300,6 +319,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
 
     try {
       final feedback = await widget.service.submitExam(_activeExam!.id, _userAnswers);
+      _chatGuard.end();
       if (mounted) {
         setState(() {
           _reviewedExam = _activeExam;
@@ -1190,6 +1210,7 @@ class _AiExamScreenState extends State<AiExamScreen> with SingleTickerProviderSt
               ),
             );
             if (exit == true) {
+              _chatGuard.end();
               _countdownTimer?.cancel();
               setState(() => _activeExam = null);
               _loadHistory();

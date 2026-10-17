@@ -529,10 +529,14 @@
   </div>
 </div>
 
+<script src="/admin/assets/support-widget.js"></script>
 <script>
 'use strict';
 
 const token = sessionStorage.getItem('hanzigo_account_token') || sessionStorage.getItem('hanzigo_token') || '';
+window.dispatchEvent(new CustomEvent('hanzigo-chat-session', {detail: token}));
+const chatExamLease = 'legacy_' + crypto.randomUUID();
+let startingExam = false;
 let currentExam = null;
 let currentQuestionIndex = 0;
 let userAnswers = {};
@@ -562,6 +566,7 @@ async function api(path, method = 'GET', body = null) {
 
 // Switch UI views
 function switchView(view) {
+  if (view !== 'exam') window.hanziGoExamGuard.end(chatExamLease);
   document.getElementById('view-create').hidden = view !== 'create';
   document.getElementById('view-exam').hidden = view !== 'exam';
   document.getElementById('view-results').hidden = view !== 'results';
@@ -669,7 +674,14 @@ function handleDoNow() {
 }
 
 // Start Taking Exam
-function startExam(exam) {
+async function startExam(exam) {
+  if (startingExam) return;
+  startingExam = true;
+  try {
+    if (!await window.hanziGoExamGuard.start(chatExamLease)) {
+      alert('Chưa khóa được trợ lý AI. Kiểm tra kết nối và thử lại.');
+      return;
+    }
   currentExam = exam;
   currentQuestionIndex = 0;
   userAnswers = {};
@@ -694,6 +706,7 @@ function startExam(exam) {
 
   // Start Timer
   startTimer();
+  } finally { startingExam = false; }
 }
 
 function startTimer() {

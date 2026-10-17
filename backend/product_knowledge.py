@@ -27,6 +27,8 @@ def product_knowledge():
     comparisons = '\n'.join(f"- {f['feature']}: miễn phí {f['free']}; Premium {f['premium']}." for f in COMPARISON_FEATURES)
     return f'''THÔNG TIN SẢN PHẨM HANZIGO HIỆN HÀNH (ưu tiên hơn mô tả cũ):
 {comparisons}
+- Ảnh trong trợ lý: gửi PNG/JPG/WEBP tối đa 2 MB và 16 triệu điểm ảnh để AI đọc chữ Hán, thêm pinyin, giải nghĩa, hướng dẫn bài tập tiếng Trung hoặc hỗ trợ HanziGo. AI có thể đọc sai; ảnh mờ cần chụp lại. Không xử lý yêu cầu ngoài phạm vi. PDF/DOCX/TXT vẫn chuyển quản trị viên. Không gửi thông tin riêng tư không cần thiết.
+- Trợ lý khi kiểm tra: chat bị khóa từ lúc bắt đầu làm bài đến khi nộp thành công hoặc thoát bài. Không mở hoặc gửi tin nhắn AI trong bài thi; nộp lỗi vẫn giữ khóa. Đây là hạn chế trợ lý HanziGo, không phải công cụ giám sát mọi website hay thiết bị khác.
 - Facebook: nút Facebook nằm cạnh Google ở trang đăng nhập/đăng ký, có nhãn Đang thử nghiệm. Hiện chưa mở cho mọi người: chỉ tài khoản được cấp vai trò trong ứng dụng Meta mới có thể thử đăng nhập sau khi cấu hình hoàn tất. Người dùng khác hãy dùng Google/email. Không tự ghép tài khoản trùng email; hãy dùng cách đăng nhập cũ. Cấu hình đã bật không đồng nghĩa ứng dụng Meta đã được phát hành công khai.
 - Điều hướng: Test Tổng hợp mở từ Cá nhân có nút Quay lại ở đầu trang để về trang trước.
 - Giá gói 1 tháng: {PLAN_PRICES['1_month']['price']:,} VNĐ, 30 ngày; 1 năm: {PLAN_PRICES['1_year']['price']:,} VNĐ, 365 ngày. Gia hạn nối tiếp hạn còn lại.
