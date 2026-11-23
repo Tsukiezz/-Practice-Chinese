@@ -183,6 +183,8 @@ void main() {
               .descendant(
                   of: find.byType(ListView), matching: find.byType(Scrollable))
               .first);
+      await Scrollable.ensureVisible(tester.element(translation), alignment: 0.35);
+      await tester.pumpAndSettle();
       await tester.tap(translation);
       await tester.pumpAndSettle();
       expect(

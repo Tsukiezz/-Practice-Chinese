@@ -1,0 +1,3 @@
+{"id":"handwriting-001","kind":"handwriting","split":"test","label_source":"teacher","reviewer":null,"reference_score":null,"predicted_score":null,"prediction_source":"offline-vector-v2","assessment_status":"unavailable"}
+{"id":"pronunciation-001","kind":"pronunciation","split":"test","label_source":"teacher","reviewer":null,"reference_score":null,"predicted_score":null,"prediction_source":"gemini_audio","assessment_status":"unavailable"}
+{"id":"ocr-001","kind":"ocr","split":"test","label_source":"teacher","reviewer":null,"reference_hanzi":null,"predictions":[],"prediction_source":"gemini_vision","assessment_status":"unavailable"}

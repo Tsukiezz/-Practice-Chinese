@@ -133,7 +133,10 @@ void main() {
       find.text('Một chút mỗi ngày.\nTự tin hơn mỗi bước.'),
       findsOneWidget,
     );
+    await tester.scrollUntilVisible(find.text('Hôm nay bạn muốn học gì?'), 250,
+      scrollable: find.byType(Scrollable).first);
     expect(find.text('Hôm nay bạn muốn học gì?'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('tải và lọc đề đọc theo cấp độ HSK', (tester) async {

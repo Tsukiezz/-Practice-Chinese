@@ -84,29 +84,15 @@ class TestAiReading(unittest.TestCase):
         self.assertEqual(normalize_pinyin_to_tone_number("xué xí"), "xue2 xi2")
 
     def test_offline_pronunciation_evaluator(self):
-        """Verify rule-based pronunciation evaluation and error detection."""
-        # 1. Exact match
-        res_exact = evaluate_pronunciation_offline("你好", "nǐ hǎo", "你好")
-        self.assertEqual(res_exact["accuracy_percent"], 100.0)
-        self.assertEqual(res_exact["rating"], "Xuất sắc")
-        self.assertEqual(len(res_exact["errors"]), 0)
-
-        # 2. Empty speech
-        res_empty = evaluate_pronunciation_offline("你好", "nǐ hǎo", "")
-        self.assertEqual(res_empty["accuracy_percent"], 0.0)
-        self.assertEqual(res_empty["rating"], "Chưa đạt")
-        self.assertGreater(len(res_empty["errors"]), 0)
-
-        # 3. Recorded audio without WebSpeech transcript (e.g. mobile Safari)
-        res_audio = evaluate_pronunciation_offline("你好", "nǐ hǎo", "", has_audio=True)
-        self.assertGreaterEqual(res_audio["accuracy_percent"], 80.0)
-        self.assertEqual(res_audio["rating"], "Tốt")
-        self.assertEqual(res_audio["spoken_recognized"], "你好")
-
-        # 4. Partial or different pronunciation
-        res_diff = evaluate_pronunciation_offline("学习", "xuéxí", "xue1 xi1")
-        self.assertTrue(10.0 <= res_diff["accuracy_percent"] <= 95.0)
-        self.assertGreater(len(res_diff["corrections"]), 0)
+        """Text matching never produces an acoustic grade."""
+        for spoken in ('你好', '', 'xue1 xi1'):
+            result = evaluate_pronunciation_offline('你好', 'nǐ hǎo', spoken, has_audio=True)
+            for key in ('accuracy_percent', 'tone_score', 'phoneme_score', 'fluency_score'):
+                self.assertIsNone(result[key])
+            self.assertFalse(result['score_eligible'])
+            self.assertEqual(result['spoken_recognized'], spoken)
+        exact = evaluate_pronunciation_offline('你好', 'nǐ hǎo', '你好')
+        self.assertEqual(exact['transcript_match_percent'], 100.0)
 
     def test_reading_evaluate_endpoint(self):
         """Test full reading evaluation API with user authentication & history persistence."""
@@ -121,21 +107,14 @@ class TestAiReading(unittest.TestCase):
         self.assertEqual(res.status_code, 200, res.text)
         data = res.json()
         self.assertEqual(data["target_hanzi"], "学习")
-        self.assertTrue(0.0 <= data["accuracy_percent"] <= 100.0)
-        self.assertIn(data["rating"], ("Xuất sắc", "Tốt", "Cần cải thiện", "Chưa đạt", "Đạt"))
+        self.assertIsNone(data["accuracy_percent"])
+        self.assertEqual(data["assessment_status"], "transcript_only")
         self.assertIn("tone_score", data)
         self.assertIn("phoneme_score", data)
         self.assertIn("errors", data)
         self.assertIn("corrections", data)
-        self.assertIsNotNone(data["history_id"])
-
-        # Check that item appears in reading history
-        history_res = self.client.get("/api/me/reading/history", headers=self.student_auth)
-        self.assertEqual(history_res.status_code, 200)
-        history_data = history_res.json()
-        self.assertGreaterEqual(history_data["total"], 1)
-        found = any(item["id"] == data["history_id"] for item in history_data["items"])
-        self.assertTrue(found)
+        self.assertIsNone(data["history_id"])
+        self.assertFalse(data["score_eligible"])
 
     def test_unauthenticated_reading_evaluate(self):
         """Verify guest learners can evaluate reading without requiring login."""
@@ -151,7 +130,8 @@ class TestAiReading(unittest.TestCase):
         data = res.json()
         self.assertEqual(data["target_hanzi"], "你好")
         self.assertIsNone(data["history_id"])
-        self.assertGreaterEqual(data["accuracy_percent"], 90.0)
+        self.assertIsNone(data["accuracy_percent"])
+        self.assertEqual(data["transcript_match_percent"], 100.0)
 
 
 if __name__ == "__main__":

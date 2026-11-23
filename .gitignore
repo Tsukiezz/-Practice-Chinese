@@ -69,6 +69,8 @@ configs_backup/
 .local-backups/
 .pytest_cache/
 .env*
+# Private exports and task reports are never deployment/source inputs.
+/outputs/
 scratch/
 latest_build_log.txt
 

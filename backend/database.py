@@ -41,32 +41,6 @@ def row_to_dict(row):
     return dict(row)
 
 
-def ensure_default_admin(conn):
-    """Ensure standard admin accounts exist with known credentials."""
-    import hashlib
-    admin_accounts = [
-        ("admin@hanzigo.com", "Quản trị viên HanziGo"),
-        ("nguyen.demo@example.test", "Nguyen Demo"),
-        ("nguyen.admin.test@example.test", "Nguyên kiểm thử"),
-    ]
-    salt = "a1b2c3d4e5f60718293a4b5c6d7e8f90"
-    pwd_hash = hashlib.pbkdf2_hmac("sha256", "Admin@HanziGo2026!".encode("utf-8"), bytes.fromhex(salt), 600_000).hex()
-    now = int(time.time())
-    for email, name in admin_accounts:
-        try:
-            row = conn.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
-            if not row:
-                conn.execute(
-                    "INSERT INTO users(name,email,password_hash,salt,role,is_active,created_at) VALUES(?,?,?,?,?,1,?)",
-                    (name, email, pwd_hash, salt, "admin", now)
-                )
-            else:
-                conn.execute(
-                    "UPDATE users SET password_hash=?, salt=?, role='admin', is_active=1 WHERE email=?",
-                    (pwd_hash, salt, email)
-                )
-        except Exception:
-            pass
 
 
 def audit(conn, actor, action, entity, entity_id, before=None, after=None):

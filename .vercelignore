@@ -25,3 +25,5 @@ skills-lock.json
 configs_backup/
 scratch/
 latest_build_log.txt
+outputs/
+*.pptx

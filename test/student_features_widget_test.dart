@@ -293,6 +293,8 @@ void main() {
   testWidgets('Canvas gửi nét thật và hiện kết quả tra từ viết tay', (
     tester,
   ) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     final service = _FakeStudentService();
     await tester.pumpWidget(
       MaterialApp(home: HandwritingScreen(service: service)),
@@ -307,22 +309,23 @@ void main() {
     await gesture.moveBy(const Offset(80, 5));
     await gesture.up();
     await tester.pump();
-    await tester.drag(find.byType(ListView), const Offset(0, -1000));
+    final submit = find.byKey(const Key('submit-handwriting'));
+    await Scrollable.ensureVisible(tester.element(submit), alignment: 0.5);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('submit-handwriting')));
+    await tester.tap(submit);
     await tester.pumpAndSettle();
     await tester.drag(find.byType(ListView), const Offset(0, -1000));
     await tester.pumpAndSettle();
 
     expect(service.handwritingRecognitionRequested, isTrue);
-    expect(find.text('96% tin cậy'), findsOneWidget);
+    expect(find.text('96% độ tin cậy do AI cung cấp'), findsOneWidget);
     expect(find.text('一 · yī'), findsOneWidget);
     expect(find.text('một'), findsOneWidget);
   });
 
   testWidgets('chế độ luyện nét cũ vẫn gửi kết quả cho Ôn tập', (tester) async {
     final semantics = tester.ensureSemantics();
-    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    await tester.binding.setSurfaceSize(const Size(900, 2200));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final service = _FakeStudentService();
     await tester.pumpWidget(
@@ -330,20 +333,35 @@ void main() {
     );
     await tester.tap(find.text('Luyện nét'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('handwriting-target')), '一');
+    await tester.enterText(find.byType(TextField), 'xin chào');
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.text('你好'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('practice-character-1')));
+    await tester.pumpAndSettle();
+    FocusManager.instance.primaryFocus?.unfocus();
     final canvas = find.byKey(const Key('handwriting-canvas'));
+    await Scrollable.ensureVisible(tester.element(canvas), alignment: 0.2);
+    await tester.pumpAndSettle();
     final gesture = await tester.startGesture(tester.getCenter(canvas));
     await gesture.moveBy(const Offset(80, 5));
     await gesture.moveBy(const Offset(80, 5));
     await gesture.up();
-    await tester.tap(find.byKey(const Key('submit-handwriting')));
+    await tester.pump();
+    final submit = find.byKey(const Key('submit-handwriting'));
+    await tester.scrollUntilVisible(submit, 250, scrollable: find.byType(Scrollable).first);
+    await Scrollable.ensureVisible(tester.element(submit), alignment: 0.5);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
     await tester.pumpAndSettle();
 
-    expect(service.handwritingTarget, '一');
+    expect(service.handwritingTarget, '好');
+    await tester.scrollUntilVisible(find.text('92 điểm'), 200, scrollable: find.byType(Scrollable).first);
     expect(find.text('92 điểm'), findsOneWidget);
     expect(find.text('Dáng, vị trí & thứ tự 40%: 80'), findsOneWidget);
     expect(find.bySemanticsLabel('Nét sai được tô đỏ: 1'), findsOneWidget);
     semantics.dispose();
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('danh sách ôn tập hiện kết quả nộp lại gần nhất', (tester) async {

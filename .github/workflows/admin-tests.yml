@@ -1,9 +1,9 @@
 name: Admin integration tests
 on:
   push:
-    branches: [nguyen, test]
+    branches: [main, nguyen, test]
   pull_request:
-    paths: ['backend/**', 'admin/**', 'lib/**', 'test/**', 'web/**', 'assets/**', 'pubspec.*', '.github/workflows/admin-tests.yml']
+    paths: ['backend/**', 'admin/**', 'lib/**', 'test/**', 'web/**', 'assets/**', 'scripts/**', 'pubspec.*', '.github/workflows/admin-tests.yml']
 permissions:
   contents: read
 jobs:
@@ -24,9 +24,9 @@ jobs:
         with:
           python-version: '3.13'
       - run: python -m pip install -r requirements-dev.txt
-      - run: python -m unittest discover -p 'test_*.py' -v
+      - run: python ../scripts/run_backend_tests.py
       - run: python -m playwright install --with-deps chromium
-      - run: python smoke_browser.py
+      - run: python ../scripts/run_backend_tests.py --smoke-browser
   unified-web:
     runs-on: ubuntu-latest
     steps:
@@ -48,4 +48,4 @@ jobs:
         working-directory: backend
         env:
           WEB_APP_DIR: ${{ github.workspace }}/build/web
-        run: python smoke_unified.py
+        run: python ../scripts/run_backend_tests.py --smoke-unified

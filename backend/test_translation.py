@@ -78,7 +78,7 @@ class GrammarAnalysisTest(unittest.TestCase):
                 "SELECT COUNT(*) FROM grammar_cache").fetchone()
             assert gc_row is not None
             cache_count = gc_row[0]
-        self.assertEqual([tuple(row) for row in usage],
+        self.assertEqual([(row["module"], row["status"]) for row in usage],
                          [("grammar_analysis", "success")])
         self.assertEqual(cache_count, 1)
 

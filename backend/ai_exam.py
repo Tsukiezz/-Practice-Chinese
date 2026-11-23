@@ -576,6 +576,13 @@ def grade_ai_exam(questions: list[dict], user_answers: dict[str, str]) -> tuple[
     return score, details, evaluation
 
 
+def learner_questions(questions):
+    """Public question DTO: the answer key stays on the server until submission."""
+    public_fields = ("id", "prompt", "pinyin", "options", "audio_url", "question_type", "passage")
+    return [{key: question[key] for key in public_fields if key in question}
+            for question in questions]
+
+
 def register_ai_exam_routes(app, current_user):
     """Register learner AI Exam API routes."""
 
@@ -659,7 +666,7 @@ def register_ai_exam_routes(app, current_user):
             "question_count": body.question_count,
             "duration_minutes": duration_minutes,
             "duration_seconds": duration_minutes * 60,
-            "questions": questions,
+            "questions": learner_questions(questions),
             "status": "pending",
             "created_at": now,
         }
@@ -728,16 +735,13 @@ def register_ai_exam_routes(app, current_user):
         if (exam.get('hsk_level') or 0) > 6 and exam['status'] != 'completed':
             from advanced_hsk import require_advanced
             require_advanced(user)
-        exam["questions"] = json.loads(exam.pop("questions_json"))
+        questions = json.loads(exam.pop("questions_json"))
+        exam["questions"] = questions if exam["status"] == "completed" else learner_questions(questions)
         exam["duration_seconds"] = exam["duration_minutes"] * 60
-        if exam["user_answers_json"]:
-            exam["user_answers"] = json.loads(exam.pop("user_answers_json"))
-        else:
-            exam["user_answers"] = {}
-        if exam["ai_feedback_json"]:
-            exam["ai_feedback"] = json.loads(exam.pop("ai_feedback_json"))
-        else:
-            exam["ai_feedback"] = None
+        answers = exam.pop("user_answers_json", None)
+        feedback = exam.pop("ai_feedback_json", None)
+        exam["user_answers"] = json.loads(answers) if answers else {}
+        exam["ai_feedback"] = json.loads(feedback) if feedback and exam["status"] == "completed" else None
 
         return exam
 
@@ -795,7 +799,7 @@ def register_ai_exam_routes(app, current_user):
                 """INSERT INTO results (
                     user_id, kind, content, score, original_score, feedback,
                     graded_by, created_at
-                ) VALUES (?, 'exam', ?, ?, ?, ?, 'ai', ?)""",
+                ) VALUES (?, 'exam', ?, ?, ?, ?, 'automatic', ?)""",
                 (
                     user["id"],
                     json.dumps({

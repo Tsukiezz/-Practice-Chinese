@@ -96,9 +96,9 @@ class AIExamTests(unittest.TestCase):
             self.assertTrue(q["id"].startswith("q"))
             self.assertTrue(bool(q["prompt"]))
             self.assertEqual(len(q["options"]), 4)
-            self.assertTrue(bool(q["answer"]))
-            self.assertTrue(bool(q["explanation"]))
-            self.assertTrue(bool(q["correction"]))
+            self.assertNotIn("answer", q)
+            self.assertNotIn("explanation", q)
+            self.assertNotIn("correction", q)
 
     def test_exam_vocabulary_customization(self):
         """Test creating exam with vocabulary and HSK level / topic."""
@@ -161,7 +161,11 @@ class AIExamTests(unittest.TestCase):
         })
         exam = res_create.json()
         exam_id = exam["id"]
-        questions = exam["questions"]
+        # Test fixtures read the key from the disposable server database;
+        # learner-facing pending responses must never contain it.
+        with storage.database() as conn:
+            questions = json.loads(conn.execute(
+                "SELECT questions_json FROM student_ai_exams WHERE id=?", (exam_id,)).fetchone()[0])
 
         # Prepare answers: 2 correct, 2 wrong
         answers = {

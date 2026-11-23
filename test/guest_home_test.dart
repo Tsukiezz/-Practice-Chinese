@@ -27,11 +27,15 @@ void main() {
         ),
       ),
     );
-    expect(find.text('Xin chào, Nguyễn Văn Nguyên'), findsOneWidget);
+    expect(find.textContaining(', Nguyễn Văn Nguyên'), findsOneWidget);
     expect(find.text('Minh Anh'), findsNothing);
+    await tester.scrollUntilVisible(find.text('Bắt đầu học'), 150);
+    await Scrollable.ensureVisible(tester.element(find.text('Bắt đầu học')), alignment: 0.4);
+    await tester.pump();
     await tester.tap(find.text('Bắt đầu học'));
     expect(opened, isTrue);
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('guest can read word without private API calls', (tester) async {

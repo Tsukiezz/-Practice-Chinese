@@ -985,35 +985,19 @@ class _HandwritingScreenState extends State<HandwritingScreen> {
         );
         _blindCorrect[_characterIndex] = correct;
       });
-    } on StudentApiException {
+    } catch (_) {
       if (!mounted) return;
-      // Fallback: compare strokes using offline grading
-      try {
-        final offlineGrade = await widget.service.submitHandwriting(
-          target,
-          _canvasController.payload,
-        );
-        if (!mounted) return;
-        final correct = offlineGrade.score >= 50;
-        setState(() {
-          _blindResult = _BlindCheckResult(
+      // An unavailable recognizer cannot establish that the learner wrote the
+      // target. Show a self-check without recording a pass or a failure.
+      setState(() {
+        _blindCorrect.remove(_characterIndex);
+        _blindResult = _BlindCheckResult(
             target: target,
             pinyin: _displayPinyin,
-            correct: correct,
-            recognized: correct ? target : (offlineGrade.wrongStrokes.isNotEmpty ? 'Nét chưa chuẩn' : target),
+            correct: null,
+            recognized: '',
           );
-          _blindCorrect[_characterIndex] = correct;
-        });
-        return;
-      } catch (_) {}
-      if (!mounted) return;
-      // Ultimate graceful fallback: mark valid and display target for comparison
-      setState(() => _blindResult = _BlindCheckResult(
-            target: target,
-            pinyin: _displayPinyin,
-            correct: true,
-            recognized: target,
-          ));
+      });
     }
   }
 
@@ -1137,7 +1121,7 @@ class _RecognitionCard extends StatelessWidget {
                         style: TextStyle(fontWeight: FontWeight.w800),
                       ),
                       Text(
-                        '${result.score.toStringAsFixed(0)}% tin cậy',
+                        '${result.score.toStringAsFixed(0)}% độ tin cậy do AI cung cấp',
                         style: TextStyle(color: Theme.of(context).colorScheme.error),
                       ),
                     ],

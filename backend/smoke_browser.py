@@ -69,7 +69,14 @@ def run():
                         expect(page.locator('#admin-menu')).not_to_be_visible()
                         toggle.click()
                         expect(page.locator('#admin-menu')).to_be_visible()
-                    page.get_by_role('button',name=name,exact=True).click()
+                    keys = {'Người dùng': 'users', 'Kho từ & nét chuẩn': 'vocabulary',
+                            'Ngân hàng đề': 'exams', 'Duyệt kết quả': 'results',
+                            'Cấu hình AI': 'ai', 'Nhật ký quản trị': 'logs', 'Tổng quan': 'dashboard'}
+                    button = page.locator('[data-page="' + keys[name] + '"]')
+                    if not button.is_visible():
+                        group = page.locator('.nav-accordion').filter(has=button)
+                        group.locator('[data-toggle-group]').click()
+                    button.click()
                     if toggle.is_visible():
                         expect(toggle).to_have_attribute('aria-expanded','false')
                         expect(page.locator('#admin-menu')).not_to_be_visible()
@@ -87,7 +94,7 @@ def run():
                 page.locator('.advanced-stats summary').click()
                 page.screenshot(path=str(artifacts / "admin-desktop.png"), full_page=True)
 
-                page.get_by_role("button", name="Kho từ & nét chuẩn", exact=True).click()
+                navigate('Kho từ & nét chuẩn')
                 page.get_by_role("button", name="+ Thêm từ", exact=True).click()
                 editor = page.locator('dialog')
                 editor.get_by_label("Chữ Hán", exact=True).fill("测")
@@ -109,7 +116,7 @@ def run():
                 editor.get_by_role('button',name='Lưu thay đổi',exact=True).click()
                 expect(editor).not_to_be_visible()
 
-                page.get_by_role('button',name='Ngân hàng đề',exact=True).click()
+                navigate('Ngân hàng đề')
                 page.get_by_role('button',name='+ Tạo đề thi',exact=True).click()
                 editor.get_by_label('Tên đề',exact=True).fill('Đề kiểm thử trình duyệt')
                 editor.get_by_label('Trạng thái',exact=True).select_option('published')
@@ -126,7 +133,7 @@ def run():
                 exam = next(e for e in exams if e['title']=='Đề kiểm thử trình duyệt')
                 result = httpx.post(base+f"/api/exams/{exam['id']}/submit",headers=auth,json={'version':exam['version'],'answers':{'browser-q1':'một'}})
                 assert result.status_code == 201, result.text
-                page.get_by_role('button',name='Duyệt kết quả',exact=True).click()
+                navigate('Duyệt kết quả')
                 page.get_by_role('button',name='Xem & duyệt',exact=True).click()
                 editor.get_by_label('Điểm điều chỉnh (0–100)',exact=True).fill('85')
                 editor.get_by_label('Lý do điều chỉnh',exact=True).fill('Đối chiếu bài làm trong kiểm thử tích hợp')
@@ -166,21 +173,22 @@ def run():
                 learner.get_by_role('button',name='Đăng xuất',exact=True).tap()
                 learner.close()
                 page.set_viewport_size({'width':1440,'height':1000})
-                page.get_by_role('button',name='Cấu hình AI',exact=True).click()
-                page.get_by_label('Model',exact=True).fill('test-model')
+                navigate('Cấu hình AI')
+                page.locator('#ai-form [name=model]').fill('test-model')
                 page.get_by_role('button',name='Lưu cấu hình',exact=True).click()
-                expect(page.get_by_label('Model',exact=True)).to_have_value('test-model')
-                expect(page.locator('#notice')).to_have_text('Đã lưu cấu hình AI')
-                page.get_by_role('button',name='Nhật ký quản trị',exact=True).click()
-                page.get_by_role('button',name='Xem',exact=True).first.click()
+                expect(page.locator('#ai-form [name=model]')).to_have_value('test-model')
+                expect(page.locator('#notice')).to_have_text('Đã lưu cấu hình và huấn luyện Trợ lý AI')
+                navigate('Nhật ký quản trị')
+                page.get_by_role('button',name='Xem đầy đủ',exact=True).first.click()
+                editor.get_by_text('Xem toàn bộ dữ liệu gốc', exact=True).click()
                 expect(editor.get_by_role('heading',name='Sau thay đổi')).to_be_visible()
-                editor.get_by_role('button',name='Đóng',exact=True).click()
+                editor.get_by_role('button',name='Đóng chi tiết nhật ký',exact=True).click()
 
-                page.get_by_role('button',name='Người dùng',exact=True).click()
+                navigate('Người dùng')
                 page.get_by_label('Tìm tài khoản',exact=True).fill('student@example.test')
                 page.get_by_role('button',name='Tìm kiếm',exact=True).click()
                 expect(page.locator('tbody tr')).to_have_count(1)
-                page.get_by_role('button',name='Chỉnh sửa',exact=True).click()
+                page.locator('[data-edit-user]').click()
                 editor.get_by_label('Tài khoản hoạt động',exact=True).uncheck()
                 editor.get_by_role('button',name='Lưu thay đổi',exact=True).click()
                 expect(editor).not_to_be_visible()
@@ -244,7 +252,8 @@ def run():
                 expect(phone.locator('.stat:visible')).to_have_count(4)
                 expect(phone.locator('#admin-menu')).not_to_be_visible()
                 phone.locator('#menu-toggle').tap()
-                phone.get_by_role('button',name='Ngân hàng đề',exact=True).tap()
+                phone.locator('[data-toggle-group=content]').tap()
+                phone.locator('[data-page=exams]').tap()
                 expect(phone.locator('#admin-menu')).not_to_be_visible()
                 phone.get_by_role('button',name='+ Tạo đề thi',exact=True).tap()
                 expect(phone.locator('dialog')).to_be_visible()
@@ -256,6 +265,26 @@ def run():
                 expect(phone.get_by_role('heading',name='Đăng nhập quản trị',exact=True)).to_be_visible()
                 assert not errors, errors
                 phone.close()
+                reading = browser.new_page(viewport={'width':390, 'height':844})
+                reading.on('pageerror', lambda error: errors.append(str(error)))
+                reading.goto(base + '/reading')
+                response = reading.request.post(base + '/api/reading/evaluate', data={
+                    'target_hanzi': '你好', 'target_pinyin': 'nǐ hǎo', 'spoken_text': '你好', 'save_history': False})
+                assert response.status == 200
+                feedback = response.json()
+                assert feedback['accuracy_percent'] is None and feedback['score_eligible'] is False
+                reading.evaluate('(data) => renderEvaluationResult(data)', feedback)
+                expect(reading.locator('#scorePct')).to_have_text('—')
+                expect(reading.locator('#toneScore')).to_have_text('—')
+                expect(reading.locator('#ratingTitle')).to_have_text('Chưa đánh giá được âm thanh')
+                # UI contract: an actual zero is preserved; missing components stay unknown.
+                reading.evaluate('(data) => renderEvaluationResult(data)', {
+                    **feedback, 'score_eligible': True, 'accuracy_percent': 0, 'tone_score': 0, 'rating': 'Chưa đạt'})
+                expect(reading.locator('#scorePct')).to_have_text('0%')
+                expect(reading.locator('#toneScore')).to_have_text('0%')
+                expect(reading.locator('#phonemeScore')).to_have_text('—')
+                reading.close()
+                assert not errors, errors
                 browser.close()
             print('PASS: desktop/mobile admin, vocabulary and strokes, exams, score synchronization, users, AI config, audit, session/logout; no JavaScript errors.')
         finally:

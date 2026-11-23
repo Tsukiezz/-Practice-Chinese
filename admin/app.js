@@ -132,7 +132,7 @@ function clearSession() {
 }
 
 function loginView(error = '') {
-  root.innerHTML = `<div class="login"><aside class="login-art">${brand}<div><div class="character"><img src="/admin/assets/logo.png" style="width:100px;height:100px;border-radius:50%;box-shadow:0 12px 36px rgba(0,0,0,0.35)" alt="Logo"></div><h1>Chăm chút từng<br>hành trình học.</h1><p>Không gian quản trị dành cho đội ngũ HanziGo · Hán Ngữ Xanh. Nội dung tốt tạo nên trải nghiệm học tốt.</p></div><small>HanziGo · Hán Ngữ Xanh</small></aside><section class="login-wrap"><form id="login" class="login-form"><div style="text-align:center"><img src="/admin/assets/logo.png" style="width:68px;height:68px;border-radius:50%;margin-bottom:10px;box-shadow:0 6px 20px rgba(21,62,53,0.2)" alt="Logo"><div class="eyebrow">CHÀO MỪNG TRỞ LẠI</div><h2>Đăng nhập quản trị</h2><p>Sử dụng tài khoản Admin được cấp cho dự án.</p></div><label>Email<input id="admin-email" name="email" type="email" autocomplete="username" required maxlength="120"></label><label>Mật khẩu<span class="password-field"><input id="admin-password" name="password" type="password" autocomplete="current-password" required maxlength="128"><button type="button" id="toggle-password" aria-controls="admin-password" aria-pressed="false">Hiện</button></span></label><div id="login-error" role="alert">${error ? `<div class="error">${escape(error)}</div>` : ''}</div><button type="submit" class="primary">Đăng nhập →</button><a href="/" style="display:inline-block;margin-top:16px;color:#2c7a3f;text-decoration:none;font-weight:600;text-align:center">← Trở về ứng dụng học tập HanziGo</a><small>Quyền quản trị được xác minh trên máy chủ.</small></form></section></div>`;
+  root.innerHTML = `<div class="login"><aside class="login-art">${brand}<div><div class="character"><img src="/admin/assets/logo.png" style="width:100px;height:100px;border-radius:50%;box-shadow:0 12px 36px rgba(0,0,0,0.35)" alt="Logo"></div><h1>Chăm chút từng<br>hành trình học.</h1><p>Không gian quản trị dành cho đội ngũ HanziGo · Hán Ngữ Xanh. Nội dung tốt tạo nên trải nghiệm học tốt.</p></div><small>HanziGo · Hán Ngữ Xanh</small></aside><section class="login-wrap"><form id="login" class="login-form"><div style="text-align:center"><img src="/admin/assets/logo.png" style="width:68px;height:68px;border-radius:50%;margin-bottom:10px;box-shadow:0 6px 20px rgba(21,62,53,0.2)" alt="Logo"><div class="eyebrow">CHÀO MỪNG TRỞ LẠI</div><h2>Đăng nhập quản trị</h2><p>Sử dụng tài khoản Admin được cấp cho dự án.</p></div><label>Email<input id="admin-email" name="email" type="email" autocomplete="username" required maxlength="120"></label><label>Mật khẩu<span class="password-field"><input id="admin-password" aria-label="Mật khẩu" name="password" type="password" autocomplete="current-password" required maxlength="128"><button type="button" id="toggle-password" aria-controls="admin-password" aria-pressed="false">Hiện</button></span></label><div id="login-error" role="alert">${error ? `<div class="error">${escape(error)}</div>` : ''}</div><button type="submit" class="primary">Đăng nhập →</button><a href="/" style="display:inline-block;margin-top:16px;color:#2c7a3f;text-decoration:none;font-weight:600;text-align:center">← Trở về ứng dụng học tập HanziGo</a><small>Quyền quản trị được xác minh trên máy chủ.</small></form></section></div>`;
   const loginForm = document.querySelector('#login');
   loginForm.querySelectorAll('input').forEach(input => {
     input.addEventListener('keydown', e => {
@@ -803,8 +803,8 @@ function renderStudentReading(content, data) {
           <td><b style="font-size:18px">${escape(r.hanzi)}</b></td>
           <td>${escape(r.pinyin)}</td>
           <td>${escape(r.meaning || '—')}</td>
-          <td><b>${Number(r.accuracy_percent).toFixed(1)}%</b></td>
-          <td><span class="tag ${r.accuracy_percent >= 80 ? 'published' : (r.accuracy_percent >= 60 ? 'draft' : 'hidden')}">${escape(r.rating || 'Đã chấm')}</span></td>
+          <td><b>${r.score_eligible === true && Number.isFinite(r.accuracy_percent) ? Number(r.accuracy_percent).toFixed(1) + "%" : "Chưa xác minh"}</b></td>
+          <td><span class="tag ${r.score_eligible !== true ? '' : (r.accuracy_percent >= 80 ? 'published' : (r.accuracy_percent >= 60 ? 'draft' : 'hidden'))}">${escape(r.rating || 'Đã chấm')}</span></td>
           <td>${escape(r.spoken_text || '—')}</td>
           <td>${date(r.created_at)}</td>
         </tr>`))}
@@ -821,8 +821,8 @@ function renderStudentReading(content, data) {
         <td><b style="font-size:18px">${escape(r.hanzi)}</b></td>
         <td>${escape(r.pinyin)}</td>
         <td>${escape(r.meaning || '—')}</td>
-        <td><b>${Number(r.accuracy_percent).toFixed(1)}%</b></td>
-        <td><span class="tag ${r.accuracy_percent >= 80 ? 'published' : (r.accuracy_percent >= 60 ? 'draft' : 'hidden')}">${escape(r.rating || 'Đã chấm')}</span></td>
+        <td><b>${r.score_eligible === true && Number.isFinite(r.accuracy_percent) ? Number(r.accuracy_percent).toFixed(1) + "%" : "Chưa xác minh"}</b></td>
+        <td><span class="tag ${r.score_eligible !== true ? '' : (r.accuracy_percent >= 80 ? 'published' : (r.accuracy_percent >= 60 ? 'draft' : 'hidden'))}">${escape(r.rating || 'Đã chấm')}</span></td>
         <td>${escape(r.spoken_text || '—')}</td>
         <td>${date(r.created_at)}</td>
       </tr>`)

@@ -1,6 +1,7 @@
 """Server-side contracts for Trung/Kiệt. Never accept a client-supplied score."""
 import hashlib
 import json
+import logging
 import math
 import os
 import re
@@ -979,25 +980,15 @@ def recognize_handwriting_with_ai(
                 "confidence": round(conf_float, 2),
             })
         normalized.sort(key=lambda item: item["confidence"], reverse=True)
+        normalized = normalized[:5]
     except Exception as error:
-        logging.getLogger('hanzigo.ai').warning('AI handwriting provider failed: %s', error)
+        logging.getLogger('hanzigo.ai').warning('AI handwriting provider failed: %s', type(error).__name__)
 
-    # If AI returned no valid candidates or failed, use smart stroke-geometry fallback
+    # A stroke-count guess is not recognition evidence. Never invent a character
+    # or confidence when the provider failed or returned malformed candidates.
     if not normalized:
-        stroke_count = max(1, len(strokes))
-        stroke_defaults = {
-            1: ["一", "乙"],
-            2: ["二", "十", "人", "八", "入", "几", "儿", "了", "又", "力", "匕", "卜"],
-            3: ["三", "口", "山", "工", "大", "小", "也", "女", "子", "上", "下", "门"],
-            4: ["不", "中", "天", "水", "日", "月", "木", "开", "文", "心", "手"],
-            5: ["去", "生", "出", "左", "右", "白", "本", "目", "田"],
-        }
-        fallback_chars = stroke_defaults.get(stroke_count, ["一"])
-        normalized = [
-            {"hanzi": ch, "confidence": round(88.0 - i * 15.0, 2)}
-            for i, ch in enumerate(fallback_chars[:3])
-        ]
-        feedback = "Đã nhận dạng mặt chữ theo đặc trưng nét viết."
+        record_ai_usage(user_id, "handwriting_recognition", "error")
+        raise HTTPException(503, "Chưa nhận dạng được chữ viết. Hãy thử lại hoặc tra bằng bàn phím; bài này chưa được đánh giá.")
 
     # Match exact entries first, then words containing the recognized character.
     with database() as conn:

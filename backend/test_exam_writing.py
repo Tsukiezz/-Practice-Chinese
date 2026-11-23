@@ -72,7 +72,7 @@ class EssayGradingUnitTest(unittest.TestCase):
                 "SELECT COUNT(*) FROM essay_cache").fetchone()
             assert cache_row is not None
             cache_count = cache_row[0]
-        self.assertEqual([tuple(row) for row in usage],
+        self.assertEqual([(row["module"], row["status"]) for row in usage],
                          [("essay_grading", "success")])
         self.assertEqual(cache_count, 1)
 
@@ -174,7 +174,7 @@ class ExamWritingIntegrationTest(unittest.TestCase):
                 "SELECT COUNT(*) FROM results").fetchone()
             assert rc_row is not None
             result_count = rc_row[0]
-        self.assertEqual([tuple(row) for row in usage],
+        self.assertEqual([(row["module"], row["status"]) for row in usage],
                          [("essay_grading", "success")])
         self.assertEqual(result_count, 2)
 

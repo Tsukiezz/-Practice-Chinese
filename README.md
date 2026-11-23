@@ -2,13 +2,15 @@
 
 Android: [Cài miễn phí từ Chrome](https://hanzigo-chinese-learning.vercel.app/install-android.html) · [Hướng dẫn và phạm vi PWA](docs/ANDROID.md). Trong ứng dụng: **Cá nhân → Cài HanziGo trên Android**.
 
-Bản online: **https://hanzigo-chinese-learning.vercel.app** · [Bàn giao Vercel và database Turso](docs/VERCEL_HANDOFF.md). Admin và học viên đăng nhập chung tại trang này; nhánh triển khai là `test`.
+Bản online: **https://hanzigo-chinese-learning.vercel.app** · [Bàn giao Vercel và database Turso](docs/VERCEL_HANDOFF.md). Học viên đăng nhập tại trang chính, Admin đăng nhập tại `/admin`; nhánh triển khai production là `main`.
 
 Kho từ đã bổ sung đủ 5.000 mục HSK 2.0 (4.993 cách viết), nghĩa tiếng Việt và 22 chủ đề. Trong **Từ vựng**, chọn **HSK 1–6 · Chọn chủ đề** để lọc cấp/chủ đề; danh sách chia trang 40 từ. Máy mới chạy thêm `python vocabulary_catalog.py` từ `backend/` sau bước seed. Xem [nguồn dữ liệu, phạm vi và cách nhập](docs/HSK_VOCABULARY.md).
 
 Cập nhật nhánh `test` 17/09: đã tích hợp phần từ vựng của Vy trên `main` và các chức năng viết tay/ngữ pháp/bài thi viết của Trung. Trong **Từ vựng**, gõ để tìm, bấm loa để nghe và biểu tượng lưu để thêm vào **Sổ tay từ vựng**. Sổ tay lưu riêng theo tài khoản trên backend. Xem [biên bản tích hợp](docs/INTEGRATION_TEST.md) để biết dữ liệu seed, API và phạm vi kiểm chứng.
 
 Ứng dụng học tiếng Trung cho người Việt. Nhánh `test` tích hợp **Admin của Nguyên** (UC-08, chức năng 28 và 31–35), ứng dụng học viên/backend của **Kiệt** và **giao diện đăng nhập/đăng ký của Tuyến**. Xem [biên bản tích hợp](docs/INTEGRATION_TEST.md).
+
+Xem [các sửa đổi về tính trung thực của điểm và kiểm định giáo viên](docs/ASSESSMENT_VALIDATION.md).
 
 ## Chạy một website cho Admin và học viên
 
@@ -22,7 +24,7 @@ $env:WEB_APP_DIR = (Resolve-Path ../build/web).Path
 python -m uvicorn main:app --host 127.0.0.1 --port 8010
 ```
 
-Mở **http://127.0.0.1:8010/** cho cả hai loại tài khoản. Đăng nhập bằng tài khoản Admin sẽ chuyển sang `/admin`; học viên vào ứng dụng Flutter. Khi đăng xuất, cả hai trở về cùng trang đăng nhập. API kiểm tra vai trò trên máy chủ. Không cần chạy web-server Flutter trên cổng riêng.
+Mở **http://127.0.0.1:8010/** cho cả hai loại tài khoản. Admin đăng nhập tại `/admin`, học viên đăng nhập trong ứng dụng Flutter. Mỗi vai trò có cổng đăng nhập riêng trên cùng domain. API kiểm tra vai trò trên máy chủ. Không cần chạy web-server Flutter trên cổng riêng.
 
 Chọn **Đăng ký mới** để tạo tài khoản học viên bằng họ tên, email, mật khẩu và xác nhận mật khẩu. Tạo thành công sẽ đăng nhập ngay vào ứng dụng; email trùng sẽ báo lỗi. **Ghi nhớ đăng nhập** lưu phiên trên thiết bị đến khi hết hạn/đăng xuất; bỏ chọn sẽ chỉ giữ phiên trong bộ nhớ khi ứng dụng đang mở. Mật khẩu không lưu trong trình duyệt. Giao diện dùng email; đăng nhập số điện thoại, Google/Apple/WeChat và khôi phục mật khẩu chưa được cấu hình, nên không hiển thị nút chưa hoạt động.
 

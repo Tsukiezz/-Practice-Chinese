@@ -900,7 +900,9 @@
 
         const data = await res.json();
         renderEvaluationResult(data);
-        document.getElementById('micStatus').textContent = 'Đã chấm điểm xong! Xem kết quả phía dưới.';
+        document.getElementById('micStatus').textContent = data.score_eligible === true
+          ? 'Đã nhận đánh giá từ bản thu âm. Xem kết quả phía dưới.'
+          : 'Chưa chấm được âm thanh. Kết quả này không được tính điểm; bạn có thể thử lại.';
       } catch (err) {
         console.error('Evaluation submit error:', err);
         document.getElementById('micStatus').textContent = 'Lỗi kết nối tới máy chủ AI.';
@@ -911,22 +913,27 @@
       const panel = document.getElementById('resultPanel');
       panel.style.display = 'block';
 
-      const pct = Math.round(data.accuracy_percent);
-      document.getElementById('scorePct').textContent = pct + '%';
+      const assessed = data.score_eligible === true && Number.isFinite(data.accuracy_percent);
+      const pct = assessed ? Math.round(data.accuracy_percent) : null;
+      document.getElementById('scorePct').textContent = assessed ? pct + '%' : '—';
 
       // Score circle color
       const circle = document.getElementById('scoreCircle');
-      if (pct >= 90) circle.style.background = '#2E7D32';
+      if (!assessed) circle.style.background = '#607D8B';
+      else if (pct >= 90) circle.style.background = '#2E7D32';
       else if (pct >= 75) circle.style.background = '#1565C0';
       else if (pct >= 50) circle.style.background = '#E65100';
       else circle.style.background = '#C62828';
 
-      document.getElementById('ratingTitle').textContent = `Xếp loại: ${data.rating} (${pct}%)`;
+      document.getElementById('ratingTitle').textContent = assessed
+        ? `Điểm AI tham khảo: ${data.rating} (${pct}%)`
+        : 'Chưa đánh giá được âm thanh';
       document.getElementById('generalFeedback').textContent = data.general_feedback || 'Đã hoàn thành bài đọc.';
 
-      document.getElementById('toneScore').textContent = Math.round(data.tone_score || pct) + '%';
-      document.getElementById('phonemeScore').textContent = Math.round(data.phoneme_score || pct) + '%';
-      document.getElementById('fluencyScore').textContent = Math.round(data.fluency_score || pct) + '%';
+      const component = value => assessed && Number.isFinite(value) ? Math.round(value) + '%' : '—';
+      document.getElementById('toneScore').textContent = component(data.tone_score);
+      document.getElementById('phonemeScore').textContent = component(data.phoneme_score);
+      document.getElementById('fluencyScore').textContent = component(data.fluency_score);
       document.getElementById('recognizedSpeech').textContent = data.spoken_recognized || transcribedText || '(Chưa nhận diện rõ)';
 
       // Errors
@@ -946,7 +953,9 @@
         errorsContent.innerHTML = html;
       } else {
         errorsBox.style.display = 'block';
-        errorsContent.innerHTML = '<p style="color:#2E7D32; font-weight:600;">Tuyệt vời! Không phát hiện lỗi phát âm nào đáng kể.</p>';
+        errorsContent.textContent = assessed
+          ? 'AI chưa nêu lỗi cụ thể trong bản thu âm này. Bạn có thể đối chiếu thêm với giáo viên.'
+          : 'Chưa có đánh giá lỗi phát âm từ âm thanh.';
       }
 
       // Corrections
@@ -1024,8 +1033,9 @@
 
         let html = '';
         items.forEach(it => {
-          const pct = Math.round(it.accuracy_percent);
-          const color = pct >= 90 ? '#2E7D32' : (pct >= 75 ? '#1565C0' : (pct >= 50 ? '#E65100' : '#C62828'));
+          const assessed = it.score_eligible === true && Number.isFinite(it.accuracy_percent);
+          const pct = assessed ? Math.round(it.accuracy_percent) : null;
+          const color = !assessed ? '#607D8B' : (pct >= 90 ? '#2E7D32' : (pct >= 75 ? '#1565C0' : (pct >= 50 ? '#E65100' : '#C62828')));
           const dateStr = new Date(it.created_at * 1000).toLocaleString('vi-VN');
 
           html += `
@@ -1037,7 +1047,7 @@
               </div>
               <div style="text-align:right;">
                 <span class="history-badge" style="background:${color}20; color:${color};">
-                  ${pct}% · ${escapeHtml(it.rating)}
+                  ${assessed ? pct + '% · ' + escapeHtml(it.rating) : 'Kết quả cũ · chưa xác minh nguồn'}
                 </span>
               </div>
             </div>

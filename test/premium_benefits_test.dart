@@ -59,7 +59,12 @@ void main() {
     final controller = HanziCanvasController();
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(
       child: HanziDrawingCanvas(controller: controller, canvasKey: const Key('canvas'))))));
-    expect(find.text('Bút lông 🔒'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('choose-brush')));
+    await tester.pumpAndSettle();
+    expect(find.text('Bút lông'), findsOneWidget);
+    expect(find.byIcon(Icons.lock_outline), findsWidgets);
+    await tester.tap(find.text('Tiêu chuẩn').last);
+    await tester.pumpAndSettle();
     final gesture = await tester.startGesture(tester.getCenter(find.byKey(const Key('canvas'))));
     await gesture.moveBy(const Offset(30, 30));
     await gesture.up();

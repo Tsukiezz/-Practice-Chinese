@@ -6,12 +6,12 @@ Admin: https://hanzigo-chinese-learning.vercel.app/admin
 
 ## Hạ tầng
 
-- Repository: `Tsukiezz/-Practice-Chinese`, nhánh triển khai: `test`.
+- Repository: `Tsukiezz/-Practice-Chinese`, nhánh production: `main`.
 - Vercel: team `cdcl`, project `hanzigo-chinese-learning`, gói Hobby.
 - Database: Turso `hanzigo-data`, region Tokyo `hnd1`, gói Starter miễn phí.
 - Flutter Web và FastAPI dùng chung domain; backend chạy Python 3.13.
 - Database lưu trên Turso, không ghi SQLite vào filesystem tạm của Vercel.
-- Git auto-deployment được tắt trong `vercel.json`. Triển khai thủ công từ `test` để tránh tự triển khai code trên `main`.
+- Đã đối chiếu cấu hình Vercel hiện tại ngày 21/11/2026: Git auto-deployment bật và production branch là `main`. Chỉ push sau khi kiểm thử đạt; Vercel sẽ build commit trên nhánh này.
 
 ## Cấu hình riêng tư
 
@@ -36,8 +36,8 @@ Dữ liệu đã chuyển: 6 tài khoản, 4.999 thẻ từ vựng (4.993 mục 
 ## Cập nhật ứng dụng
 
 ```powershell
-git switch test
-git pull --ff-only origin test
+git switch main
+git pull --ff-only origin main
 npx vercel link --project hanzigo-chinese-learning --scope cdcl
 npx vercel deploy --prod --yes --scope cdcl
 ```
@@ -45,6 +45,8 @@ npx vercel deploy --prod --yes --scope cdcl
 Vercel cài dependencies từ `pyproject.toml`, build Flutter 3.47.2 bằng `scripts/vercel_build.sh`, phục vụ file tĩnh từ `public/` và API từ `api/index.py`. Không chạy lại script chuyển dữ liệu khi cập nhật code. Thay đổi schema về sau cần migration riêng và bản sao lưu trước khi áp dụng.
 
 ## Kiểm tra và vận hành
+
+Thay đổi về điểm phát âm, OCR, bảo vệ đáp án và Admin được mô tả trong [ASSESSMENT_VALIDATION.md](ASSESSMENT_VALIDATION.md). Admin dùng `/admin`, học viên dùng trang chính. Các kết quả kiểm tra lịch sử dưới đây thuộc phiên bản tại ngày được ghi, cần chạy lại cho mỗi lần phát hành.
 
 Đã kiểm tra trên URL production ngày 21/09/2026: đăng nhập cả hai vai trò bằng trình duyệt, màn hình 390×844 và 1280×900, 48 bài học, phân trang/tìm kiếm từ vựng, audio, chặn học viên truy cập API admin, lưu tiến độ bài đầu và đọc lại sau đăng nhập mới. Endpoint kiểm tra kết nối Gemini trả `200` / `ok`. Các kiểm thử backend hiện có đạt trên SQLite và libSQL; thêm kiểm thử adapter về đọc hàng, lỗi ràng buộc và rollback.
 

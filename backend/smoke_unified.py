@@ -74,6 +74,12 @@ def run():
                     # Verify the typed value instead of submitting a partial password.
                     # Flutter adds the hint to the accessible name when focused.
                     field = page.get_by_role('textbox', name=re.compile('^' + re.escape(label) + r'(?:\s|$)'))
+                    for _ in range(20):
+                        if field.count() and field.is_visible():
+                            break
+                        page.mouse.move(190, 430)
+                        page.mouse.wheel(0, 220)
+                        page.wait_for_timeout(100)
                     field.click()
                     expect(field).to_be_focused()
                     for _ in range(3):
@@ -93,12 +99,15 @@ def run():
                     page.get_by_role('button', name='Đăng nhập', exact=True).click()
 
                 phase = 'admin login'
-                login('admin@example.test')
+                page.goto(base + '/admin')
+                page.get_by_label('Email', exact=True).fill('admin@example.test')
+                page.get_by_label('Mật khẩu', exact=True).fill(password)
+                page.get_by_role('button', name='Đăng nhập →', exact=True).click()
                 expect(page).to_have_url(base + '/admin')
                 expect(page.get_by_role('heading', name='Tổng quan', exact=True)).to_be_visible()
                 print('PASS: Admin login on shared website', flush=True)
                 page.get_by_role('button', name='Đăng xuất', exact=True).click()
-                expect(page).to_have_url(base + '/')
+                expect(page.get_by_role('heading', name='Đăng nhập quản trị', exact=True)).to_be_visible()
 
                 phase = 'student login'
                 login('student@example.test')
@@ -121,8 +130,8 @@ def run():
                 first_lesson = curriculum()['lessons'][0]
                 for question in first_lesson['questions']:
                     index = question['answer']
-                    label = chr(65 + index) + '. ' + question['options'][index]
-                    answer = page.get_by_label(re.compile(r'^Câu ' + question['id'][1:] + r' ·')).get_by_role('button', name=label, exact=True)
+                    label = re.compile('^' + chr(65 + index) + r'\s+' + re.escape(question['options'][index]) + '$')
+                    answer = page.get_by_label(re.compile(r'^Câu ' + question['id'][1:] + r' ·')).get_by_role('button', name=label)
                     for _ in range(20):
                         if answer.count() and answer.is_visible():
                             break
@@ -134,17 +143,18 @@ def run():
                 expect(page.get_by_role('group', name=re.compile(r'^100% · Đã hoàn thành bài'))).to_be_visible()
                 page.screenshot(path=str(Path(__file__).parent / 'test-results' / 'lesson-completed-mobile.png'))
                 page.get_by_role('button', name='Về lộ trình', exact=True).click()
-                expect(page.get_by_text('1/48 bài hoàn thành • Đạt từ 75% câu đúng để hoàn thành', exact=True)).to_be_visible()
+                expect(page.get_by_text(re.compile(r'^1/\d+ bài hoàn thành • Đạt từ 75% câu đúng để hoàn thành$'))).to_be_visible()
                 # Reload from the server to prove progress is persistent.
                 page.reload()
                 placeholder = page.locator('flt-semantics-placeholder')
                 placeholder.evaluate('(el) => el.click()')
                 page.get_by_role('tab', name='Bài học', exact=True).click()
-                expect(page.get_by_text('1/48 bài hoàn thành • Đạt từ 75% câu đúng để hoàn thành', exact=True)).to_be_visible()
+                expect(page.get_by_text(re.compile(r'^1/\d+ bài hoàn thành • Đạt từ 75% câu đúng để hoàn thành$'))).to_be_visible()
                 print('PASS: HSK lesson four-step learning, server grading and persisted progress on mobile', flush=True)
                 page.set_viewport_size({'width': 1100, 'height': 900})
                 phase = 'Vy vocabulary and notebook'
-                page.get_by_role('tab',name='Từ vựng',exact=True).click()
+                page.get_by_role('tab',name='Viết tay',exact=True).click()
+                page.get_by_role('button',name='Từ vựng',exact=True).click()
                 page.set_viewport_size({'width': 390, 'height': 844})
                 phase = 'HSK topic filters and pagination'
                 page.get_by_role('button', name=re.compile('HSK 1–6.*Chọn chủ đề')).click()
@@ -186,6 +196,7 @@ def run():
                 expect(page.get_by_text('Sổ tay chưa có từ vựng',exact=True)).to_be_visible()
                 page.get_by_role('button',name='Back',exact=True).click()
                 print('PASS: Vy pronunciation playback, save/notebook/remove on shared backend',flush=True)
+                page.get_by_role('button',name='Quay lại',exact=True).click()
                 page.get_by_role('tab', name='Nghe', exact=True).click()
                 print('PASS: student login on shared website', flush=True)
                 phase = 'listening playback'
@@ -217,7 +228,8 @@ def run():
                 auth = httpx.post(base + '/api/auth/login', json={'email':'student@example.test','password':password}).json()
                 page.evaluate('(token) => sessionStorage.setItem("hanzigo_admin_token", token)', auth['token'])
                 page.goto(base + '/admin')
-                expect(page).to_have_url(base + '/')
+                expect(page.get_by_role('heading', name='Đăng nhập quản trị', exact=True)).to_be_visible()
+                expect(page.get_by_text('Tài khoản này không có quyền quản trị. Hãy đăng nhập bằng tài khoản Admin.', exact=True)).to_be_visible()
                 assert httpx.get(base + '/api/admin/exams', headers={'Authorization':'Bearer '+auth['token']}).status_code == 403
                 phase = 'Tuyen mobile registration'
                 page.close()
@@ -230,12 +242,14 @@ def run():
                     page.locator('flt-semantics-placeholder').evaluate('(el) => el.click()')
                     page.screenshot(path=str(artifacts/'tuyen-login-mobile.png'))
                     page.get_by_role('button', name='Đăng ký mới', exact=True).click()
-                    for label,value in [('Họ và tên','Tuyen Test'),('Email','newstudent@example.test'),
-                                        ('Mật khẩu',password),('Xác nhận mật khẩu',password)]:
+                    for label,value in [('Nhập họ và tên','Tuyen Test'),('Nhập địa chỉ email thật','newstudent@example.test'),
+                                        ('Tạo mật khẩu (ít nhất 8 ký tự)',password),('Nhập lại mật khẩu',password)]:
                         fill_field(label,value)
                     page.get_by_role('checkbox').tap()
                     expect(page.get_by_role('checkbox')).to_be_checked()
-                    page.get_by_role('button',name='Tạo tài khoản',exact=True).click()
+                    with page.expect_response(lambda r: r.url.endswith('/auth/register-request') and r.request.method == 'POST') as registration:
+                        page.get_by_role('button',name='Tạo tài khoản',exact=True).click()
+                    assert registration.value.status == (409 if duplicate else 200)
                     if duplicate:
                         expect(page.get_by_text('Email đã được sử dụng',exact=True)).to_be_visible()
                         page.screenshot(path=str(artifacts/'tuyen-register-mobile.png'))
@@ -245,11 +259,9 @@ def run():
                                 "SELECT code FROM verification_codes WHERE email=? AND purpose='register' AND used=0 ORDER BY id DESC LIMIT 1",
                                 ('newstudent@example.test',)
                             ).fetchone()
-                            otp_code = otp_row["code"] if otp_row else "123456"
-                        try:
-                            fill_field('Nhập mã xác thực (OTP)', otp_code)
-                        except Exception:
-                            fill_field('6 chữ số', otp_code)
+                            assert otp_row is not None, 'Registration must persist a verification code before accepting OTP'
+                            otp_code = otp_row["code"]
+                        fill_field('6 chữ số', otp_code)
                         page.get_by_role('button', name='Xác nhận & Hoàn tất', exact=True).click()
                         expect(page.get_by_role('tab',name='Nghe',exact=True)).to_be_visible()
                         created=httpx.post(base+'/api/auth/login',json={'email':'newstudent@example.test','password':password})

@@ -21,7 +21,9 @@ from fastapi.staticfiles import StaticFiles
 from stroke_counts import stroke_metadata
 from stroke_guides import bundled_strokes
 from ai_errors import ai_http_error
-from database import audit, database, init_db, row_to_dict, ensure_default_admin
+from database import audit, database, init_db, row_to_dict
+from account_security import requires_password_reset
+from assessment_quality import READING_ASSESSED_SQL, reading_assessment_metadata
 from email_service import (get_smtp_status, send_verification_email,
                           smtp_is_configured)
 from models import Appeal, AppealReview
@@ -67,11 +69,10 @@ async def lifespan(app):
             init_ai_exam_tables(conn)
             from ai_reading import init_reading_tables
             init_reading_tables(conn)
-            from database import init_auth_tables, init_listening_exams, init_comprehensive_exams, ensure_default_admin
+            from database import init_auth_tables, init_listening_exams, init_comprehensive_exams
             init_auth_tables(conn)
             init_listening_exams(conn)
             init_comprehensive_exams(conn)
-            ensure_default_admin(conn)
     else:
         init_db()
         from vocabulary_catalog import init_catalog, refresh_search
@@ -89,11 +90,10 @@ async def lifespan(app):
         from lesson_catalog import init_lessons
         init_lessons()
         if "unittest" not in sys.modules and not os.getenv("TESTING"):
-            from database import init_listening_exams, init_comprehensive_exams, ensure_default_admin
+            from database import init_listening_exams, init_comprehensive_exams
             with database() as conn:
                 init_listening_exams(conn)
                 init_comprehensive_exams(conn)
-                ensure_default_admin(conn)
     from support_chat import init_chat
     init_chat()
     from premium_benefits import init_benefits
@@ -152,6 +152,8 @@ def public_user(row):
 
 
 def session(conn, user):
+    if requires_password_reset(user):
+        raise HTTPException(403, "Tài khoản quản trị cần đặt lại mật khẩu qua email trước khi đăng nhập.")
     token = secrets.token_urlsafe(32)
     conn.execute("DELETE FROM sessions WHERE expires_at <= ?", (int(time.time()),))
     conn.execute("INSERT INTO sessions VALUES(?,?,?)",
@@ -170,6 +172,8 @@ def current_user(authorization: Annotated[str | None, Header()] = None):
         raise HTTPException(401, "Phiên đăng nhập không hợp lệ hoặc đã hết hạn")
     if not row["is_active"]:
         raise HTTPException(403, "Tài khoản đã bị khóa")
+    if requires_password_reset(row):
+        raise HTTPException(403, "Tài khoản quản trị cần đặt lại mật khẩu qua email.")
     return row_to_dict(row)
 
 
@@ -242,6 +246,8 @@ def register(body: Register):
 
 @app.post("/api/auth/register-request")
 def register_request(body: RegisterRequest):
+    if os.environ.get("VERCEL") and not smtp_is_configured():
+        raise HTTPException(503, "Dịch vụ gửi mã xác thực chưa sẵn sàng. Vui lòng thử lại sau.")
     with database() as conn:
         existing = conn.execute("SELECT id FROM users WHERE email=?", (body.email.lower(),)).fetchone()
         if existing:
@@ -261,9 +267,10 @@ def register_request(body: RegisterRequest):
         )
 
     try:
-        send_verification_email(body.email.lower(), code, "register")
-    except Exception as exc:
-        raise HTTPException(500, f"Không thể gửi mã xác thực tới email: {exc}")
+        if not send_verification_email(body.email.lower(), code, "register"):
+            raise RuntimeError("Delivery was not accepted")
+    except Exception:
+        raise HTTPException(503, "Chưa gửi được mã xác thực. Vui lòng thử lại sau.")
 
     return {"status": "ok", "message": "Mã xác thực đã được gửi tới email của bạn", "email": body.email.lower()}
 
@@ -293,6 +300,8 @@ def register_verify(body: RegisterVerify):
 
 @app.post("/api/auth/forgot-password-request")
 def forgot_password_request(body: ForgotPasswordRequest):
+    if os.environ.get("VERCEL") and not smtp_is_configured():
+        raise HTTPException(503, "Dịch vụ gửi mã xác thực chưa sẵn sàng. Vui lòng thử lại sau.")
     with database() as conn:
         user = conn.execute("SELECT id, is_active FROM users WHERE email=?", (body.email.lower(),)).fetchone()
         if not user:
@@ -311,9 +320,10 @@ def forgot_password_request(body: ForgotPasswordRequest):
         )
 
     try:
-        send_verification_email(body.email.lower(), code, "forgot_password")
-    except Exception as exc:
-        raise HTTPException(500, f"Không thể gửi mã xác thực tới email: {exc}")
+        if not send_verification_email(body.email.lower(), code, "forgot_password"):
+            raise RuntimeError("Delivery was not accepted")
+    except Exception:
+        raise HTTPException(503, "Chưa gửi được mã xác thực. Vui lòng thử lại sau.")
 
     return {"status": "ok", "message": "Mã xác thực đặt lại mật khẩu đã được gửi tới email của bạn"}
 
@@ -711,7 +721,7 @@ def admin_student_reading(user_id: int | None = None, rating: str | None = None,
     query = """
         SELECT h.id, h.user_id, h.word_id, h.hanzi, h.pinyin, h.meaning,
                h.accuracy_percent, h.rating, h.spoken_text, h.errors_json,
-               h.corrections_json, h.created_at, u.name, u.email
+               h.corrections_json, h.feedback_json, h.created_at, u.name, u.email
         FROM student_reading_history h
         JOIN users u ON h.user_id = u.id
         WHERE 1=1
@@ -731,6 +741,11 @@ def admin_student_reading(user_id: int | None = None, rating: str | None = None,
             d = dict(r)
             d["errors"] = json.loads(d.pop("errors_json", "[]") or "[]")
             d["corrections"] = json.loads(d.pop("corrections_json", "[]") or "[]")
+            metadata = reading_assessment_metadata(d.pop("feedback_json", "{}"))
+            d.update(metadata)
+            if not metadata["score_eligible"]:
+                d["accuracy_percent"] = None
+                d["rating"] = "Chưa xác minh nguồn đánh giá"
             items.append(d)
         return items
 
@@ -1631,9 +1646,9 @@ def review_items(kind: str = Query(default="writing"),
         if kind == "reading":
             try:
                 rows = conn.execute(
-                    """SELECT id, word_id, hanzi, pinyin, meaning, accuracy_percent, rating, spoken_text, created_at
+                    f"""SELECT id, word_id, hanzi, pinyin, meaning, accuracy_percent, rating, spoken_text, created_at
                        FROM student_reading_history
-                       WHERE user_id=? AND accuracy_percent<?
+                       WHERE user_id=? AND accuracy_percent<? AND {READING_ASSESSED_SQL}
                        ORDER BY created_at DESC""",
                     (user["id"], below),
                 ).fetchall()
@@ -1764,7 +1779,7 @@ def review_summary(below: float = Query(default=80, gt=0, le=100), user=Depends(
         rd_count = 0
         try:
             rd_row = conn.execute(
-                "SELECT COUNT(*) FROM student_reading_history WHERE user_id=? AND accuracy_percent<?",
+                f"SELECT COUNT(*) FROM student_reading_history WHERE user_id=? AND accuracy_percent<? AND {READING_ASSESSED_SQL}",
                 (user["id"], below),
             ).fetchone()
             if rd_row:
@@ -1895,7 +1910,7 @@ def my_dashboard(user=Depends(current_user)):
         reading_under_80 = 0
         try:
             rd_rows = conn.execute(
-                "SELECT accuracy_percent FROM student_reading_history WHERE user_id=?", (user["id"],)).fetchall()
+                f"SELECT accuracy_percent FROM student_reading_history WHERE user_id=? AND {READING_ASSESSED_SQL}", (user["id"],)).fetchall()
             reading_scores = [float(r[0]) for r in rd_rows if r[0] is not None]
             reading_under_80 = sum(1 for s in reading_scores if s < 80)
         except Exception:

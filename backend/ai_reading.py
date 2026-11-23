@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from database import database
+from assessment_quality import (transcript_feedback, has_audio_payload, valid_score, reading_assessment_metadata, reading_feedback)
 from services import (
     ai_settings,
     configured_api_key,
@@ -203,123 +204,13 @@ def evaluate_pronunciation_offline(
     spoken_text: str | None,
     has_audio: bool = False,
 ) -> dict:
-    """Accurate offline rule-based phonetic & tone comparison algorithm."""
-    target_hanzi = target_hanzi.strip()
-    target_pinyin = target_pinyin.strip()
-    spoken = (spoken_text or "").strip()
-
-    if not spoken:
-        if has_audio:
-            # The student recorded audio, but browser SpeechRecognition was not supported/empty,
-            # and Gemini was temporarily unavailable. Return an encouraging, scored assessment.
-            return {
-                "accuracy_percent": 86.0,
-                "rating": "Tốt",
-                "spoken_recognized": target_hanzi,
-                "tone_score": 85.0,
-                "phoneme_score": 88.0,
-                "fluency_score": 85.0,
-                "errors": [{
-                    "character": target_hanzi,
-                    "expected_pinyin": target_pinyin,
-                    "detected_pinyin": target_pinyin,
-                    "issue": f"Đã ghi nhận giọng đọc của bạn cho từ '{target_hanzi}'. Bạn đọc to, rõ ràng.",
-                    "severity": "low"
-                }],
-                "corrections": [{
-                    "character": target_hanzi,
-                    "guide": f"Từ '{target_hanzi}' ({target_pinyin}): Mở khẩu hình tự nhiên, phát âm dứt khoát và chú ý thanh điệu."
-                }],
-                "general_feedback": f"Hệ thống đã nhận diện được bản đọc của bạn cho từ '{target_hanzi}'. Rất đáng khen ngợi!",
-                "tips_for_mastery": "Bấm 'Nghe mẫu' để nghe giọng bản xứ và lặp lại theo nhịp điệu."
-            }
-
-        return {
-            "accuracy_percent": 0.0,
-            "rating": "Chưa đạt",
-            "spoken_recognized": "",
-            "tone_score": 0.0,
-            "phoneme_score": 0.0,
-            "fluency_score": 0.0,
-            "errors": [{
-                "character": target_hanzi,
-                "expected_pinyin": target_pinyin,
-                "detected_pinyin": "Không nhận diện được giọng đọc",
-                "issue": "Chưa nhận diện được âm thanh hoặc micro chưa thu được giọng đọc.",
-                "severity": "high"
-            }],
-            "corrections": [{
-                "character": target_hanzi,
-                "guide": f"Hãy bật micro, đọc to, rõ ràng từng âm tiết: {target_hanzi} ({target_pinyin})."
-            }],
-            "general_feedback": "Chưa phát hiện giọng đọc. Vui lòng kiểm tra quyền truy cập microphone và đọc lại.",
-            "tips_for_mastery": "Đảm bảo môi trường yên tĩnh và để micro gần miệng khi đọc."
-        }
-
-    # Compare Hanzi directly
-    hanzi_ratio = SequenceMatcher(None, target_hanzi, spoken).ratio()
-
-    # Compare pinyin normalized
-    target_pinyin_norm = normalize_pinyin_to_tone_number(target_pinyin)
-    spoken_pinyin_norm = normalize_pinyin_to_tone_number(spoken)
-
-    pinyin_ratio = SequenceMatcher(None, target_pinyin_norm, spoken_pinyin_norm).ratio()
-    base_accuracy = max(hanzi_ratio, pinyin_ratio)
-
-    if spoken == target_hanzi:
-        accuracy = 100.0
-    elif pinyin_ratio >= 0.95:
-        accuracy = 95.0
-    else:
-        accuracy = round(max(10.0, min(95.0, base_accuracy * 100.0)), 1)
-
-    # Check syllable matches
-    target_syllables = target_pinyin.split()
-    target_chars = list(target_hanzi)
-
-    errors = []
-    corrections = []
-
-    if accuracy < 90.0:
-        for i, char in enumerate(target_chars):
-            expected_py = target_syllables[i] if i < len(target_syllables) else target_pinyin
-            if spoken != target_hanzi:
-                errors.append({
-                    "character": char,
-                    "expected_pinyin": expected_py,
-                    "detected_pinyin": spoken,
-                    "issue": f"Âm tiết '{char}' đọc chưa thật chuẩn thanh điệu hoặc phụ âm so với '{expected_py}'."
-                })
-                corrections.append({
-                    "character": char,
-                    "guide": f"Với chữ '{char}' ({expected_py}): Chú ý phát âm chuẩn thanh điệu, mở khẩu hình rõ ràng."
-                })
-
-    if accuracy >= 90.0:
-        rating = "Xuất sắc"
-        feedback = f"Phát âm rất chuẩn xác! Giọng đọc rõ ràng, đúng thanh điệu của từ '{target_hanzi}'."
-    elif accuracy >= 75.0:
-        rating = "Tốt"
-        feedback = f"Phát âm khá tốt. Bạn đọc gần đúng toàn bộ từ '{target_hanzi}', chỉ cần chú ý thêm một chút thanh điệu."
-    elif accuracy >= 50.0:
-        rating = "Cần cải thiện"
-        feedback = f"Đã nhận diện được âm cơ bản nhưng thanh điệu hoặc phụ âm của '{target_hanzi}' còn bị nhầm lẫn."
-    else:
-        rating = "Chưa đạt"
-        feedback = f"Phát âm chưa chuẩn so với '{target_hanzi}' ({target_pinyin}). Hãy nghe phát âm mẫu và luyện tập lại."
-
-    return {
-        "accuracy_percent": accuracy,
-        "rating": rating,
-        "spoken_recognized": spoken,
-        "tone_score": round(max(30.0, accuracy * 0.95), 1),
-        "phoneme_score": round(max(30.0, accuracy * 0.98), 1),
-        "fluency_score": round(max(30.0, accuracy * 0.92), 1),
-        "errors": errors,
-        "corrections": corrections,
-        "general_feedback": feedback,
-        "tips_for_mastery": "Hãy nhấn nút 'Nghe mẫu' để nghe phát âm chuẩn của người bản xứ trước khi đọc lại."
-    }
+    """Return text-only feedback without inventing an acoustic assessment."""
+    return transcript_feedback(
+        target_hanzi.strip(), spoken_text,
+        normalize_pinyin_to_tone_number(target_pinyin),
+        normalize_pinyin_to_tone_number(spoken_text or ''),
+        has_audio=has_audio,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -334,7 +225,9 @@ def evaluate_pronunciation_with_gemini(
     audio_mime_type: str = "audio/webm",
     spoken_text: str | None = None,
 ) -> dict | None:
-    """Evaluate pronunciation using Gemini multimodal audio or speech transcripts."""
+    """Assess actual audio only; a transcript cannot establish pronunciation."""
+    if not has_audio_payload(audio_base64):
+        return None
     try:
         settings = ai_settings()
     except Exception:
@@ -344,16 +237,12 @@ def evaluate_pronunciation_with_gemini(
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
 
     system_instruction = (
-        "Bạn là giám khảo và chuyên gia sư phạm phát âm tiếng Trung tiêu chuẩn (HSK/Phổ thông thoại). "
-        "Nhiệm vụ của bạn là lắng nghe file thu âm âm thanh (audio) được đính kèm hoặc phân tích giọng đọc của người học, "
-        "đối chiếu với từ Hán tự mục tiêu được cung cấp.\n\n"
-        "QUY TẮC BẮT BUỘC:\n"
-        "1. Nếu có audio đính kèm, HÃY LẮNG NGHE KỸ FILE AUDIO để nhận diện chính xác những gì người học đã đọc, "
-        "và điền vào trường 'spoken_recognized' (dưới dạng chữ Hán hoặc Pinyin). "
-        "Dù phát âm chưa chuẩn thanh điệu hoặc có chút tạp âm, hãy nhận diện từ người học cố đọc và chấm điểm phù hợp.\n"
-        "2. Chấm tỷ lệ chính xác (accuracy_percent) từ 0.0 đến 100.0. Đánh giá đúng thanh mẫu (phụ âm), vận mẫu (nguyên âm) và 4 thanh điệu.\n"
-        "3. Đưa ra danh sách lỗi (errors) và hướng dẫn sửa lỗi (corrections) chi tiết, dễ hiểu, ân cần bằng tiếng Việt.\n"
-        "4. Chỉ khi nào file audio hoàn toàn im lặng, không có tiếng người nói thì mới để accuracy_percent = 0."
+        "Bạn đánh giá bản thu âm tiếng Trung theo nội dung âm thanh thực tế. "
+        "Không suy ra thanh điệu, âm vị hay độ trôi chảy chỉ từ transcript hoặc đáp án mục tiêu. "
+        "Không tự tăng điểm để động viên. Nếu âm thanh không đủ để đánh giá, đặt "
+        "assessment_status='unavailable' và giải thích giới hạn; không đoán người học đọc đúng. "
+        "Nếu nghe và đánh giá được âm thanh, đặt assessment_status='assessed'. "
+        "Điểm chỉ là nhận xét tham khảo của AI, không phải độ chính xác đã được kiểm định."
     )
 
     clean_mime = (audio_mime_type or "audio/webm").split(";")[0].strip().lower()
@@ -370,7 +259,7 @@ def evaluate_pronunciation_with_gemini(
     )
     if spoken_text and spoken_text.strip():
         prompt_text += f"- Văn bản nhận diện từ trình duyệt (Web Speech): {spoken_text.strip()}\n"
-    if audio_base64 and len(audio_base64.strip()) > 100:
+    if audio_base64:
         prompt_text += f"- Đã đính kèm file ghi âm giọng đọc trực tiếp ({clean_mime}). Hãy nghe kỹ và chấm điểm giọng đọc này.\n"
 
     prompt_text += (
@@ -390,12 +279,12 @@ def evaluate_pronunciation_with_gemini(
     parts: list[dict[str, Any]] = []
 
     # If audio is provided, attach audio data part
-    if audio_base64 and len(audio_base64.strip()) > 100:
+    if audio_base64:
         clean_b64 = audio_base64.strip()
         if "," in clean_b64:
             clean_b64 = clean_b64.split(",", 1)[1]
         clean_b64 = re.sub(r"\s+", "", clean_b64)
-        if len(clean_b64) > 100:
+        if clean_b64:
             parts.append({
                 "inlineData": {
                     "mimeType": clean_mime,
@@ -408,6 +297,7 @@ def evaluate_pronunciation_with_gemini(
     schema = {
         "type": "object",
         "properties": {
+            "assessment_status": {"type": "string", "enum": ["assessed", "unavailable"]},
             "accuracy_percent": {"type": "number"},
             "rating": {"type": "string"},
             "spoken_recognized": {"type": "string"},
@@ -443,6 +333,7 @@ def evaluate_pronunciation_with_gemini(
             "tips_for_mastery": {"type": "string"},
         },
         "required": [
+            "assessment_status",
             "accuracy_percent",
             "rating",
             "spoken_recognized",
@@ -470,13 +361,18 @@ def evaluate_pronunciation_with_gemini(
         )
         response.raise_for_status()
         candidate = _decode_gemini_candidate(response)
+        if candidate.get('assessment_status') != 'assessed' or not valid_score(candidate.get('accuracy_percent')):
+            raise ValueError('Audio could not be assessed')
+        for key in ('tone_score', 'phoneme_score', 'fluency_score'):
+            value = candidate.get(key)
+            if value is not None and not valid_score(value):
+                raise ValueError('Invalid audio component score')
+            candidate[key] = value
+        candidate['accuracy_percent'] = round(float(candidate['accuracy_percent']), 1)
+        candidate['assessment_source'] = 'gemini_audio'
+        candidate['score_eligible'] = True
         if user_id and user_id > 0:
             record_ai_usage(user_id, "ai_reading_evaluate", "success")
-
-        # Normalize numeric fields
-        acc = float(candidate.get("accuracy_percent", 0.0))
-        acc = max(0.0, min(100.0, round(acc, 1)))
-        candidate["accuracy_percent"] = acc
 
         return candidate
     except Exception as exc:
@@ -494,7 +390,7 @@ class EvaluateReadingRequest(BaseModel):
     target_pinyin: str = Field(..., min_length=1, max_length=150)
     target_meaning: str = Field(default="", max_length=255)
     spoken_text: str | None = Field(default=None, max_length=200)
-    audio_base64: str | None = None
+    audio_base64: str | None = Field(default=None, max_length=3_000_000)
     audio_mime_type: str = Field(default="audio/webm", max_length=50)
     save_history: bool = True
 
@@ -506,23 +402,14 @@ def register_reading_routes(app, current_user):
     """Register all reading and pronunciation assessment endpoints."""
 
     def get_optional_user(authorization: str | None = None) -> dict[str, Any] | None:
-        if not authorization or not authorization.startswith("Bearer "):
-            return None
-        token = authorization[7:].strip()
-        if not token:
+        if not authorization:
             return None
         try:
-            token_hash = hashlib.sha256(token.encode()).hexdigest()
-            with database() as conn:
-                row = conn.execute(
-                    "SELECT u.* FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token_hash=? AND s.expires_at>?",
-                    (token_hash, int(time.time())),
-                ).fetchone()
-            if row and row["is_active"]:
-                return dict(row)
-        except Exception:
-            pass
-        return None
+            return current_user(authorization)
+        except HTTPException as exc:
+            if exc.status_code == 401:
+                return None
+            raise
 
     @app.get("/api/reading/topics")
     def list_topics():
@@ -579,7 +466,7 @@ def register_reading_routes(app, current_user):
     ):
         user = get_optional_user(authorization)
         user_id = user["id"] if user else 0
-        has_audio = bool(body.audio_base64 and len(body.audio_base64.strip()) > 300)
+        has_audio = has_audio_payload(body.audio_base64)
 
         # 1. Attempt Gemini AI assessment
         eval_result = evaluate_pronunciation_with_gemini(
@@ -592,7 +479,7 @@ def register_reading_routes(app, current_user):
             spoken_text=body.spoken_text,
         )
 
-        # 2. Fallback to resilient rule-based phonetic evaluator if AI fails
+        # 2. Text-only comparison cannot substitute for an audio assessment.
         if not eval_result:
             eval_result = evaluate_pronunciation_offline(
                 target_hanzi=body.target_hanzi,
@@ -605,7 +492,7 @@ def register_reading_routes(app, current_user):
         history_id = None
 
         # 3. Save to database history if user is authenticated and requested
-        if user and body.save_history:
+        if user and body.save_history and eval_result.get("score_eligible") is True:
             with database() as conn:
                 history_id = conn.execute(
                     """
@@ -638,12 +525,16 @@ def register_reading_routes(app, current_user):
             "target_hanzi": body.target_hanzi,
             "target_pinyin": body.target_pinyin,
             "target_meaning": body.target_meaning,
+            "assessment_status": eval_result["assessment_status"],
+            "assessment_source": eval_result["assessment_source"],
+            "score_eligible": eval_result["score_eligible"],
+            "transcript_match_percent": eval_result.get("transcript_match_percent"),
             "accuracy_percent": eval_result["accuracy_percent"],
             "rating": eval_result.get("rating", "Đạt"),
             "spoken_recognized": eval_result.get("spoken_recognized", ""),
-            "tone_score": eval_result.get("tone_score", eval_result["accuracy_percent"]),
-            "phoneme_score": eval_result.get("phoneme_score", eval_result["accuracy_percent"]),
-            "fluency_score": eval_result.get("fluency_score", eval_result["accuracy_percent"]),
+            "tone_score": eval_result.get("tone_score"),
+            "phoneme_score": eval_result.get("phoneme_score"),
+            "fluency_score": eval_result.get("fluency_score"),
             "errors": eval_result.get("errors", []),
             "corrections": eval_result.get("corrections", []),
             "general_feedback": eval_result.get("general_feedback", ""),
@@ -679,18 +570,20 @@ def register_reading_routes(app, current_user):
 
         items = []
         for r in rows:
+            metadata = reading_assessment_metadata(r["feedback_json"])
             items.append({
+                **metadata,
                 "id": r["id"],
                 "word_id": r["word_id"],
                 "hanzi": r["hanzi"],
                 "pinyin": r["pinyin"],
                 "meaning": r["meaning"],
-                "accuracy_percent": r["accuracy_percent"],
-                "rating": r["rating"],
+                "accuracy_percent": r["accuracy_percent"] if metadata["score_eligible"] else None,
+                "rating": r["rating"] if metadata["score_eligible"] else "Chưa xác minh nguồn đánh giá",
                 "spoken_text": r["spoken_text"],
                 "errors": json.loads(r["errors_json"]),
                 "corrections": json.loads(r["corrections_json"]),
-                "feedback": json.loads(r["feedback_json"]),
+                "feedback": reading_feedback(r["feedback_json"]),
                 "created_at": r["created_at"],
             })
 
