@@ -2,6 +2,7 @@
 import math
 import re
 import time
+from contextlib import nullcontext
 
 import httpx
 
@@ -21,11 +22,11 @@ def gemini_grade(settings, content, *, transport=None, sleep=time.sleep):
                              'responseMimeType': 'application/json', 'responseJsonSchema': schema},
     }
     from services import _post_gemini, _decode_gemini_candidate
-    with httpx.Client(transport=transport, follow_redirects=False) as client:
+    with (httpx.Client(transport=transport, follow_redirects=False) if transport is not None else nullcontext(None)) as client:
         response = _post_gemini(
             f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
             {'x-goog-api-key': settings['api_key']}, payload, 20,
-            post=client.post, sleep=sleep)
+            post=client.post if client is not None else None, sleep=sleep)
         output = _decode_gemini_candidate(response)
         score, feedback = output['score'], output['feedback']
         if (isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score)

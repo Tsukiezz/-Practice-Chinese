@@ -1,5 +1,6 @@
 """Server-side contracts for Trung/Kiệt. Never accept a client-supplied score."""
 import hashlib
+import copy
 import json
 import logging
 import math
@@ -20,15 +21,18 @@ from config import load_environment
 from database import database, row_to_dict
 from ai_provider import gemini_grade
 from ai_errors import AIProviderError, ai_http_error, provider_error
+from ai_runtime import gemini_http_post, translation_thinking
 
 
 load_environment()
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
 
 
-def _post_gemini(url: str, headers: dict, json: dict, timeout: float, *, post=None, sleep=None):
+def _post_gemini(url: str, headers: dict, json: dict, timeout: float, *, post=None, sleep=None, latency_profile=None):
     """Bounded retries with an optional server-configured fallback model."""
-    post, sleep = post or httpx.post, sleep or time.sleep
+    post, sleep = post or gemini_http_post, sleep or time.sleep
+    json = copy.deepcopy(json)
+    started = time.monotonic()
     deadline = time.monotonic() + 45
     fallback = os.getenv("GEMINI_FALLBACK_MODEL", "").strip().removeprefix("models/")
     fallback_url = None
@@ -41,16 +45,34 @@ def _post_gemini(url: str, headers: dict, json: dict, timeout: float, *, post=No
             os.getenv('GEMINI_FALLBACK_API_KEYS', '').split(',')
             if key.strip() and key.strip() != headers.get('x-goog-api-key')))
     last_error = AIProviderError('timeout', 504, 'AI phản hồi chậm. Vui lòng thử lại sau.')
+    disable_fast_thinking = False
     for attempt in range(3):
         remaining = deadline - time.monotonic()
         if remaining <= 1:
             break
+        attempt_started = time.monotonic()
         try:
-            response = post(url, headers=dict(request_headers), json=json,
+            request_json = copy.deepcopy(json)
+            thinking = None
+            if latency_profile == 'translation' and not disable_fast_thinking:
+                # Recalculate when retrying another model; unsupported models
+                # receive no thinking override. Grading keeps its own settings.
+                model = url.rsplit('/models/', 1)[-1].split(':', 1)[0]
+                thinking = translation_thinking(model)
+                if thinking is not None:
+                    request_json.setdefault('generationConfig', {})['thinkingConfig'] = thinking
+            response = post(url, headers=dict(request_headers), json=request_json,
                             timeout=httpx.Timeout(min(timeout, 20, max(1, remaining - 4)), connect=min(4, remaining)),
                             follow_redirects=False)
+            logging.getLogger('hanzigo.ai').info('gemini attempt=%d http=%d duration_ms=%.1f',
+                attempt + 1, response.status_code, (time.monotonic() - attempt_started) * 1000)
             if response.status_code >= 400:
                 last_error = provider_error(response.status_code)
+                if response.status_code == 400 and thinking is not None:
+                    # Model aliases can change support without an app deploy.
+                    # Retry once with the model's original reasoning defaults.
+                    disable_fast_thinking = True
+                    continue
                 if response.status_code in (401, 403, 429) and backup_keys:
                     request_headers['x-goog-api-key'] = backup_keys.pop(0)
                     continue
@@ -61,6 +83,10 @@ def _post_gemini(url: str, headers: dict, json: dict, timeout: float, *, post=No
             else:
                 try:
                     _decode_gemini_candidate(response)
+                    response.extensions['hanzigo_ai'] = {
+                        'attempts': attempt + 1,
+                        'duration_ms': round((time.monotonic() - started) * 1000, 1),
+                    }
                     return response
                 except (KeyError, IndexError, TypeError, ValueError):
                     last_error = AIProviderError('invalid_response', 502, 'AI trả kết quả chưa đầy đủ. Vui lòng thử lại.')
@@ -68,6 +94,8 @@ def _post_gemini(url: str, headers: dict, json: dict, timeout: float, *, post=No
                     current_tokens = int(config.get("maxOutputTokens", 1000))
                     config["maxOutputTokens"] = min(16000, max(2048, current_tokens * 2))
         except httpx.TransportError:
+            logging.getLogger('hanzigo.ai').info('gemini attempt=%d transport_error duration_ms=%.1f',
+                attempt + 1, (time.monotonic() - attempt_started) * 1000)
             last_error = AIProviderError('timeout', 504, 'AI phản hồi chậm hoặc tạm mất kết nối. Vui lòng thử lại sau.')
             if fallback_url:
                 url = fallback_url

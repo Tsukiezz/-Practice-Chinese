@@ -24,7 +24,7 @@ class AIReliabilityTest(unittest.TestCase):
         responses = [httpx.Response(503, request=request), httpx.Response(200, request=request, json={
             'candidates': [{'finishReason': 'STOP', 'content': {'parts': [{'text': '{"score":80}'}]}}]})]
         with patch.dict(os.environ, {'GEMINI_FALLBACK_MODEL': 'gemini-3.5-flash-lite'}), \
-             patch('services.httpx.post', side_effect=responses) as post, patch('services.time.sleep'):
+             patch('services.gemini_http_post', side_effect=responses) as post, patch('services.time.sleep'):
             response = _post_gemini(url, {'x-goog-api-key': 'test-secret'}, payload, 20)
         self.assertEqual(_decode_gemini_candidate(response)['score'], 80)
         self.assertIn('/gemini-3.5-flash-lite:', post.call_args_list[1].args[0])
@@ -33,7 +33,7 @@ class AIReliabilityTest(unittest.TestCase):
 
     def test_bad_key_is_not_retried_or_disclosed(self):
         response = httpx.Response(403, text='private-test-secret')
-        with patch('services.httpx.post', return_value=response) as post:
+        with patch('services.gemini_http_post', return_value=response) as post:
             with self.assertRaises(AIProviderError) as caught:
                 _post_gemini('https://example.test', {}, {}, 10)
         self.assertEqual(post.call_count, 1)

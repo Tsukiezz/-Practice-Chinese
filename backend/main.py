@@ -99,7 +99,11 @@ async def lifespan(app):
     from premium_benefits import init_benefits
     with database() as conn:
         init_benefits(conn)
-    yield
+    try:
+        yield
+    finally:
+        from ai_runtime import close_gemini_client
+        close_gemini_client()
 
 
 from vocabulary_catalog import router as vocabulary_router

@@ -161,7 +161,7 @@ class AdminIntegrationTest(unittest.TestCase):
                 "candidates": [{"content": {"parts": [{"text": '{"ok": true}'}]}}]
             }),
         ]
-        with patch("services.httpx.post", side_effect=responses) as post, \
+        with patch("services.gemini_http_post", side_effect=responses) as post, \
              patch("services.time.sleep"):
             response = _post_gemini(
                 str(request.url), {"x-goog-api-key": "secret"}, {}, 1.0)
@@ -175,12 +175,13 @@ class AdminIntegrationTest(unittest.TestCase):
                 "candidates": [{"content": {"parts": [{"text": text}]}}]
             })
         payload = {"generationConfig": {"maxOutputTokens": 500}}
-        with patch("services.httpx.post", side_effect=[candidate('{"score":'),
+        with patch("services.gemini_http_post", side_effect=[candidate('{"score":'),
                                                         candidate('{"score": 90}')]) as post:
             response = _post_gemini(str(request.url), {}, payload, 1.0)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(post.call_count, 2)
-        self.assertEqual(payload["generationConfig"]["maxOutputTokens"], 2048)
+        self.assertEqual(payload["generationConfig"]["maxOutputTokens"], 500)
+        self.assertEqual(post.call_args.kwargs["json"]["generationConfig"]["maxOutputTokens"], 2048)
 
     def register(self, email, name):
         response = self.client.post("/api/auth/register", json={"email": email, "name": name, "password": "Test-password-123"})

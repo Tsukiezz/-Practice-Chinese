@@ -12,6 +12,22 @@ Cập nhật nhánh `test` 17/09: đã tích hợp phần từ vựng của Vy t
 
 Xem [các sửa đổi về tính trung thực của điểm và kiểm định giáo viên](docs/ASSESSMENT_VALIDATION.md).
 
+## Tốc độ AI
+
+Ứng dụng giữ nguyên model và khóa Gemini đang cấu hình. Backend dùng connection pool chung, còn dịch văn bản dùng mức thinking nhanh tương thích với model và ngân sách đầu ra theo độ dài. Các luồng chấm bài giữ nguyên cấu hình suy luận.
+
+Bản dịch hợp lệ được lưu trong RAM của từng instance tối đa 10 phút, giới hạn 128 kết quả ngắn. Cache tách theo tài khoản hoặc cookie phiên khách, hết hiệu lực khi thay đổi model/cấu hình/khóa, và không vượt qua kiểm tra đăng nhập hay giới hạn dùng thử. Những yêu cầu giống nhau đang chạy được gộp để tránh gọi Gemini trùng. Cache không tồn tại sau cold start và không chia sẻ giữa các instance; browser/CDN không được lưu bản dịch riêng tư.
+
+API dịch giữ nguyên JSON, bổ sung `Server-Timing`, `X-HanziGo-AI-Cache` và `X-HanziGo-AI-Attempts` để đo thời gian cấu hình, Gemini, tổng thời gian và số lần gọi. Log chỉ ghi thời gian/trạng thái, không ghi nội dung học viên hoặc khóa API.
+
+Đo bằng ba câu mẫu, mỗi câu lặp lại để quan sát cache (có gọi API thật, không dùng dữ liệu cá nhân):
+
+```powershell
+python scripts/benchmark_ai_speed.py --output outputs/ai-speed-report.json
+```
+
+So sánh lần gọi đầu và lần cache hit riêng; độ trễ phụ thuộc mạng, tải Google, thử lại và cold start. Các câu mẫu chỉ là kiểm tra nhanh bản dịch, không thay thế kiểm định sư phạm.
+
 ## Chạy một website cho Admin và học viên
 
 Build Flutter (`flutter pub get`, `flutter build web --no-wasm-dry-run`) rồi chạy từ `backend/`:

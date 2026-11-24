@@ -49,7 +49,7 @@ Runner dùng database tạm, chặn cấu hình database/AI/email production và
 | Giao diện luyện đọc | Không hiện điểm khi thiếu đánh giá âm thanh; giữ đúng điểm 0 và thành phần chưa biết |
 | Website hợp nhất trên Edge | Đạt lưu bài học, từ điển/sổ tay, audio, nộp bài nghe, tải lại, đăng xuất, đăng ký OTP và phân quyền |
 
-Các kiểm tra trên dùng dữ liệu tạm và provider giả lập khi cần chấm bài. Chưa dùng bản thu có nhãn giáo viên hoặc xác nhận email thật tới hộp thư người dùng. Trạng thái cấu hình email không chứng minh thư đã được nhận.
+Các kiểm tra trên dùng dữ liệu tạm và provider giả lập khi cần chấm bài. Chưa dùng bản thu có nhãn giáo viên. Chủ dự án đã xác nhận ngày 23/11/2026 rằng OTP đến email thật; các bài kiểm thử tự động vẫn dùng email giả lập và không gửi thư thật.
 
 ## Quản trị an toàn
 
