@@ -313,13 +313,13 @@ def _send_via_brevo_api(cfg: dict, to_email: str, subject: str, text_content: st
 
 
 def send_verification_email(to_email: str, code: str, purpose: str = "register") -> bool:
-    """Send verification OTP to user's real email address via SMTP with Brevo API fallback or log in dev mode."""
+    """Send verification OTP to user's real email address via the configured SMTP or Brevo transport."""
     to_email = to_email.strip().lower()
     if purpose == "register":
-        subject = f"[HanziGo] Mã xác thực đăng ký tài khoản: {code}"
+        subject = "[HanziGo] Mã xác thực đăng ký tài khoản"
         purpose_label = "Xác thực đăng ký tài khoản mới"
     else:
-        subject = f"[HanziGo] Mã xác thực đặt lại mật khẩu: {code}"
+        subject = "[HanziGo] Mã xác thực đặt lại mật khẩu"
         purpose_label = "Yêu cầu đặt lại mật khẩu"
 
     cfg = get_email_config()
@@ -334,18 +334,8 @@ def send_verification_email(to_email: str, code: str, purpose: str = "register")
     if not smtp_is_configured():
         if os.environ.get("VERCEL"):
             raise RuntimeError("Dịch vụ SMTP chưa được cấu hình trên môi trường Vercel.")
-        logger.warning(
-            f"[EMAIL_DEV_MODE] No SMTP configured. Code for {to_email} ({purpose}): {code}"
-        )
-        try:
-            print(f"\n==========================================")
-            print(f"[HANZIGO EMAIL] Gui ma toi: {to_email}")
-            print(f"[HANZIGO EMAIL] Muc dich: {purpose}")
-            print(f"[HANZIGO EMAIL] MA XAC THUC (OTP): {code}")
-            print(f"==========================================\n", flush=True)
-        except Exception:
-            pass
-        return True
+        logger.warning("OTP delivery unavailable: email transport is not configured")
+        return False
 
     if cfg["api_key"]:
         try:

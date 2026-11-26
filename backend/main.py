@@ -23,6 +23,7 @@ from stroke_guides import bundled_strokes
 from ai_errors import ai_http_error
 from database import audit, database, init_db, row_to_dict
 from account_security import requires_password_reset
+import otp_security as otp
 from assessment_quality import READING_ASSESSED_SQL, reading_assessment_metadata
 from email_service import (get_smtp_status, send_verification_email,
                           smtp_is_configured)
@@ -249,119 +250,46 @@ def register(body: Register):
 
 
 @app.post("/api/auth/register-request")
-def register_request(body: RegisterRequest):
+def register_request(body: RegisterRequest, request: Request):
     if os.environ.get("VERCEL") and not smtp_is_configured():
         raise HTTPException(503, "Dịch vụ gửi mã xác thực chưa sẵn sàng. Vui lòng thử lại sau.")
     with database() as conn:
-        existing = conn.execute("SELECT id FROM users WHERE email=?", (body.email.lower(),)).fetchone()
-        if existing:
+        if conn.execute("SELECT id FROM users WHERE email=?", (body.email,)).fetchone():
             raise HTTPException(409, "Email đã được sử dụng")
-
-        code = f"{secrets.randbelow(900000) + 100000}"
-        salt = secrets.token_hex(16)
-        password_hash = hash_password(body.password, salt)
-        temp_data = json.dumps({"name": body.name, "password_hash": password_hash, "salt": salt}, ensure_ascii=False)
-        now = int(time.time())
-        expires_at = now + 600  # 10 minutes
-
-        verification_id = conn.execute(
-            "INSERT INTO verification_codes(email, code, purpose, temp_data_json, expires_at, created_at, used) VALUES(?,?,?,?,?,?,1)",
-            (body.email.lower(), code, "register", temp_data, expires_at, now),
-        ).lastrowid
-
-    try:
-        if not send_verification_email(body.email.lower(), code, "register"):
-            raise RuntimeError("Delivery was not accepted")
-    except Exception:
-        raise HTTPException(503, "Chưa gửi được mã xác thực. Vui lòng thử lại sau.")
-
-    activate_delivered_code(verification_id, body.email.lower(), "register")
-
-    return {"status": "ok", "message": "Mã xác thực đã được gửi tới email của bạn", "email": body.email.lower()}
+    otp.limit_send(body.email, "register", request)
+    salt = secrets.token_hex(16)
+    data = {"name": body.name, "password_hash": hash_password(body.password, salt), "salt": salt}
+    with database() as conn:
+        verification_id, code = otp.create_code(conn, body.email, "register", data)
+    otp.deliver_code(verification_id, body.email, "register", code, send_verification_email)
+    return {"status": "ok", "message": "Mã xác thực đã được gửi tới email của bạn", "email": body.email}
 
 
 @app.post("/api/auth/register-verify", status_code=201)
-def register_verify(body: RegisterVerify):
-    now = int(time.time())
-    with database() as conn:
-        row = conn.execute(
-            "SELECT * FROM verification_codes WHERE email=? AND purpose='register' AND code=? AND used=0 AND expires_at > ? ORDER BY id DESC LIMIT 1",
-            (body.email.lower(), body.code, now),
-        ).fetchone()
-        if not row:
-            raise HTTPException(400, "Mã xác thực không chính xác hoặc đã hết hạn")
-
+def register_verify(body: RegisterVerify, request: Request):
+    def create_user(conn, row):
         data = json.loads(row["temp_data_json"])
         try:
             uid = conn.execute(
                 "INSERT INTO users(name,email,password_hash,salt,created_at) VALUES(?,?,?,?,?)",
-                (data["name"], body.email.lower(), data["password_hash"], data["salt"], now),
+                (data["name"], body.email, data["password_hash"], data["salt"], otp.now()),
             ).lastrowid
-            conn.execute("UPDATE verification_codes SET used=1 WHERE id=?", (row["id"],))
             return session(conn, require_row(conn, "users", uid))
         except sqlite3.IntegrityError:
             raise HTTPException(409, "Email đã được sử dụng")
+    return otp.consume_code(body.email, "register", body.code, request, create_user)
 
 
 @app.post("/api/auth/forgot-password-request")
-def forgot_password_request(body: ForgotPasswordRequest):
+def forgot_password_request(body: ForgotPasswordRequest, request: Request):
     if os.environ.get("VERCEL") and not smtp_is_configured():
         raise HTTPException(503, "Dịch vụ gửi mã xác thực chưa sẵn sàng. Vui lòng thử lại sau.")
-    with database() as conn:
-        user = conn.execute("SELECT id, is_active FROM users WHERE email=?", (body.email.lower(),)).fetchone()
-        if not user:
-            raise HTTPException(404, "Email này chưa được đăng ký trong hệ thống")
-        if not user["is_active"]:
-            raise HTTPException(403, "Tài khoản này đã bị khóa")
-
-        code = f"{secrets.randbelow(900000) + 100000}"
-        now = int(time.time())
-        expires_at = now + 600
-
-        verification_id = conn.execute(
-            "INSERT INTO verification_codes(email, code, purpose, temp_data_json, expires_at, created_at, used) VALUES(?,?,?,?,?,?,1)",
-            (body.email.lower(), code, "forgot_password", "{}", expires_at, now),
-        ).lastrowid
-
-    try:
-        if not send_verification_email(body.email.lower(), code, "forgot_password"):
-            raise RuntimeError("Delivery was not accepted")
-    except Exception:
-        raise HTTPException(503, "Chưa gửi được mã xác thực. Vui lòng thử lại sau.")
-
-    activate_delivered_code(verification_id, body.email.lower(), "forgot_password")
-
-    return {"status": "ok", "message": "Mã xác thực đặt lại mật khẩu đã được gửi tới email của bạn"}
-
-
-def activate_delivered_code(verification_id, email, purpose):
-    """Failed sends never activate their code or invalidate an earlier delivered one."""
-    with database() as conn:
-        conn.execute("UPDATE verification_codes SET used=1 WHERE email=? AND purpose=? AND used=0", (email, purpose))
-        conn.execute("UPDATE verification_codes SET used=0 WHERE id=? AND email=? AND purpose=?", (verification_id, email, purpose))
+    return otp.request_password_reset(body.email, request, send_verification_email)
 
 
 @app.post("/api/auth/forgot-password-verify")
-def forgot_password_verify(body: ForgotPasswordVerify):
-    now = int(time.time())
-    with database() as conn:
-        row = conn.execute(
-            "SELECT * FROM verification_codes WHERE email=? AND purpose='forgot_password' AND code=? AND used=0 AND expires_at > ? ORDER BY id DESC LIMIT 1",
-            (body.email.lower(), body.code, now),
-        ).fetchone()
-        if not row:
-            raise HTTPException(400, "Mã xác thực không chính xác hoặc đã hết hạn")
-
-        user = conn.execute("SELECT id FROM users WHERE email=?", (body.email.lower(),)).fetchone()
-        if not user:
-            raise HTTPException(404, "Không tìm thấy tài khoản người dùng")
-
-        new_salt = secrets.token_hex(16)
-        new_hash = hash_password(body.new_password, new_salt)
-        conn.execute("UPDATE users SET password_hash=?, salt=?, version=version+1 WHERE id=?", (new_hash, new_salt, user["id"]))
-        conn.execute("DELETE FROM sessions WHERE user_id=?", (user["id"],))
-        conn.execute("UPDATE verification_codes SET used=1 WHERE id=?", (row["id"],))
-        return {"status": "ok", "message": "Đặt lại mật khẩu thành công. Vui lòng đăng nhập với mật khẩu mới."}
+def forgot_password_verify(body: ForgotPasswordVerify, request: Request):
+    return otp.reset_password(body.email, body.code, body.new_password, request, hash_password)
 
 
 def login_for_role(body: Login, role: str):

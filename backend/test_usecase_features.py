@@ -45,7 +45,7 @@ class AccountUseCaseTests(unittest.TestCase):
   self.assertEqual(bad.status_code,422)
  def test_recovery_otp_expiration_attempts_and_single_use(self):
   sent=[]
-  with patch("usecase_features.smtp_ready",return_value=True),patch("usecase_features.send_otp",side_effect=lambda email,code:sent.append(code)):
+  with patch("usecase_features.smtp_ready",return_value=True),patch("usecase_features.send_otp",side_effect=lambda email,code:(sent.append(code) or True)):
    self.assertEqual(self.client.post("/api/auth/recovery",json={"email":"owner@example.test"}).status_code,200)
   self.assertEqual(len(sent),1)
   body={"email":"owner@example.test","code":sent[0],"password":"Recovered-password-123"}

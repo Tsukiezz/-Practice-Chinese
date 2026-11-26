@@ -29,6 +29,14 @@ class EmailDeliveryTests(unittest.TestCase):
         request = send.call_args.args[0]
         self.assertEqual(request.get_header('Api-key'), 'xkeysib-api-current')
         self.assertNotIn('xsmtpsib-smtp-separate', json.dumps(dict(request.header_items())))
+        self.assertNotIn('123456', json.loads(request.data)['subject'])
+
+    def test_unconfigured_development_does_not_log_or_report_delivery(self):
+        with patch.dict(os.environ, {}, clear=True), patch('email_service.smtp_is_configured', return_value=False):
+            with self.assertLogs('hanzigo.email', level='WARNING') as logs, patch('builtins.print') as console:
+                self.assertFalse(send_verification_email('learner@example.com', '123456'))
+        self.assertNotIn('123456', ' '.join(logs.output))
+        console.assert_not_called()
 
     def test_legacy_api_key_in_smtp_variable_is_still_supported(self):
         os.environ.pop('BREVO_API_KEY')

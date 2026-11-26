@@ -1,7 +1,6 @@
 """Account, recovery and public learning use cases."""
-import base64, hashlib, hmac, io, json, os, re, secrets, smtplib, ssl, time
+import base64, hashlib, hmac, io, json, os, re, secrets, time
 from datetime import date, timedelta
-from email.message import EmailMessage
 from pathlib import Path
 from urllib.parse import quote
 from fastapi import Depends, HTTPException, Request, Response
@@ -11,6 +10,8 @@ from database import database, audit, row_to_dict
 from ai_errors import ai_http_error
 from services import ai_settings, _post_gemini, _decode_gemini_candidate, record_ai_usage
 from translation_service import translate_with_ai
+from email_service import smtp_is_configured, send_verification_email
+import otp_security as otp
 
 class Profile(BaseModel):
     name: str = Field(min_length=1,max_length=120)
@@ -60,7 +61,7 @@ class PasswordChange(BaseModel):
 class RecoveryRequest(BaseModel):
     email: str = Field(min_length=3,max_length=120,pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 class RecoveryConfirm(RecoveryRequest):
-    code: str = Field(pattern=r"^\d{6}$")
+    code: str = Field(pattern=r"^[0-9]{6}$")
     password: str = Field(min_length=8,max_length=128)
 
 class Translation(BaseModel):
@@ -100,19 +101,12 @@ def limit(key, maximum, seconds=3600):
         else: c.execute("UPDATE request_limits SET count=count+1 WHERE key=?",(key,))
 
 def smtp_ready():
-    return bool(os.getenv("SMTP_HOST") and os.getenv("SMTP_FROM"))
+    return smtp_is_configured()
 
-def send_otp(email,code):
-    msg=EmailMessage()
-    msg["Subject"]="HanziGo - Mã khôi phục mật khẩu"
-    msg["From"]=os.environ["SMTP_FROM"]
-    msg["To"]=email
-    msg.set_content("Mã xác nhận của bạn: "+code+"\nMã có hiệu lực 10 phút. Không chia sẻ mã này.")
-    host=os.environ["SMTP_HOST"];port=int(os.getenv("SMTP_PORT","587"))
-    with smtplib.SMTP(host,port,timeout=15) as client:
-        client.starttls(context=ssl.create_default_context())
-        if os.getenv("SMTP_USERNAME"): client.login(os.environ["SMTP_USERNAME"],os.environ["SMTP_PASSWORD"])
-        client.send_message(msg)
+
+def send_otp(email, code):
+    return send_verification_email(email, code, "forgot_password")
+
 
 def register_features(app, current_user, hash_password):
     def optional_user(request: Request):
@@ -172,40 +166,12 @@ def register_features(app, current_user, hash_password):
     @app.post("/api/auth/recovery")
     def recovery(body:RecoveryRequest,request:Request):
         if not smtp_ready(): raise HTTPException(503,"Chưa cấu hình dịch vụ gửi email. Vui lòng liên hệ quản trị viên.")
-        email=body.email.strip().lower()
-        client_host = request.client.host if request.client else "unknown"
-        limit("otp-ip:"+str(client_host),10)
-        limit("otp:"+email,3)
-        with database() as c:
-            user=c.execute("SELECT id FROM users WHERE email=? AND is_active=1",(email,)).fetchone()
-        if user:
-            code=f"{secrets.randbelow(1_000_000):06d}";salt=secrets.token_hex(16)
-            with database() as c:
-                c.execute("INSERT OR REPLACE INTO recovery_codes VALUES(?,?,?,?,0)",(email,hash_password(code,salt),salt,int(time.time())+600))
-            try: send_otp(email,code)
-            except Exception:
-                with database() as c: c.execute("DELETE FROM recovery_codes WHERE email=?",(email,))
-                # Generic result prevents disclosing whether an account exists.
-        return {"message":"Nếu email hợp lệ, mã xác nhận sẽ được gửi. Kiểm tra cả thư rác."}
+        return otp.request_password_reset(body.email.strip().lower(), request,
+            lambda email, code, purpose: send_otp(email, code))
 
     @app.post("/api/auth/recovery/confirm",status_code=204)
-    def confirm(body:RecoveryConfirm):
-        email=body.email.strip().lower();valid=False
-        with database() as c:
-            c.execute("BEGIN IMMEDIATE")
-            row=c.execute("SELECT * FROM recovery_codes WHERE email=?",(email,)).fetchone()
-            if row and row["expires"]>time.time() and row["attempts"]<5:
-                c.execute("UPDATE recovery_codes SET attempts=attempts+1 WHERE email=?",(email,))
-                valid=hmac.compare_digest(hash_password(body.code,row["salt"]),row["digest"])
-                if valid:
-                    user=c.execute("SELECT id FROM users WHERE email=? AND is_active=1",(email,)).fetchone()
-                    if user:
-                        salt=secrets.token_hex(16)
-                        c.execute("UPDATE users SET password_hash=?,salt=?,version=version+1 WHERE id=?",(hash_password(body.password,salt),salt,user["id"]))
-                        c.execute("DELETE FROM sessions WHERE user_id=?",(user["id"],))
-                        audit(c,user["id"],"password_recovery","user",user["id"])
-                    c.execute("DELETE FROM recovery_codes WHERE email=?",(email,))
-        if not valid: raise HTTPException(400,"Mã không hợp lệ, đã hết hạn hoặc vượt quá số lần thử")
+    def confirm(body:RecoveryConfirm, request:Request):
+        otp.reset_password(body.email.strip().lower(), body.code, body.password, request, hash_password)
 
     @app.post("/api/translation/text")
     def translate(body:Translation,request:Request,response:Response,user=Depends(optional_user)):

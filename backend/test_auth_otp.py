@@ -26,14 +26,23 @@ class TestAuthOtp(unittest.TestCase):
             user = conn.execute("SELECT id FROM users WHERE email=?", (self.test_email,)).fetchone()
             if user:
                 conn.execute("DELETE FROM sessions WHERE user_id=?", (user["id"],))
+                conn.execute("DELETE FROM audit_logs WHERE actor_id=?", (user["id"],))
                 conn.execute("DELETE FROM users WHERE id=?", (user["id"],))
             conn.execute("DELETE FROM verification_codes WHERE email=?", (self.test_email,))
+            conn.execute("DELETE FROM request_limits WHERE key LIKE 'otp:%'")
 
     def setUp(self):
         init_db()
         self.client = TestClient(app)
         self.test_email = "tester_otp@example.com"
         self._cleanup()
+        self.sent = []
+        def capture(email, code, purpose):
+            self.sent.append(code)
+            return True
+        self.delivery = patch("main.send_verification_email", side_effect=capture)
+        self.delivery.start()
+        self.addCleanup(self.delivery.stop)
 
     def tearDown(self):
         self._cleanup()
@@ -56,7 +65,9 @@ class TestAuthOtp(unittest.TestCase):
             ).fetchone()
             self.assertIsNotNone(row)
             assert row is not None
-            code = row["code"]
+            self.assertTrue(row["code"].startswith("h1$"))
+            code = self.sent[-1]
+            self.assertNotIn(code, row["code"])
 
         # 2. Test verify with wrong code
         fail_res = self.client.post("/api/auth/register-verify", json={
@@ -97,7 +108,7 @@ class TestAuthOtp(unittest.TestCase):
                 (self.test_email,)
             ).fetchone()
             assert rc_row is not None
-            reg_code = rc_row["code"]
+            reg_code = self.sent[-1]
         self.client.post("/api/auth/register-verify", json={
             "email": self.test_email,
             "code": reg_code
@@ -116,7 +127,7 @@ class TestAuthOtp(unittest.TestCase):
             ).fetchone()
             self.assertIsNotNone(reset_row)
             assert reset_row is not None
-            reset_code = reset_row["code"]
+            reset_code = self.sent[-1]
 
         # 2. Reset password with wrong code
         bad_reset = self.client.post("/api/auth/forgot-password-verify", json={
@@ -164,7 +175,8 @@ class TestAuthOtp(unittest.TestCase):
         self.assertEqual(self.client.post('/api/auth/register-request', json=body).status_code, 200)
         with database() as conn:
             old = conn.execute("SELECT id FROM verification_codes WHERE email=? AND used=0", (self.test_email,)).fetchone()[0]
-        with patch('main.send_verification_email', return_value=False):
+        import otp_security
+        with patch('otp_security.now', return_value=otp_security.now()+61), patch('main.send_verification_email', return_value=False):
             self.assertEqual(self.client.post('/api/auth/register-request', json=body).status_code, 503)
         with database() as conn:
             rows = conn.execute("SELECT id,used FROM verification_codes WHERE email=? ORDER BY id", (self.test_email,)).fetchall()
@@ -175,13 +187,15 @@ class TestAuthOtp(unittest.TestCase):
         body = {"name":"OTP Tester", "email":self.test_email, "password":"Password123@"}
         self.client.post('/api/auth/register-request', json=body)
         with database() as conn:
-            code = conn.execute("SELECT code FROM verification_codes WHERE email=? AND purpose='register' AND used=0", (self.test_email,)).fetchone()[0]
+            self.assertIsNotNone(conn.execute("SELECT id FROM verification_codes WHERE email=? AND purpose='register' AND used=0", (self.test_email,)).fetchone())
+            code = self.sent[-1]
         self.client.post('/api/auth/register-verify', json={"email":self.test_email,"code":code})
         reset = {"email":self.test_email}
         self.assertEqual(self.client.post('/api/auth/forgot-password-request', json=reset).status_code, 200)
         with database() as conn:
             old = conn.execute("SELECT id FROM verification_codes WHERE email=? AND purpose='forgot_password' AND used=0", (self.test_email,)).fetchone()[0]
-        with patch('main.send_verification_email', side_effect=RuntimeError('provider failure')):
+        import otp_security
+        with patch('otp_security.now', return_value=otp_security.now()+61), patch('main.send_verification_email', side_effect=RuntimeError('provider failure')):
             self.assertEqual(self.client.post('/api/auth/forgot-password-request', json=reset).status_code, 503)
         with database() as conn:
             rows = conn.execute("SELECT id,used FROM verification_codes WHERE email=? AND purpose='forgot_password' ORDER BY id", (self.test_email,)).fetchall()

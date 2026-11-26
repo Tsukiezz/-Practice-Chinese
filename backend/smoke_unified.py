@@ -41,9 +41,10 @@ def run():
             sock.bind(('127.0.0.1', 0))
             port = sock.getsockname()[1]
         base = f'http://127.0.0.1:{port}'
-        env = {**os.environ, 'DATABASE_PATH': str(storage.DB_PATH), 'WEB_APP_DIR': str(web_dir)}
+        env = {**os.environ, 'DATABASE_PATH': str(storage.DB_PATH), 'WEB_APP_DIR': str(web_dir), 'TEST_OTP_OUTBOX': str(Path(temp)/'test-otp.txt')}
         server_code = (
-            "import main,uvicorn; "
+            "import main,uvicorn,os; from pathlib import Path; "
+            "main.send_verification_email=lambda email,code,purpose: (Path(os.environ['TEST_OTP_OUTBOX']).write_text(code) and True); "
             "main.grade_listening_exam=lambda *args: {'score':100,'feedback':'Test grading'}; "
             f"uvicorn.run(main.app,host='127.0.0.1',port={port})"
         )
@@ -254,13 +255,8 @@ def run():
                         expect(page.get_by_text('Email đã được sử dụng',exact=True)).to_be_visible()
                         page.screenshot(path=str(artifacts/'tuyen-register-mobile.png'))
                     else:
-                        with storage.database() as conn:
-                            otp_row = conn.execute(
-                                "SELECT code FROM verification_codes WHERE email=? AND purpose='register' AND used=0 ORDER BY id DESC LIMIT 1",
-                                ('newstudent@example.test',)
-                            ).fetchone()
-                            assert otp_row is not None, 'Registration must persist a verification code before accepting OTP'
-                            otp_code = otp_row["code"]
+                        # The disposable test server captures the mock delivery; the DB stores only HMACs.
+                        otp_code = Path(env['TEST_OTP_OUTBOX']).read_text()
                         fill_field('6 chữ số', otp_code)
                         page.get_by_role('button', name='Xác nhận & Hoàn tất', exact=True).click()
                         expect(page.get_by_role('tab',name='Nghe',exact=True)).to_be_visible()

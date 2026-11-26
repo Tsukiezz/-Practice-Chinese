@@ -78,8 +78,10 @@ class AssessmentIntegrityTests(unittest.TestCase):
             delivery.assert_not_called()
         with storage.database() as conn:
             self.assertEqual(conn.execute('SELECT COUNT(*) FROM verification_codes').fetchone()[0], 0)
-        for result in (False, RuntimeError('PRIVATE_PROVIDER_ERROR')):
-            with patch('main.send_verification_email', **({'side_effect': result} if isinstance(result, Exception) else {'return_value': result})):
+        import otp_security
+        stamp = otp_security.now()
+        for i, result in enumerate((False, RuntimeError('PRIVATE_PROVIDER_ERROR'))):
+            with patch('otp_security.now', return_value=stamp+i*61), patch('main.send_verification_email', **({'side_effect': result} if isinstance(result, Exception) else {'return_value': result})):
                 response = self.client.post('/api/auth/forgot-password-request', json={'email': 'learner@example.test'})
             self.assertEqual(response.status_code, 503)
             self.assertNotIn('PRIVATE_PROVIDER_ERROR', response.text)

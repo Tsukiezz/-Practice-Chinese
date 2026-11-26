@@ -62,7 +62,20 @@ def init_auth_tables(conn):
         used INTEGER NOT NULL DEFAULT 0
     );
     CREATE INDEX IF NOT EXISTS verification_codes_lookup ON verification_codes(email, purpose, used);
+    CREATE TABLE IF NOT EXISTS request_limits (
+        key TEXT PRIMARY KEY, window INTEGER NOT NULL, count INTEGER NOT NULL
+    );
     """)
+    columns = {row['name'] for row in conn.execute('PRAGMA table_info(verification_codes)')}
+    if 'attempts' not in columns:
+        try:
+            conn.execute('ALTER TABLE verification_codes ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0')
+        except sqlite3.OperationalError:
+            # Another cold-start instance may have completed the same migration.
+            if 'attempts' not in {row['name'] for row in conn.execute('PRAGMA table_info(verification_codes)')}:
+                raise
+    from otp_security import migrate_legacy_codes
+    migrate_legacy_codes(conn)
 
 
 def init_db():
@@ -191,6 +204,7 @@ def init_db():
         CREATE INDEX IF NOT EXISTS verification_codes_lookup ON verification_codes(email, purpose, used);
         """)
         # Additive, idempotent migration: preserve existing accounts and sessions.
+        init_auth_tables(conn)
         user_cols = {row['name'] for row in conn.execute('PRAGMA table_info(users)')}
         if 'version' not in user_cols:
             conn.execute('ALTER TABLE users ADD COLUMN version INTEGER NOT NULL DEFAULT 1')

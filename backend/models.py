@@ -113,7 +113,7 @@ class RegisterRequest(Register):
 class RegisterVerify(Body):
     model_config = ConfigDict(str_strip_whitespace=False)
     email: str = Field(min_length=3, max_length=120)
-    code: str = Field(min_length=4, max_length=8)
+    code: str = Field(pattern=r"^[0-9]{6}$")
 
     @field_validator("email", mode="before")
     @classmethod
@@ -147,7 +147,7 @@ class ForgotPasswordRequest(Body):
 class ForgotPasswordVerify(Body):
     model_config = ConfigDict(str_strip_whitespace=False)
     email: str = Field(min_length=3, max_length=120)
-    code: str = Field(min_length=4, max_length=8)
+    code: str = Field(pattern=r"^[0-9]{6}$")
     new_password: str = Field(min_length=8, max_length=128)
 
     @field_validator("email", mode="before")

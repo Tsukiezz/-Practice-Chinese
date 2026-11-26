@@ -18,6 +18,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='hanzigo-tests-') as temporary:
         os.environ['DATABASE_PATH'] = str(Path(temporary) / 'isolated.db')
         os.environ['TESTING'] = '1'
+        os.environ['OTP_HASH_SECRET'] = 'isolated-test-otp-secret-not-for-production'
         os.environ.pop('VERCEL', None)
         # dotenv must not replace these with local production credentials.
         for key in ('TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN', 'GEMINI_API_KEY', 'AI_API_KEY',
