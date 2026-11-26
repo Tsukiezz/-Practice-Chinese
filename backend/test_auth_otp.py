@@ -4,6 +4,7 @@ from pathlib import Path
 import sqlite3
 import sys
 import unittest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 _backend_dir = Path(__file__).resolve().parent
@@ -157,6 +158,35 @@ class TestAuthOtp(unittest.TestCase):
         self.assertIn("configured", data["smtp"])
         self.assertIn("host", data["smtp"])
         self.assertIn("is_brevo", data["smtp"])
+
+    def test_failed_registration_delivery_preserves_previous_delivered_code(self):
+        body = {"name":"OTP Tester", "email":self.test_email, "password":"Password123@"}
+        self.assertEqual(self.client.post('/api/auth/register-request', json=body).status_code, 200)
+        with database() as conn:
+            old = conn.execute("SELECT id FROM verification_codes WHERE email=? AND used=0", (self.test_email,)).fetchone()[0]
+        with patch('main.send_verification_email', return_value=False):
+            self.assertEqual(self.client.post('/api/auth/register-request', json=body).status_code, 503)
+        with database() as conn:
+            rows = conn.execute("SELECT id,used FROM verification_codes WHERE email=? ORDER BY id", (self.test_email,)).fetchall()
+        self.assertEqual([(r['id'],r['used']) for r in rows if r['id']==old], [(old,0)])
+        self.assertEqual(rows[-1]['used'], 1)
+
+    def test_failed_reset_delivery_preserves_previous_delivered_code(self):
+        body = {"name":"OTP Tester", "email":self.test_email, "password":"Password123@"}
+        self.client.post('/api/auth/register-request', json=body)
+        with database() as conn:
+            code = conn.execute("SELECT code FROM verification_codes WHERE email=? AND purpose='register' AND used=0", (self.test_email,)).fetchone()[0]
+        self.client.post('/api/auth/register-verify', json={"email":self.test_email,"code":code})
+        reset = {"email":self.test_email}
+        self.assertEqual(self.client.post('/api/auth/forgot-password-request', json=reset).status_code, 200)
+        with database() as conn:
+            old = conn.execute("SELECT id FROM verification_codes WHERE email=? AND purpose='forgot_password' AND used=0", (self.test_email,)).fetchone()[0]
+        with patch('main.send_verification_email', side_effect=RuntimeError('provider failure')):
+            self.assertEqual(self.client.post('/api/auth/forgot-password-request', json=reset).status_code, 503)
+        with database() as conn:
+            rows = conn.execute("SELECT id,used FROM verification_codes WHERE email=? AND purpose='forgot_password' ORDER BY id", (self.test_email,)).fetchall()
+        self.assertEqual([(r['id'],r['used']) for r in rows if r['id']==old], [(old,0)])
+        self.assertEqual(rows[-1]['used'], 1)
 
     def test_brevo_config_detection(self):
         import os

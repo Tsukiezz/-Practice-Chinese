@@ -3,6 +3,7 @@ import email.utils
 import json
 import logging
 import os
+import re
 import smtplib
 import urllib.error
 import urllib.request
@@ -10,6 +11,21 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 logger = logging.getLogger("hanzigo.email")
+
+
+class EmailDeliveryError(RuntimeError):
+    """Safe provider diagnostics: never include credentials, OTPs or raw responses."""
+    def __init__(self, provider, reason, status=None, code=None, source_ip=None):
+        self.provider, self.reason, self.status = provider, reason, status
+        self.code, self.source_ip = code, source_ip
+        details = [provider, reason]
+        if status is not None:
+            details.append(f"http={status}")
+        if code:
+            details.append(f"code={code}")
+        if source_ip:
+            details.append(f"source_ip={source_ip}")
+        super().__init__("Email delivery failed: " + ", ".join(details))
 
 
 def get_email_config() -> dict:
@@ -38,10 +54,14 @@ def get_email_config() -> dict:
         os.environ.get("SMTP_PASSWORD", "")
         or os.environ.get("SMTP_PASS", "")
         or os.environ.get("MAIL_PASSWORD", "")
-        or os.environ.get("BREVO_API_KEY", "")
         or os.environ.get("BREVO_SMTP_KEY", "")
         or os.environ.get("SMTP_KEY", "")
     ).strip()
+    # API and SMTP credentials are different products. A dedicated API key
+    # must never be shadowed by an older SMTP password.
+    api_key = os.environ.get("BREVO_API_KEY", "").strip()
+    if not api_key and password.startswith("xkeysib-"):
+        api_key, password = password, ""  # Support the old API-key-in-SMTP setting.
 
     port_raw = (
         os.environ.get("SMTP_PORT", "")
@@ -65,8 +85,8 @@ def get_email_config() -> dict:
     # Auto-detect host for Brevo or Gmail if missing
     if not host:
         if (
-            password.startswith("xsmtpsib-")
-            or password.startswith("xkeysib-")
+            api_key
+            or password.startswith("xsmtpsib-")
             or "brevo" in user.lower()
             or "sendinblue" in user.lower()
             or "brevosend.com" in from_raw.lower()
@@ -80,6 +100,8 @@ def get_email_config() -> dict:
         "port": port,
         "user": user,
         "password": password,
+        "api_key": api_key,
+        "transport": "brevo_api" if api_key else "smtp",
         "from_raw": from_raw,
     }
 
@@ -87,8 +109,8 @@ def get_email_config() -> dict:
 def smtp_is_configured() -> bool:
     """Return whether all credentials required to deliver an email are present."""
     cfg = get_email_config()
-    if cfg["password"].startswith("xkeysib-") or bool(os.environ.get("BREVO_API_KEY")):
-        return bool(cfg["password"] and cfg["from_raw"])
+    if cfg["api_key"]:
+        return bool(cfg["from_raw"])
     return bool(cfg["host"] and cfg["user"] and cfg["password"])
 
 
@@ -108,12 +130,14 @@ def get_smtp_status() -> dict:
 
     return {
         "configured": smtp_is_configured(),
+        "transport": cfg["transport"],
         "host": cfg["host"],
         "port": cfg["port"],
         "user_masked": masked_user,
         "from_raw": cfg["from_raw"],
         "is_brevo": (
-            "brevo" in cfg["host"].lower()
+            bool(cfg["api_key"])
+            or "brevo" in cfg["host"].lower()
             or "sendinblue" in cfg["host"].lower()
             or cfg["password"].startswith("xsmtpsib-")
             or "brevo" in user.lower()
@@ -215,10 +239,12 @@ def _send_via_smtp(cfg: dict, to_email: str, subject: str, text_content: str, ht
 
 
 def _send_via_brevo_api(cfg: dict, to_email: str, subject: str, text_content: str, html_content: str) -> bool:
-    """Fallback sending via Brevo REST API v3 (HTTPS 443) if SMTP ports are blocked."""
-    api_key = cfg["password"]
+    """Send with a Brevo API key over HTTPS; an SMTP key is never a fallback."""
+    api_key = cfg["api_key"]
     if not api_key:
         return False
+    if api_key.startswith("xsmtpsib-"):
+        raise EmailDeliveryError("config", "smtp_key_in_api_variable")
 
     parsed_name, parsed_addr = email.utils.parseaddr(cfg["from_raw"])
     from_email = parsed_addr if parsed_addr else cfg["from_raw"]
@@ -245,10 +271,45 @@ def _send_via_brevo_api(cfg: dict, to_email: str, subject: str, text_content: st
         headers=headers,
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        if 200 <= resp.status < 300:
-            return True
-    return False
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            if 200 <= resp.status < 300:
+                return True
+        return False
+    except urllib.error.HTTPError as exc:
+        # urllib's default message hides whether a 401 is an invalid key or
+        # blocked source IP. Classify the body, but never log the body itself.
+        try:
+            body = json.loads(exc.read(8192).decode("utf-8", errors="replace"))
+        except (ValueError, OSError):
+            body = {}
+        if not isinstance(body, dict):
+            body = {}
+        message = str(body.get("message", "")).lower()
+        raw_code = str(body.get("code", ""))
+        code = raw_code if raw_code in {
+            "unauthorized", "permission_denied", "invalid_parameter", "missing_parameter",
+            "document_not_found", "method_not_allowed", "out_of_range", "duplicate_parameter",
+            "duplicate_request", "not_enough_credits", "account_under_validation", "bad_request",
+        } else "unknown"
+        source_ip = None
+        if "ip" in message and any(s in message for s in ("unrecogn", "not authoriz", "not allowed", "not verified", "whitelist")):
+            reason = "ip_not_authorized"
+            match = re.search(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", message)
+            source_ip = match.group() if match else None
+        elif exc.code == 401:
+            reason = "invalid_api_key"
+        elif "sender" in message and any(s in message for s in ("verif", "valid", "authoriz")):
+            reason = "sender_not_verified"
+        elif exc.code == 429:
+            reason = "rate_limited"
+        elif exc.code == 403:
+            reason = "permission_denied"
+        else:
+            reason = "provider_rejected"
+        raise EmailDeliveryError("brevo_api", reason, exc.code, code, source_ip) from None
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        raise EmailDeliveryError("brevo_api", "connection_failed") from None
 
 
 def send_verification_email(to_email: str, code: str, purpose: str = "register") -> bool:
@@ -286,43 +347,22 @@ def send_verification_email(to_email: str, code: str, purpose: str = "register")
             pass
         return True
 
-    # 1. If Brevo API key is provided (starts with xkeysib- or BREVO_API_KEY env), use REST API directly (like CDTV project)
-    is_brevo_api_key = cfg["password"].startswith("xkeysib-") or bool(os.environ.get("BREVO_API_KEY"))
-    if is_brevo_api_key:
+    if cfg["api_key"]:
         try:
             if _send_via_brevo_api(cfg, to_email, subject, text_content, html_content):
-                logger.info(f"Successfully sent OTP email to {to_email} via Brevo REST API v3")
+                logger.info("OTP delivery accepted by Brevo REST API")
                 return True
-        except Exception as api_exc:
-            logger.error(f"Brevo REST API failed: {api_exc}")
-            raise RuntimeError(f"Gửi email qua Brevo REST API thất bại: {api_exc}")
+            raise EmailDeliveryError("brevo_api", "delivery_not_accepted")
+        except EmailDeliveryError as exc:
+            logger.error("OTP delivery rejected: %s", exc)
+            raise
 
-    # 2. Try standard SMTP
-    smtp_err = None
     try:
         _send_via_smtp(cfg, to_email, subject, text_content, html_content)
-        logger.info(f"Successfully sent OTP email to {to_email} via SMTP ({cfg['host']}:{cfg['port']})")
+        logger.info("OTP delivery accepted by SMTP")
         return True
     except Exception as exc:
-        smtp_err = exc
-        logger.warning(f"SMTP send failed ({exc}), checking Brevo REST API fallback...")
-
-    # 3. Fallback to Brevo REST API v3 if applicable
-    is_brevo = (
-        "brevo" in cfg["host"].lower()
-        or "sendinblue" in cfg["host"].lower()
-        or cfg["password"].startswith("xsmtpsib-")
-        or "brevo" in cfg["user"].lower()
-        or "brevosend.com" in cfg["from_raw"].lower()
-    )
-    if is_brevo:
-        try:
-            if _send_via_brevo_api(cfg, to_email, subject, text_content, html_content):
-                logger.info(f"Successfully sent OTP email to {to_email} via Brevo REST API v3")
-                return True
-        except Exception as api_exc:
-            logger.error(f"Brevo REST API fallback also failed: {api_exc}")
-            raise RuntimeError(f"Gửi email qua Brevo thất bại (SMTP: {smtp_err} | REST API: {api_exc})")
-
-    raise RuntimeError(f"Không thể gửi email xác thực qua SMTP: {smtp_err}")
+        error = EmailDeliveryError("smtp", "authentication_failed" if isinstance(exc, smtplib.SMTPAuthenticationError) else "connection_failed")
+        logger.error("OTP delivery rejected: %s", error)
+        raise error from None
 

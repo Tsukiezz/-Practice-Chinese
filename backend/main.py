@@ -264,17 +264,18 @@ def register_request(body: RegisterRequest):
         now = int(time.time())
         expires_at = now + 600  # 10 minutes
 
-        conn.execute("UPDATE verification_codes SET used=1 WHERE email=? AND purpose='register' AND used=0", (body.email.lower(),))
-        conn.execute(
-            "INSERT INTO verification_codes(email, code, purpose, temp_data_json, expires_at, created_at, used) VALUES(?,?,?,?,?,?,0)",
+        verification_id = conn.execute(
+            "INSERT INTO verification_codes(email, code, purpose, temp_data_json, expires_at, created_at, used) VALUES(?,?,?,?,?,?,1)",
             (body.email.lower(), code, "register", temp_data, expires_at, now),
-        )
+        ).lastrowid
 
     try:
         if not send_verification_email(body.email.lower(), code, "register"):
             raise RuntimeError("Delivery was not accepted")
     except Exception:
         raise HTTPException(503, "Chưa gửi được mã xác thực. Vui lòng thử lại sau.")
+
+    activate_delivered_code(verification_id, body.email.lower(), "register")
 
     return {"status": "ok", "message": "Mã xác thực đã được gửi tới email của bạn", "email": body.email.lower()}
 
@@ -317,11 +318,10 @@ def forgot_password_request(body: ForgotPasswordRequest):
         now = int(time.time())
         expires_at = now + 600
 
-        conn.execute("UPDATE verification_codes SET used=1 WHERE email=? AND purpose='forgot_password' AND used=0", (body.email.lower(),))
-        conn.execute(
-            "INSERT INTO verification_codes(email, code, purpose, temp_data_json, expires_at, created_at, used) VALUES(?,?,?,?,?,?,0)",
+        verification_id = conn.execute(
+            "INSERT INTO verification_codes(email, code, purpose, temp_data_json, expires_at, created_at, used) VALUES(?,?,?,?,?,?,1)",
             (body.email.lower(), code, "forgot_password", "{}", expires_at, now),
-        )
+        ).lastrowid
 
     try:
         if not send_verification_email(body.email.lower(), code, "forgot_password"):
@@ -329,7 +329,16 @@ def forgot_password_request(body: ForgotPasswordRequest):
     except Exception:
         raise HTTPException(503, "Chưa gửi được mã xác thực. Vui lòng thử lại sau.")
 
+    activate_delivered_code(verification_id, body.email.lower(), "forgot_password")
+
     return {"status": "ok", "message": "Mã xác thực đặt lại mật khẩu đã được gửi tới email của bạn"}
+
+
+def activate_delivered_code(verification_id, email, purpose):
+    """Failed sends never activate their code or invalidate an earlier delivered one."""
+    with database() as conn:
+        conn.execute("UPDATE verification_codes SET used=1 WHERE email=? AND purpose=? AND used=0", (email, purpose))
+        conn.execute("UPDATE verification_codes SET used=0 WHERE id=? AND email=? AND purpose=?", (verification_id, email, purpose))
 
 
 @app.post("/api/auth/forgot-password-verify")
